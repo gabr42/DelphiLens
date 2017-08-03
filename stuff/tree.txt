@@ -1,0 +1,50 @@
+UNIT
+  INTERFACE
+    ...
+  IMPLEMENTATION
+    ...
+
+UNIT
+  ...
+
+
+USES
+  UNIT
+
+TYPESECTION
+  TYPEDECL
+    TYPE name="enum"                    not "type" ?
+      IDENTIFIER
+      ...
+    TYPE type="set"
+      TYPE
+    TYPE type="interface"
+    .........
+
+VARIABLES
+  VARIABLE
+    NAME
+    TYPE
+
+METHOD name
+  PARAMETERS
+    PARAMETER
+      NAME
+      TYPE
+  VARIABLES
+    ...
+
+CALL
+  <IDENTIFIER>
+  or
+  <DOT>
+
+service.DependsOnServices.Clear;
+=>\                      
+<DOT line="222" col="18">
+  <IDENTIFIER line="222" col="11" name="service"/>
+  <DOT line="222" col="36">
+    <IDENTIFIER line="222" col="19" name="DependsOnServices"/>
+    <IDENTIFIER line="222" col="37" name="Clear"/>
+  </DOT>
+</DOT>

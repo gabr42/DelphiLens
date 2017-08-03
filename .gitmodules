@@ -1,0 +1,3 @@
+[submodule "DelphiAST"]
+	path = DelphiAST
+	url = https://github.com/gabr42/DelphiAST

@@ -11,6 +11,7 @@ object frmDLMain: TfrmDLMain
   Font.Name = 'Tahoma'
   Font.Style = []
   OldCreateOrder = False
+  OnCreate = FormCreate
   DesignSize = (
     625
     497)
@@ -48,6 +49,7 @@ object frmDLMain: TfrmDLMain
     Anchors = [akLeft, akTop, akRight]
     ReadOnly = True
     TabOrder = 1
+    OnChange = inpProjectChange
   end
   object btnSelect: TButton
     Left = 535
@@ -66,6 +68,7 @@ object frmDLMain: TfrmDLMain
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 2
+    OnExit = SettingExit
   end
   object inpDefines: TEdit
     Left = 117
@@ -74,6 +77,7 @@ object frmDLMain: TfrmDLMain
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 3
+    OnExit = SettingExit
   end
   object btnRescan: TButton
     Left = 24
@@ -82,6 +86,7 @@ object frmDLMain: TfrmDLMain
     Height = 25
     Caption = 'Rescan'
     TabOrder = 4
+    OnClick = btnRescanClick
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'

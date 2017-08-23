@@ -2,8 +2,7 @@ program DelphiLensDesktop;
 
 uses
   Vcl.Forms,
-  DelphiLensDesktop.Main in 'DelphiLensDesktop.Main.pas' {frmDLMain},
-  DelphiLens.Intf in 'DelphiLens.Intf.pas';
+  DelphiLensDesktop.Main in 'DelphiLensDesktop.Main.pas' {frmDLMain};
 
 {$R *.res}
 

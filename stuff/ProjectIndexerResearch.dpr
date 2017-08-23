@@ -7,16 +7,18 @@ program ProjectIndexerResearch;
 uses
   FastMM4,
   System.SysUtils, System.Classes, System.Generics.Collections,
-  DelphiAST.Classes, DelphiAST.Serialize.Binary,
+  DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary,
   GpStuff, GpStructuredStorage,
   ProjectIndexer;
 
 type
   TEvents = class
   strict private
+    FInterestingTypes: set of TSyntaxNodeType;
     FStorage: IGpStructuredStorage;
   strict protected
-    function Cleanup(const fileName: string): string;
+    function  Cleanup(const fileName: string): string;
+    procedure CleanupTree(root: TSyntaxNode);
   public
     constructor Create(AStorage: IGpStructuredStorage);
     procedure GetUnitSyntax(Sender: TObject; const fileName: string; var syntaxTree: TSyntaxNode;
@@ -40,6 +42,14 @@ constructor TEvents.Create(AStorage: IGpStructuredStorage);
 begin
   inherited Create;
   FStorage := AStorage;
+  FInterestingTypes := [ntAnonymousMethod, ntArguments, ntAs, ntAttribute, ntAttributes,
+    ntCall, ntConstant, ntConstants, ntEnum, ntExternal, ntField, ntFields, ntGeneric,
+    ntHelper, ntIdentifier, ntImplementation, ntImplements, ntInherited, ntInitialization,
+    ntInterface, ntLabel, ntMethod, ntName, ntNamedArgument, ntPackage, ntParameter,
+    ntParameters, ntPath, ntPositionalArgument, ntProtected, ntPrivate, ntProperty,
+    ntPublic, ntPublished, ntResolutionClause, ntResourceString, ntStrictPrivate,
+    ntStrictProtected, ntType, ntTypeArgs, ntTypeDecl, ntTypeParam, ntTypeParams,
+    ntTypeSection, ntVariable, ntVariables, ntUnit, ntUses];
 end;
 
 function TEvents.Cleanup(const fileName: string): string;
@@ -47,6 +57,17 @@ begin
   Result := StringReplace(fileName, ':\', '_\', []);
   Result := StringReplace(Result,   '\\', '\_\', []);
   Result := '\' + Result;
+end;
+
+procedure TEvents.CleanupTree(root: TSyntaxNode);
+var
+  iChild: integer;
+begin
+  for iChild := High(root.ChildNodes) downto Low(root.ChildNodes) do
+    if root.ChildNodes[iChild].Typ in FInterestingTypes then
+      CleanupTree(root.ChildNodes[iChild])
+    else
+      root.DeleteChild(root.ChildNodes[iChild]);
 end;
 
 procedure TEvents.GetUnitSyntax(Sender: TObject; const fileName: string;
@@ -93,6 +114,7 @@ begin
     try
       mem := TMemoryStream.Create;
       try
+        CleanupTree(syntaxTree);
         ser.Write(mem, syntaxTree);
         str.CopyFrom(mem, 0);
       finally FreeAndNil(mem); end;

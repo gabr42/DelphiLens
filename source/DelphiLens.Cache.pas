@@ -10,7 +10,7 @@ function CreateDLCache(const cacheFileName: string; dataFormatVersion: integer):
 implementation
 
 uses
-  System.SysUtils, System.Classes,
+  System.SysUtils, System.Classes, System.Generics.Defaults, System.Generics.Collections,
   DelphiAST.Classes, DelphiAST.Serialize.Binary,
   ProjectIndexer,
   DSiWin32,
@@ -26,7 +26,14 @@ type
       FileName: string;
       FileTime: string;
     end;
+    TUnitInfo = record
+      FullName: string;
+      FileTime: string;
+      constructor Create(const AFullName, AFileTime: string);
+    end;
+    TCacheInfo = TDictionary<string{unit name}, TUnitInfo>;
   var
+    FCacheInfo   : TCacheInfo;
     FLastGet     : TLastGet;
     FStorageFile : string;
     FStorage     : IGpStructuredStorage;
@@ -39,9 +46,11 @@ type
       var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
     procedure IndexerUnitParsed(Sender: TObject; const unitName: string; const fileName: string;
       var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
+    procedure LoadCacheInfo(const folder: string);
     procedure SetSyntaxFilter(const value: TProc<TSyntaxNode>);
   public
     constructor Create(const AStorageFile: string; ADataFormatVersion: integer);
+    destructor  Destroy; override;
     procedure BindTo(indexer: TProjectIndexer);
     property SyntaxFilter: TProc<TSyntaxNode> read GetSyntaxFilter write SetSyntaxFilter;
   end; { TDLCache }
@@ -70,7 +79,15 @@ begin
     FStorage.Initialize(FStorageFile, fmCreate);
     FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion] := IntToStr(ADataFormatVersion);
   end;
+  FCacheInfo := TCacheInfo.Create(1000, TIStringComparer.Ordinal);
+  LoadCacheInfo('/');
 end; { TDLCache.Create }
+
+destructor TDLCache.Destroy;
+begin
+  FreeAndNil(FCacheInfo);
+  inherited;
+end; { TDLCache.Destroy }
 
 procedure TDLCache.BindTo(indexer: TProjectIndexer);
 begin
@@ -80,9 +97,10 @@ end; { TDLCache.BindTo }
 
 function TDLCache.CleanupFileName(const fileName: string): string;
 begin
-  Result := StringReplace(fileName, ':\', '_\', []);
+  Result := StringReplace(fileName, ':\', '_\',  []);
   Result := StringReplace(Result,   '\\', '\_\', []);
-  Result := '\' + Result;
+  Result := StringReplace(Result,   '\',  '/',   [rfReplaceAll]);
+  Result := '/' + Result;
 end; { TDLCache.CleanupFileName }
 
 function TDLCache.DateDumpStr(dt: TDateTime): string;
@@ -99,18 +117,26 @@ end; { TDLCache.GetSyntaxFilter }
 procedure TDLCache.IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
   var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
 var
-  fn : string;
-  mem: TMemoryStream;
-  ser: TBinarySerializer;
-  str: TStream;
+  fn      : string;
+  mem     : TMemoryStream;
+  ser     : TBinarySerializer;
+  str     : TStream;
+  unitInfo: TUnitInfo;
 begin
   FLastGet.FileName := fileName;
   FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
 
   fn := CleanupFileName(fileName);
-  if FStorage.FileExists(fn)
-     and (FStorage.FileInfo[fn].Attribute[AttrFileModified] = FLastGet.FileTime) then
-  begin
+
+  if not FCacheInfo.TryGetValue(ExtractFileName(fileName), unitInfo) then
+    Exit;
+  if not SameText(fn, unitInfo.FullName) then begin
+    //unit moved or different unit found, remove cached info
+    FStorage.Delete(fn);
+    Exit;
+  end;
+
+  if FStorage.FileExists(fn) and (unitInfo.FileTime = FLastGet.FileTime) then begin
     str := FStorage.OpenFile(fn, fmOpenRead);
     try
       ser := TBinarySerializer.Create;
@@ -130,10 +156,11 @@ end; { TDLCache.IndexerGetUnitSyntax }
 procedure TDLCache.IndexerUnitParsed(Sender: TObject; const unitName, fileName: string;
   var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
 var
-  fn : string;
-  mem: TMemoryStream;
-  ser: TBinarySerializer;
-  str: TStream;
+  fn      : string;
+  mem     : TMemoryStream;
+  ser     : TBinarySerializer;
+  str     : TStream;
+  unitInfo: TUnitInfo;
 begin
   if not syntaxTreeFromParser then
     Exit; //already cached
@@ -142,6 +169,10 @@ begin
   if FLastGet.FileName <> fileName then
     FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
   FStorage.FileInfo[fn].Attribute[AttrFileModified] := FLastGet.FileTime;
+
+  unitInfo.FullName := fn;
+  unitInfo.FileTime := FLastGet.FileTime;
+  FCacheInfo.AddOrSetValue(unitName, unitInfo);
 
   str := FStorage.OpenFile(fn, fmCreate);
   try
@@ -158,9 +189,36 @@ begin
   finally FreeAndNil(str); end;
 end; { TDLCache.IndexerUnitParsed }
 
+procedure TDLCache.LoadCacheInfo(const folder: string);
+var
+  fullName: string;
+  item    : string;
+  items   : TStringList;
+begin
+  items := TStringList.Create;
+  try
+    FStorage.FileNames(folder, items);
+    for item in items do begin
+      fullName := folder + item;
+      FCacheInfo.Add(item, TUnitInfo.Create(fullName, FStorage.FileInfo[fullName].Attribute[AttrFileModified]));
+    end;
+    FStorage.FolderNames(folder, items);
+    for item in items do
+      LoadCacheInfo(folder + item + '/');
+  finally FreeAndNil(items); end;
+end; { TDLCache.LoadCacheInfo }
+
 procedure TDLCache.SetSyntaxFilter(const value: TProc<TSyntaxNode>);
 begin
   FSyntaxFilter := value;
 end; { TDLCache.SetSyntaxFilter }
+
+{ TDLCache.TUnitInfo }
+
+constructor TDLCache.TUnitInfo.Create(const AFullName, AFileTime: string);
+begin
+  FullName := AFullName;
+  FileTime := AFileTime;
+end; { TDLCache.TUnitInfo.Create }
 
 end.

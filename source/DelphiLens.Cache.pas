@@ -178,7 +178,7 @@ begin
 
   unitInfo.FullName := fn;
   unitInfo.FileTime := FLastGet.FileTime;
-  FCacheInfo.AddOrSetValue(unitName, unitInfo);
+  FCacheInfo.AddOrSetValue(ExtractFileName(fileName), unitInfo);
 
   str := FStorage.OpenFile(fn, fmCreate);
   try

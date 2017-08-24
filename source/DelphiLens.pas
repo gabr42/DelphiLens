@@ -104,6 +104,7 @@ end; { TDelphiLens.GetSearchPath }
 
 procedure TDelphiLens.Rescan;
 begin
+  FCache.DataVersioning := ConditionalDefines;
   FIndexer.SearchPath := SearchPath;
   FIndexer.Defines := ConditionalDefines;
   FIndexer.Index(Project);

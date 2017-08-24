@@ -20,6 +20,7 @@ type
   TDLCache = class(TInterfacedObject, IDLCache)
   strict private const
     AttrDataFormatVersion = 'DataFormatVersion';
+    AttrDataVersioning    = 'DataVersioning';
     AttrFileModified      = 'FileModificationTime';
   type
     TLastGet = record
@@ -41,17 +42,20 @@ type
   strict protected
     function  CleanupFileName(const fileName: string): string;
     function  DateDumpStr(dt: TDateTime): string;
+    function  GetDataVersioning: string;
     function  GetSyntaxFilter: TProc<TSyntaxNode>;
     procedure IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
       var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
     procedure IndexerUnitParsed(Sender: TObject; const unitName: string; const fileName: string;
       var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
     procedure LoadCacheInfo(const folder: string);
+    procedure SetDataVersioning(const value: string);
     procedure SetSyntaxFilter(const value: TProc<TSyntaxNode>);
   public
     constructor Create(const AStorageFile: string; ADataFormatVersion: integer);
     destructor  Destroy; override;
     procedure BindTo(indexer: TProjectIndexer);
+    property DataVersioning: string read GetDataVersioning write SetDataVersioning;
     property SyntaxFilter: TProc<TSyntaxNode> read GetSyntaxFilter write SetSyntaxFilter;
   end; { TDLCache }
 
@@ -108,6 +112,11 @@ begin
   Assert(SizeOf(dt) = SizeOf(int64));
   Result := IntToHex(PInt64(@dt)^, SizeOf(dt));
 end; { TDLCache.DateDumpStr }
+
+function TDLCache.GetDataVersioning: string;
+begin
+  Result := FStorage.FileInfo['/'].Attribute[AttrDataVersioning];
+end; { TDLCache.GetDataVersioning }
 
 function TDLCache.GetSyntaxFilter: TProc<TSyntaxNode>;
 begin
@@ -166,9 +175,6 @@ begin
     Exit; //already cached
 
   fn := CleanupFileName(fileName);
-  if FLastGet.FileName <> fileName then
-    FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
-  FStorage.FileInfo[fn].Attribute[AttrFileModified] := FLastGet.FileTime;
 
   unitInfo.FullName := fn;
   unitInfo.FileTime := FLastGet.FileTime;
@@ -187,6 +193,10 @@ begin
       finally FreeAndNil(mem); end;
     finally FreeAndNil(ser); end;
   finally FreeAndNil(str); end;
+
+  if FLastGet.FileName <> fileName then
+    FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
+  FStorage.FileInfo[fn].Attribute[AttrFileModified] := FLastGet.FileTime;
 end; { TDLCache.IndexerUnitParsed }
 
 procedure TDLCache.LoadCacheInfo(const folder: string);
@@ -207,6 +217,24 @@ begin
       LoadCacheInfo(folder + item + '/');
   finally FreeAndNil(items); end;
 end; { TDLCache.LoadCacheInfo }
+
+procedure TDLCache.SetDataVersioning(const value: string);
+var
+  dataFormat: string;
+  item      : string;
+  items     : TStringList;
+begin
+  if value = FStorage.FileInfo['/'].Attribute[AttrDataVersioning] then
+    Exit;
+
+  dataFormat := FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion];
+  FStorage := CreateStructuredStorage;
+  FStorage.Initialize(FStorageFile, fmCreate);
+  FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion] := dataFormat;
+  FStorage.FileInfo['/'].Attribute[AttrDataVersioning] := value;
+
+  FCacheInfo.Clear;
+end; { TDLCache.SetDataVersioning }
 
 procedure TDLCache.SetSyntaxFilter(const value: TProc<TSyntaxNode>);
 begin

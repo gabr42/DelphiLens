@@ -52,11 +52,10 @@ uses
 
 procedure TfrmDLMain.btnRescanClick(Sender: TObject);
 begin
-  if not assigned(FDelphiLens) then begin
+  if not assigned(FDelphiLens) then
     FDelphiLens := CreateDelphiLens(inpProject.Text);
-    FDelphiLens.SearchPath := inpSearchPath.Text;
-    FDelphiLens.ConditionalDefines := inpDefines.Text;
-  end;
+  FDelphiLens.SearchPath := inpSearchPath.Text;
+  FDelphiLens.ConditionalDefines := inpDefines.Text;
   with AutoRestoreCursor(crHourGlass) do
     FDelphiLens.Rescan;
 end;

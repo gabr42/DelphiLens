@@ -18,6 +18,7 @@ uses
 type
   TDelphiLens = class(TInterfacedObject, IDelphiLens)
   strict private const
+    CCacheDataVersion = 1;
     CCacheExt = '.dlens';
   var
     FCache             : IDLCache;
@@ -64,7 +65,7 @@ begin
       ntTypeSection, ntVariable, ntVariables, ntUnit, ntUses];
   FProject := AProject;
   FIndexer := TProjectIndexer.Create;
-  FCache := CreateDLCache(ChangeFileExt(FProject, CCacheExt));
+  FCache := CreateDLCache(ChangeFileExt(FProject, CCacheExt), CCacheDataVersion);
   FCache.BindTo(FIndexer);
   FCache.SyntaxFilter := FilterSyntax;
 end; { TDelphiLens.Create }

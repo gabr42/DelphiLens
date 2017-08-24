@@ -5,7 +5,7 @@ interface
 uses
   DelphiLens.Cache.Intf;
 
-function CreateDLCache(const cacheFileName: string): IDLCache;
+function CreateDLCache(const cacheFileName: string; dataFormatVersion: integer): IDLCache;
 
 implementation
 
@@ -13,16 +13,27 @@ uses
   System.SysUtils, System.Classes,
   DelphiAST.Classes, DelphiAST.Serialize.Binary,
   ProjectIndexer,
+  DSiWin32,
   GpStuff, GpStructuredStorage;
 
 type
   TDLCache = class(TInterfacedObject, IDLCache)
-  strict private
-    FStorageFile  : string;
-    FStorage      : IGpStructuredStorage;
-    FSyntaxFilter : TProc<TSyntaxNode>;
+  strict private const
+    AttrDataFormatVersion = 'DataFormatVersion';
+    AttrFileModified      = 'FileModificationTime';
+  type
+    TLastGet = record
+      FileName: string;
+      FileTime: string;
+    end;
+  var
+    FLastGet     : TLastGet;
+    FStorageFile : string;
+    FStorage     : IGpStructuredStorage;
+    FSyntaxFilter: TProc<TSyntaxNode>;
   strict protected
     function  CleanupFileName(const fileName: string): string;
+    function  DateDumpStr(dt: TDateTime): string;
     function  GetSyntaxFilter: TProc<TSyntaxNode>;
     procedure IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
       var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
@@ -30,24 +41,35 @@ type
       var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
     procedure SetSyntaxFilter(const value: TProc<TSyntaxNode>);
   public
-    constructor Create(const AStorageFile: string);
+    constructor Create(const AStorageFile: string; ADataFormatVersion: integer);
     procedure BindTo(indexer: TProjectIndexer);
     property SyntaxFilter: TProc<TSyntaxNode> read GetSyntaxFilter write SetSyntaxFilter;
   end; { TDLCache }
 
 { exports }
 
-function CreateDLCache(const cacheFileName: string): IDLCache;
+function CreateDLCache(const cacheFileName: string; dataFormatVersion: integer): IDLCache;
 begin
-  Result := TDLCache.Create(cacheFileName);
+  Result := TDLCache.Create(cacheFileName, dataFormatVersion);
 end; { CreateDLCache }
 
-constructor TDLCache.Create(const AStorageFile: string);
+constructor TDLCache.Create(const AStorageFile: string; ADataFormatVersion: integer);
+
+  procedure CreateStorage;
+  begin
+    FStorage := CreateStructuredStorage;
+  end;
+
 begin
   inherited Create;
   FStorageFile := AStorageFile;
-  FStorage := CreateStructuredStorage;
+  CreateStorage;
   FStorage.Initialize(FStorageFile, IFF(FileExists(FStorageFile), fmOpenReadWrite, fmCreate));
+  if StrToIntDef(FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion], 0) <> ADataFormatVersion then begin
+    CreateStorage;
+    FStorage.Initialize(FStorageFile, fmCreate);
+    FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion] := IntToStr(ADataFormatVersion);
+  end;
 end; { TDLCache.Create }
 
 procedure TDLCache.BindTo(indexer: TProjectIndexer);
@@ -63,6 +85,12 @@ begin
   Result := '\' + Result;
 end; { TDLCache.CleanupFileName }
 
+function TDLCache.DateDumpStr(dt: TDateTime): string;
+begin
+  Assert(SizeOf(dt) = SizeOf(int64));
+  Result := IntToHex(PInt64(@dt)^, SizeOf(dt));
+end; { TDLCache.DateDumpStr }
+
 function TDLCache.GetSyntaxFilter: TProc<TSyntaxNode>;
 begin
   Result := FSyntaxFilter;
@@ -76,8 +104,13 @@ var
   ser: TBinarySerializer;
   str: TStream;
 begin
+  FLastGet.FileName := fileName;
+  FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
+
   fn := CleanupFileName(fileName);
-  if FStorage.FileExists(fn) then begin
+  if FStorage.FileExists(fn)
+     and (FStorage.FileInfo[fn].Attribute[AttrFileModified] = FLastGet.FileTime) then
+  begin
     str := FStorage.OpenFile(fn, fmOpenRead);
     try
       ser := TBinarySerializer.Create;
@@ -97,14 +130,20 @@ end; { TDLCache.IndexerGetUnitSyntax }
 procedure TDLCache.IndexerUnitParsed(Sender: TObject; const unitName, fileName: string;
   var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
 var
+  fn : string;
   mem: TMemoryStream;
-  str: TStream;
   ser: TBinarySerializer;
+  str: TStream;
 begin
   if not syntaxTreeFromParser then
     Exit; //already cached
 
-  str := FStorage.OpenFile(CleanupFileName(fileName), fmCreate);
+  fn := CleanupFileName(fileName);
+  if FLastGet.FileName <> fileName then
+    FLastGet.FileTime := DateDumpStr(DSiGetFileTime(fileName, ftLastModification));
+  FStorage.FileInfo[fn].Attribute[AttrFileModified] := FLastGet.FileTime;
+
+  str := FStorage.OpenFile(fn, fmCreate);
   try
     ser := TBinarySerializer.Create;
     try

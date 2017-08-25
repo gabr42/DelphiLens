@@ -13,9 +13,28 @@ uses
   System.SysUtils,
   DelphiAST.Consts, DelphiAST.Classes,
   ProjectIndexer,
-  DelphiLens.Cache.Intf, DelphiLens.Cache;
+  DelphiLens.Cache.Intf, DelphiLens.Cache, System.Classes;
 
 type
+  TDLScanResult = class(TInterfacedObject, IDLScanResult)
+  strict private
+    FCache  : IDLCache;
+    FIndexer: TProjectIndexer;
+  strict protected
+    function  GetCacheStatistics: TCacheStatistics;
+    function  GetIncludeFiles: TIncludeFiles;
+    function  GetNotFoundUnits: TStringList;
+    function  GetParsedUnits: TParsedUnits;
+    function  GetProblems: TProblems;
+  public
+    constructor Create(ACache: IDLCache; AIndexer: TProjectIndexer);
+    property CacheStatistics: TCacheStatistics read GetCacheStatistics;
+    property ParsedUnits: TParsedUnits read GetParsedUnits;
+    property IncludeFiles: TIncludeFiles read GetIncludeFiles;
+    property Problems: TProblems read GetProblems;
+    property NotFoundUnits: TStringList read GetNotFoundUnits;
+  end; { TDLScanResult }
+
   TDelphiLens = class(TInterfacedObject, IDelphiLens)
   strict private const
     CCacheDataVersion = 1;
@@ -29,7 +48,6 @@ type
     FSearchPath        : string;
   strict protected
     procedure FilterSyntax(node: TSyntaxNode);
-    function  GetCacheStatistics: TCacheStatistics;
     function  GetConditionalDefines: string;
     function  GetProject: string;
     function  GetSearchPath: string;
@@ -38,8 +56,7 @@ type
   public
     constructor Create(const AProject: string);
     destructor  Destroy; override;
-    procedure Rescan;
-    property CacheStatistics: TCacheStatistics read GetCacheStatistics;
+    function  Rescan: IDLScanResult;
     property ConditionalDefines: string read GetConditionalDefines write SetConditionalDefines;
     property Project: string read GetProject;
     property SearchPath: string read GetSearchPath write SetSearchPath;
@@ -89,11 +106,6 @@ begin
       node.DeleteChild(node.ChildNodes[iChild]);
 end; { TDelphiLens.FilterSyntax }
 
-function TDelphiLens.GetCacheStatistics: TCacheStatistics;
-begin
-  Result := FCache.Statistics;
-end; { TDelphiLens.GetCacheStatistics }
-
 function TDelphiLens.GetConditionalDefines: string;
 begin
   Result := FConditionalDefines;
@@ -109,13 +121,14 @@ begin
   Result := FSearchPath;
 end; { TDelphiLens.GetSearchPath }
 
-procedure TDelphiLens.Rescan;
+function TDelphiLens.Rescan: IDLScanResult;
 begin
   FCache.DataVersioning := ConditionalDefines;
   FCache.ClearStatistics;
   FIndexer.SearchPath := SearchPath;
   FIndexer.Defines := ConditionalDefines;
   FIndexer.Index(Project);
+  Result := TDLScanResult.Create(FCache, FIndexer);
 end; { TDelphiLens.Rescan }
 
 procedure TDelphiLens.SetConditionalDefines(const value: string);
@@ -127,5 +140,39 @@ procedure TDelphiLens.SetSearchPath(const value: string);
 begin
   FSearchPath := value;
 end; { TDelphiLens.SetSearchPath }
+
+{ TDLScanResult }
+
+constructor TDLScanResult.Create(ACache: IDLCache; AIndexer: TProjectIndexer);
+begin
+  inherited Create;
+  FCache := ACache;
+  FIndexer := AIndexer;
+end; { TDLScanResult.Create }
+
+function TDLScanResult.GetCacheStatistics: TCacheStatistics;
+begin
+  Result := FCache.Statistics;
+end; { TDLScanResult.GetCacheStatistics }
+
+function TDLScanResult.GetIncludeFiles: TIncludeFiles;
+begin
+  Result := FIndexer.IncludeFiles;
+end; { TDLScanResult.GetIncludeFiles }
+
+function TDLScanResult.GetNotFoundUnits: TStringList;
+begin
+  Result := FIndexer.NotFoundUnits;
+end; { TDLScanResult.GetNotFoundUnits }
+
+function TDLScanResult.GetParsedUnits: TParsedUnits;
+begin
+  Result := FIndexer.ParsedUnits;
+end; { TDLScanResult.GetParsedUnits }
+
+function TDLScanResult.GetProblems: TProblems;
+begin
+  Result := FIndexer.Problems;
+end; { TDLScanResult.GetProblems }
 
 end.

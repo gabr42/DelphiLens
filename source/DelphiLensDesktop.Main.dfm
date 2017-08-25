@@ -3,7 +3,7 @@ object frmDLMain: TfrmDLMain
   Top = 0
   Caption = 'DelphiLens Desktop'
   ClientHeight = 497
-  ClientWidth = 625
+  ClientWidth = 645
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -13,7 +13,7 @@ object frmDLMain: TfrmDLMain
   OldCreateOrder = False
   OnCreate = FormCreate
   DesignSize = (
-    625
+    645
     497)
   PixelsPerInch = 96
   TextHeight = 13
@@ -44,7 +44,7 @@ object frmDLMain: TfrmDLMain
   object inpProject: TEdit
     Left = 117
     Top = 16
-    Width = 412
+    Width = 432
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     ReadOnly = True
@@ -52,7 +52,7 @@ object frmDLMain: TfrmDLMain
     OnChange = inpProjectChange
   end
   object btnSelect: TButton
-    Left = 535
+    Left = 555
     Top = 14
     Width = 75
     Height = 25
@@ -64,7 +64,7 @@ object frmDLMain: TfrmDLMain
   object inpSearchPath: TEdit
     Left = 117
     Top = 47
-    Width = 493
+    Width = 513
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 2
@@ -73,27 +73,69 @@ object frmDLMain: TfrmDLMain
   object inpDefines: TEdit
     Left = 117
     Top = 78
-    Width = 493
+    Width = 513
     Height = 21
     Anchors = [akLeft, akTop, akRight]
     TabOrder = 3
     OnExit = SettingExit
   end
   object btnRescan: TButton
-    Left = 24
-    Top = 112
-    Width = 75
+    Left = 16
+    Top = 113
+    Width = 138
     Height = 25
     Caption = 'Rescan'
     TabOrder = 4
     OnClick = btnRescanClick
   end
   object outLog: TMemo
-    Left = 117
-    Top = 144
-    Width = 493
-    Height = 337
+    Left = 160
+    Top = 152
+    Width = 470
+    Height = 329
+    Anchors = [akLeft, akTop, akRight, akBottom]
     TabOrder = 5
+  end
+  object lbFiles: TListBox
+    Left = 16
+    Top = 152
+    Width = 138
+    Height = 329
+    Anchors = [akLeft, akTop, akBottom]
+    ItemHeight = 13
+    TabOrder = 6
+  end
+  object btnParsedUnits: TButton
+    Left = 160
+    Top = 113
+    Width = 113
+    Height = 25
+    Action = actParsedUnits
+    TabOrder = 7
+  end
+  object btnIncludeFiles: TButton
+    Left = 279
+    Top = 113
+    Width = 113
+    Height = 25
+    Action = actIncludeFiles
+    TabOrder = 8
+  end
+  object btnNotFound: TButton
+    Left = 398
+    Top = 113
+    Width = 113
+    Height = 25
+    Action = actNotFound
+    TabOrder = 9
+  end
+  object btnProblems: TButton
+    Left = 517
+    Top = 113
+    Width = 113
+    Height = 25
+    Action = actProblems
+    TabOrder = 10
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'
@@ -112,7 +154,31 @@ object frmDLMain: TfrmDLMain
         FileMask = '*.*'
       end>
     Options = []
-    Left = 24
-    Top = 448
+    Left = 560
+    Top = 232
+  end
+  object ActionList: TActionList
+    Left = 560
+    Top = 168
+    object actParsedUnits: TAction
+      Caption = 'Show parsed units'
+      OnExecute = actParsedUnitsExecute
+      OnUpdate = EnableResultActions
+    end
+    object actIncludeFiles: TAction
+      Caption = 'Show include files'
+      OnExecute = actIncludeFilesExecute
+      OnUpdate = EnableResultActions
+    end
+    object actNotFound: TAction
+      Caption = 'Show missing files'
+      OnExecute = actNotFoundExecute
+      OnUpdate = EnableResultActions
+    end
+    object actProblems: TAction
+      Caption = 'Show problems'
+      OnExecute = actProblemsExecute
+      OnUpdate = EnableResultActions
+    end
   end
 end

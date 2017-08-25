@@ -10,10 +10,12 @@ function CreateDelphiLens(const projectFile: string): IDelphiLens;
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.Classes,
   DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary,
   ProjectIndexer,
-  DelphiLens.Cache.Intf, DelphiLens.Cache, System.Classes;
+  DelphiLens.Cache.Intf, DelphiLens.Cache,
+  DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
+  DelphiLens.UnitInfo;
 
 type
   TDLScanResult = class(TInterfacedObject, IDLScanResult)
@@ -47,6 +49,7 @@ type
     FProject           : string;
     FSearchPath        : string;
   strict protected
+    procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
     procedure FilterSyntax(node: TSyntaxNode);
     function  GetConditionalDefines: string;
     function  GetProject: string;
@@ -101,6 +104,11 @@ begin
   inherited;
 end; { TDelphiLens.Destroy }
 
+procedure TDelphiLens.AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
+begin
+  // TODO : Implement: TDelphiLens.AnalyzeTree
+end; { TDelphiLens.AnalyzeTree }
+
 procedure TDelphiLens.FilterSyntax(node: TSyntaxNode);
 var
   iChild: integer;
@@ -149,9 +157,11 @@ end; { TDelphiLens.SetSearchPath }
 
 function TDelphiLens.SyntaxTreeDeserializer(data: TStream; var tree: TSyntaxNode): boolean;
 var
-  len   : integer;
-  mem   : TMemoryStream;
-  reader: TBinarySerializer;
+  len       : integer;
+  mem       : TMemoryStream;
+  reader    : TBinarySerializer;
+  unitInfo  : TDLUnitInfo;
+  unitReader: IDLUnitInfoSerializer;
 begin
   Result := true;
   mem := TMemoryStream.Create;
@@ -168,19 +178,25 @@ begin
         Exit(false);
     finally FreeAndNil(reader); end;
 
-    // TODO 1 -oPrimoz Gabrijelcic : read the analysis and store it - where ?
+    unitReader := CreateSerializer;
+    if not unitReader.Read(mem, unitInfo) then
+      Exit(false)
 
+    // TODO 1 -oPrimoz Gabrijelcic : store analysis - where ?
   finally FreeAndNil(mem); end;
 end; { TDelphiLens.SyntaxTreeDeserializer }
 
 procedure TDelphiLens.SyntaxTreeSerializer(tree: TSyntaxNode; data: TStream);
 var
-  len   : integer;
-  mem   : TMemoryStream;
-  writer: TBinarySerializer;
+  len       : integer;
+  mem       : TMemoryStream;
+  unitInfo  : TDLUnitInfo;
+  unitWriter: IDLUnitInfoSerializer;
+  writer    : TBinarySerializer;
 begin
-  // TODO 1 -oPrimoz Gabrijelcic : do the analysis
+  AnalyzeTree(tree, unitInfo);
   FilterSyntax(tree);
+
   mem := TMemoryStream.Create;
   try
     writer := TBinarySerializer.Create;
@@ -192,7 +208,11 @@ begin
     Assert(SizeOf(integer) = 4);
     data.Write(len, 4);
     data.CopyFrom(mem, 0);
-    // TODO 1 -oPrimoz Gabrijelcic : serialize analysis to the stream
+
+    mem.Size := 0;
+    unitWriter := CreateSerializer;
+    unitWriter.Write(unitInfo, mem);
+    data.CopyFrom(mem, 0);
   finally FreeAndNil(mem); end;
 end; { TDelphiLens.SyntaxTreeSerializer }
 

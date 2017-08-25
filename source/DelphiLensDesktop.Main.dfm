@@ -88,6 +88,13 @@ object frmDLMain: TfrmDLMain
     TabOrder = 4
     OnClick = btnRescanClick
   end
+  object outLog: TMemo
+    Left = 117
+    Top = 144
+    Width = 493
+    Height = 337
+    TabOrder = 5
+  end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'
     FavoriteLinks = <>

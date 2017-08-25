@@ -19,6 +19,7 @@ type
     lblDefines    : TLabel;
     lblProject    : TLabel;
     lblSearchPath : TLabel;
+    outLog        : TMemo;
     procedure btnRescanClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
@@ -56,8 +57,11 @@ begin
     FDelphiLens := CreateDelphiLens(inpProject.Text);
   FDelphiLens.SearchPath := inpSearchPath.Text;
   FDelphiLens.ConditionalDefines := inpDefines.Text;
-  with AutoRestoreCursor(crHourGlass) do
+  with AutoRestoreCursor(crHourGlass) do begin
     FDelphiLens.Rescan;
+    outLog.Text := Format('Scanned files: %d'#13#10'Cached files: %d',
+      [FDelphiLens.Cache.Statistics.NumScanned, FDelphiLens.Cache.Statistics.NumCached]);
+  end;
 end;
 
 procedure TfrmDLMain.FormCreate(Sender: TObject);

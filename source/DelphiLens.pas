@@ -21,7 +21,7 @@ type
     CCacheDataVersion = 1;
     CCacheExt = '.dlens';
   var
-    FCache             : IDLCache;
+    FCache: IDLCache;
     FConditionalDefines: string;
     FIndexer           : TProjectIndexer;
     FInterestingTypes  : set of TSyntaxNodeType;
@@ -29,6 +29,7 @@ type
     FSearchPath        : string;
   strict protected
     procedure FilterSyntax(node: TSyntaxNode);
+    function  GetCache: IDLCache;
     function  GetConditionalDefines: string;
     function  GetProject: string;
     function  GetSearchPath: string;
@@ -38,6 +39,7 @@ type
     constructor Create(const AProject: string);
     destructor  Destroy; override;
     procedure Rescan;
+    property Cache: IDLCache read GetCache;
     property ConditionalDefines: string read GetConditionalDefines write SetConditionalDefines;
     property Project: string read GetProject;
     property SearchPath: string read GetSearchPath write SetSearchPath;
@@ -87,6 +89,11 @@ begin
       node.DeleteChild(node.ChildNodes[iChild]);
 end; { TDelphiLens.FilterSyntax }
 
+function TDelphiLens.GetCache: IDLCache;
+begin
+  Result := FCache;
+end; { TDelphiLens.GetCache }
+
 function TDelphiLens.GetConditionalDefines: string;
 begin
   Result := FConditionalDefines;
@@ -105,6 +112,7 @@ end; { TDelphiLens.GetSearchPath }
 procedure TDelphiLens.Rescan;
 begin
   FCache.DataVersioning := ConditionalDefines;
+  FCache.ClearStatistics;
   FIndexer.SearchPath := SearchPath;
   FIndexer.Defines := ConditionalDefines;
   FIndexer.Index(Project);

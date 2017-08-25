@@ -36,6 +36,7 @@ type
   var
     FCacheInfo   : TCacheInfo;
     FLastGet     : TLastGet;
+    FStatistics  : TCacheStatistics;
     FStorageFile : string;
     FStorage     : IGpStructuredStorage;
     FSyntaxFilter: TProc<TSyntaxNode>;
@@ -43,6 +44,7 @@ type
     function  CleanupFileName(const fileName: string): string;
     function  DateDumpStr(dt: TDateTime): string;
     function  GetDataVersioning: string;
+    function  GetStatistics: TCacheStatistics;
     function  GetSyntaxFilter: TProc<TSyntaxNode>;
     procedure IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
       var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
@@ -55,7 +57,9 @@ type
     constructor Create(const AStorageFile: string; ADataFormatVersion: integer);
     destructor  Destroy; override;
     procedure BindTo(indexer: TProjectIndexer);
+    procedure ClearStatistics;
     property DataVersioning: string read GetDataVersioning write SetDataVersioning;
+    property Statistics: TCacheStatistics read GetStatistics;
     property SyntaxFilter: TProc<TSyntaxNode> read GetSyntaxFilter write SetSyntaxFilter;
   end; { TDLCache }
 
@@ -107,6 +111,11 @@ begin
   Result := '/' + Result;
 end; { TDLCache.CleanupFileName }
 
+procedure TDLCache.ClearStatistics;
+begin
+  FStatistics := Default(TCacheStatistics);
+end; { TDLCache.ClearStatistics }
+
 function TDLCache.DateDumpStr(dt: TDateTime): string;
 begin
   Assert(SizeOf(dt) = SizeOf(int64));
@@ -117,6 +126,11 @@ function TDLCache.GetDataVersioning: string;
 begin
   Result := FStorage.FileInfo['/'].Attribute[AttrDataVersioning];
 end; { TDLCache.GetDataVersioning }
+
+function TDLCache.GetStatistics: TCacheStatistics;
+begin
+  Result := FStatistics;
+end; { TDLCache.GetStatistics }
 
 function TDLCache.GetSyntaxFilter: TProc<TSyntaxNode>;
 begin
@@ -137,29 +151,32 @@ begin
 
   fn := CleanupFileName(fileName);
 
-  if not FCacheInfo.TryGetValue(ExtractFileName(fileName), unitInfo) then
-    Exit;
-  if not SameText(fn, unitInfo.FullName) then begin
-    //unit moved or different unit found, remove cached info
-    FStorage.Delete(fn);
-    Exit;
+  if FCacheInfo.TryGetValue(ExtractFileName(fileName), unitInfo) then begin
+    if not SameText(fn, unitInfo.FullName) then
+      //unit moved or different unit found, remove cached info
+      FStorage.Delete(fn)
+    else
+      if FStorage.FileExists(fn) and (unitInfo.FileTime = FLastGet.FileTime) then begin
+        str := FStorage.OpenFile(fn, fmOpenRead);
+        try
+          ser := TBinarySerializer.Create;
+          try
+            mem := TMemoryStream.Create;
+            try
+              mem.CopyFrom(str, 0);
+              mem.Position := 0;
+              if ser.Read(mem, syntaxTree) then
+                doParseUnit := false;
+            finally FreeAndNil(mem); end;
+          finally FreeAndNil(ser); end;
+        finally FreeAndNil(str); end;
+      end;
   end;
 
-  if FStorage.FileExists(fn) and (unitInfo.FileTime = FLastGet.FileTime) then begin
-    str := FStorage.OpenFile(fn, fmOpenRead);
-    try
-      ser := TBinarySerializer.Create;
-      try
-        mem := TMemoryStream.Create;
-        try
-          mem.CopyFrom(str, 0);
-          mem.Position := 0;
-          if ser.Read(mem, syntaxTree) then
-            doParseUnit := false;
-        finally FreeAndNil(mem); end;
-      finally FreeAndNil(ser); end;
-    finally FreeAndNil(str); end;
-  end;
+  if doParseUnit then
+    Inc(FStatistics.NumScanned)
+  else
+    Inc(FStatistics.NumCached);
 end; { TDLCache.IndexerGetUnitSyntax }
 
 procedure TDLCache.IndexerUnitParsed(Sender: TObject; const unitName, fileName: string;

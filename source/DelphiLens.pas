@@ -11,7 +11,7 @@ implementation
 
 uses
   System.SysUtils,
-  DelphiAST.Consts, DelphiAST.Classes,
+  DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary,
   ProjectIndexer,
   DelphiLens.Cache.Intf, DelphiLens.Cache, System.Classes;
 
@@ -53,6 +53,8 @@ type
     function  GetSearchPath: string;
     procedure SetConditionalDefines(const value: string);
     procedure SetSearchPath(const value: string);
+    function  SyntaxTreeDeserializer(data: TStream; var tree: TSyntaxNode): boolean;
+    procedure SyntaxTreeSerializer(tree: TSyntaxNode; data: TStream);
   public
     constructor Create(const AProject: string);
     destructor  Destroy; override;
@@ -74,19 +76,23 @@ end; { CreateDelphiLens }
 constructor TDelphiLens.Create(const AProject: string);
 begin
   inherited Create;
-  FInterestingTypes := [ntAnonymousMethod, ntArguments, ntAs, ntAttribute, ntAttributes,
-      ntCall, ntConstant, ntConstants, ntEnum, ntExternal, ntField, ntFields, ntGeneric,
-      ntHelper, ntIdentifier, ntImplementation, ntImplements, ntInherited, ntInitialization,
-      ntInterface, ntLabel, ntMethod, ntName, ntNamedArgument, ntPackage, ntParameter,
-      ntParameters, ntPath, ntPositionalArgument, ntProtected, ntPrivate, ntProperty,
-      ntPublic, ntPublished, ntResolutionClause, ntResourceString, ntStrictPrivate,
-      ntStrictProtected, ntType, ntTypeArgs, ntTypeDecl, ntTypeParam, ntTypeParams,
-      ntTypeSection, ntVariable, ntVariables, ntUnit, ntUses];
+//  FInterestingTypes := [ntAnonymousMethod, ntArguments, ntAs, ntAttribute, ntAttributes,
+//      ntCall, ntConstant, ntConstants, ntEnum, ntExternal, ntField, ntFields, ntFinalization, ntGeneric,
+//      ntHelper, ntIdentifier, ntImplementation, ntImplements, ntInherited, ntInitialization,
+//      ntInterface, ntLabel, ntMethod, ntName, ntNamedArgument, ntPackage, ntParameter,
+//      ntParameters, ntPath, ntPositionalArgument, ntProtected, ntPrivate, ntProperty,
+//      ntPublic, ntPublished, ntResolutionClause, ntResourceString, ntStrictPrivate,
+//      ntStrictProtected, ntType, ntTypeArgs, ntTypeDecl, ntTypeParam, ntTypeParams,
+//      ntTypeSection, ntVariable, ntVariables, ntUnit, ntUses];
+  // Minimum set of types needed for ProjectIndexer to walk the 'uses' chain
+  FInterestingTypes := [ntFinalization, ntImplementation, ntInitialization,
+    ntInterface, ntUnit, ntUses];
   FProject := AProject;
   FIndexer := TProjectIndexer.Create;
   FCache := CreateDLCache(ChangeFileExt(FProject, CCacheExt), CCacheDataVersion);
   FCache.BindTo(FIndexer);
-  FCache.SyntaxFilter := FilterSyntax;
+  FCache.DeserializeSyntaxTree := SyntaxTreeDeserializer;
+  FCache.SerializeSyntaxTree := SyntaxTreeSerializer;
 end; { TDelphiLens.Create }
 
 destructor TDelphiLens.Destroy;
@@ -140,6 +146,55 @@ procedure TDelphiLens.SetSearchPath(const value: string);
 begin
   FSearchPath := value;
 end; { TDelphiLens.SetSearchPath }
+
+function TDelphiLens.SyntaxTreeDeserializer(data: TStream; var tree: TSyntaxNode): boolean;
+var
+  len   : integer;
+  mem   : TMemoryStream;
+  reader: TBinarySerializer;
+begin
+  Result := true;
+  mem := TMemoryStream.Create;
+  try
+    Assert(SizeOf(integer) = 4);
+    if data.Read(len, 4) <> 4 then
+      Exit(false);
+    mem.CopyFrom(data, len);
+    mem.Position := 0;
+
+    reader := TBinarySerializer.Create;
+    try
+      if not reader.Read(mem, tree) then
+        Exit(false);
+    finally FreeAndNil(reader); end;
+
+    // TODO 1 -oPrimoz Gabrijelcic : read the analysis and store it - where ?
+
+  finally FreeAndNil(mem); end;
+end; { TDelphiLens.SyntaxTreeDeserializer }
+
+procedure TDelphiLens.SyntaxTreeSerializer(tree: TSyntaxNode; data: TStream);
+var
+  len   : integer;
+  mem   : TMemoryStream;
+  writer: TBinarySerializer;
+begin
+  // TODO 1 -oPrimoz Gabrijelcic : do the analysis
+  FilterSyntax(tree);
+  mem := TMemoryStream.Create;
+  try
+    writer := TBinarySerializer.Create;
+    try
+      writer.Write(mem, tree);
+    finally FreeAndNil(writer); end;
+
+    len := mem.Size;
+    Assert(SizeOf(integer) = 4);
+    data.Write(len, 4);
+    data.CopyFrom(mem, 0);
+    // TODO 1 -oPrimoz Gabrijelcic : serialize analysis to the stream
+  finally FreeAndNil(mem); end;
+end; { TDelphiLens.SyntaxTreeSerializer }
 
 { TDLScanResult }
 

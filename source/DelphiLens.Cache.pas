@@ -11,7 +11,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.Generics.Defaults, System.Generics.Collections,
-  DelphiAST.Classes, DelphiAST.Serialize.Binary,
+  DelphiAST.Classes,
   ProjectIndexer,
   DSiWin32,
   GpStuff, GpStructuredStorage;
@@ -35,24 +35,27 @@ type
     TCacheInfo = TDictionary<string{unit name}, TUnitInfo>;
   var
     FCacheInfo   : TCacheInfo;
+    FDeserializeSyntaxTree: TDLTreeDeserializer;
     FLastGet     : TLastGet;
+    FSerializeSyntaxTree: TDLTreeSerializer;
     FStatistics  : TCacheStatistics;
     FStorageFile : string;
     FStorage     : IGpStructuredStorage;
-    FSyntaxFilter: TProc<TSyntaxNode>;
   strict protected
     function  CleanupFileName(const fileName: string): string;
     function  DateDumpStr(dt: TDateTime): string;
     function  GetDataVersioning: string;
+    function  GetDeserializeSyntaxTree: TDLTreeDeserializer;
+    function  GetSerializeSyntaxTree: TDLTreeSerializer;
     function  GetStatistics: TCacheStatistics;
-    function  GetSyntaxFilter: TProc<TSyntaxNode>;
     procedure IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
       var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
     procedure IndexerUnitParsed(Sender: TObject; const unitName: string; const fileName: string;
       var syntaxTree: TSyntaxNode; syntaxTreeFromParser: boolean; var doAbort: boolean);
     procedure LoadCacheInfo(const folder: string);
     procedure SetDataVersioning(const value: string);
-    procedure SetSyntaxFilter(const value: TProc<TSyntaxNode>);
+    procedure SetDeserializeSyntaxTree(const value: TDLTreeDeserializer);
+    procedure SetSerializeSyntaxTree(const value: TDLTreeSerializer);
   public
     constructor Create(const AStorageFile: string; ADataFormatVersion: integer);
     destructor  Destroy; override;
@@ -60,7 +63,10 @@ type
     procedure ClearStatistics;
     property DataVersioning: string read GetDataVersioning write SetDataVersioning;
     property Statistics: TCacheStatistics read GetStatistics;
-    property SyntaxFilter: TProc<TSyntaxNode> read GetSyntaxFilter write SetSyntaxFilter;
+    property DeserializeSyntaxTree: TDLTreeDeserializer read GetDeserializeSyntaxTree write
+      SetDeserializeSyntaxTree;
+    property SerializeSyntaxTree: TDLTreeSerializer read GetSerializeSyntaxTree write
+      SetSerializeSyntaxTree;
   end; { TDLCache }
 
 { exports }
@@ -127,22 +133,26 @@ begin
   Result := FStorage.FileInfo['/'].Attribute[AttrDataVersioning];
 end; { TDLCache.GetDataVersioning }
 
+function TDLCache.GetDeserializeSyntaxTree: TDLTreeDeserializer;
+begin
+  Result := FDeserializeSyntaxTree;
+end; { TDLCache.GetDeserializeSyntaxTree }
+
+function TDLCache.GetSerializeSyntaxTree: TDLTreeSerializer;
+begin
+  Result := FSerializeSyntaxTree;
+end; { TDLCache.GetSerializeSyntaxTree }
+
 function TDLCache.GetStatistics: TCacheStatistics;
 begin
   Result := FStatistics;
 end; { TDLCache.GetStatistics }
-
-function TDLCache.GetSyntaxFilter: TProc<TSyntaxNode>;
-begin
-  Result := FSyntaxFilter;
-end; { TDLCache.GetSyntaxFilter }
 
 procedure TDLCache.IndexerGetUnitSyntax(Sender: TObject; const fileName: string;
   var syntaxTree: TSyntaxNode; var doParseUnit, doAbort: boolean);
 var
   fn      : string;
   mem     : TMemoryStream;
-  ser     : TBinarySerializer;
   str     : TStream;
   unitInfo: TUnitInfo;
 begin
@@ -159,16 +169,13 @@ begin
       if FStorage.FileExists(fn) and (unitInfo.FileTime = FLastGet.FileTime) then begin
         str := FStorage.OpenFile(fn, fmOpenRead);
         try
-          ser := TBinarySerializer.Create;
+          mem := TMemoryStream.Create;
           try
-            mem := TMemoryStream.Create;
-            try
-              mem.CopyFrom(str, 0);
-              mem.Position := 0;
-              if ser.Read(mem, syntaxTree) then
-                doParseUnit := false;
-            finally FreeAndNil(mem); end;
-          finally FreeAndNil(ser); end;
+            mem.CopyFrom(str, 0);
+            mem.Position := 0;
+            if DeserializeSyntaxTree(mem, syntaxTree) then
+              doParseUnit := false;
+          finally FreeAndNil(mem); end;
         finally FreeAndNil(str); end;
       end;
   end;
@@ -184,7 +191,6 @@ procedure TDLCache.IndexerUnitParsed(Sender: TObject; const unitName, fileName: 
 var
   fn      : string;
   mem     : TMemoryStream;
-  ser     : TBinarySerializer;
   str     : TStream;
   unitInfo: TUnitInfo;
 begin
@@ -199,16 +205,11 @@ begin
 
   str := FStorage.OpenFile(fn, fmCreate);
   try
-    ser := TBinarySerializer.Create;
+    mem := TMemoryStream.Create;
     try
-      mem := TMemoryStream.Create;
-      try
-        if assigned(SyntaxFilter) then
-          SyntaxFilter(syntaxTree);
-        ser.Write(mem, syntaxTree);
-        str.CopyFrom(mem, 0);
-      finally FreeAndNil(mem); end;
-    finally FreeAndNil(ser); end;
+      SerializeSyntaxTree(syntaxTree, mem);
+      str.CopyFrom(mem, 0);
+    finally FreeAndNil(mem); end;
   finally FreeAndNil(str); end;
 
   if FLastGet.FileName <> fileName then
@@ -251,10 +252,15 @@ begin
   FCacheInfo.Clear;
 end; { TDLCache.SetDataVersioning }
 
-procedure TDLCache.SetSyntaxFilter(const value: TProc<TSyntaxNode>);
+procedure TDLCache.SetDeserializeSyntaxTree(const value: TDLTreeDeserializer);
 begin
-  FSyntaxFilter := value;
-end; { TDLCache.SetSyntaxFilter }
+  FDeserializeSyntaxTree := value;
+end; { TDLCache.SetDeserializeSyntaxTree }
+
+procedure TDLCache.SetSerializeSyntaxTree(const value: TDLTreeSerializer);
+begin
+  FSerializeSyntaxTree := value;
+end; { TDLCache.SetSerializeSyntaxTree }
 
 { TDLCache.TUnitInfo }
 

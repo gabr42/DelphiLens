@@ -60,7 +60,7 @@ begin
   with AutoRestoreCursor(crHourGlass) do begin
     FDelphiLens.Rescan;
     outLog.Text := Format('Scanned files: %d'#13#10'Cached files: %d',
-      [FDelphiLens.Cache.Statistics.NumScanned, FDelphiLens.Cache.Statistics.NumCached]);
+      [FDelphiLens.CacheStatistics.NumScanned, FDelphiLens.CacheStatistics.NumCached]);
   end;
 end;
 

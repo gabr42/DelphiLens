@@ -94,6 +94,7 @@ object frmDLMain: TfrmDLMain
     Width = 470
     Height = 329
     Anchors = [akLeft, akTop, akRight, akBottom]
+    ScrollBars = ssBoth
     TabOrder = 5
   end
   object lbFiles: TListBox
@@ -104,6 +105,7 @@ object frmDLMain: TfrmDLMain
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 6
+    OnClick = lbFilesClick
   end
   object btnParsedUnits: TButton
     Left = 160

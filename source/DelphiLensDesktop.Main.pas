@@ -6,7 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
-  DelphiLens.Intf, System.Actions, Vcl.ActnList;
+  DelphiLens.Intf, System.Actions, Vcl.ActnList, DelphiAST.Classes;
 
 type
   TfrmDLMain = class(TForm)
@@ -39,6 +39,7 @@ type
     procedure btnSelectClick(Sender: TObject);
     procedure EnableResultActions(Sender: TObject);
     procedure inpProjectChange(Sender: TObject);
+    procedure lbFilesClick(Sender: TObject);
     procedure SettingExit(Sender: TObject);
   private const
     CSettingsKey = '\SOFTWARE\Gp\DelphiLens\DelphiLensDesktop';
@@ -46,13 +47,15 @@ type
     CSettingsSearchPath         = 'SearchPath';
     CSettingsConditionalDefines = 'ConditionalDefines';
   type
-    TShowing = (shParsedUnits, shIncludeFiles, shNotFound);
+    TShowing = (shParsedUnits, shIncludeFiles, shNotFound, shProblems);
   var
     FDelphiLens: IDelphiLens;
     FLoading   : boolean;
     FScanResult: IDLScanResult;
     FShowing   : TShowing;
+    function AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
   strict protected
+    procedure DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
     procedure LoadSettings;
     procedure SaveSettings;
     procedure ShowIncludeFiles;
@@ -68,8 +71,10 @@ var
 implementation
 
 uses
+  System.RTTI,
   DSiWin32,
   GpVCL,
+  DelphiAST.Consts,
   DelphiLens;
 
 {$R *.dfm}
@@ -92,6 +97,22 @@ end;
 procedure TfrmDLMain.actProblemsExecute(Sender: TObject);
 begin
   ShowProblems;
+end;
+
+function TfrmDLMain.AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
+var
+  i: integer;
+begin
+  Result := '';
+  if Length(attributes) > 0 then begin
+    Result := '[';
+    for i := Low(attributes) to High(attributes) do begin
+      if i > Low(attributes) then
+        Result := Result + ',';
+      Result := Result + TRttiEnumerationType.GetName<TAttributeName>(attributes[i].Key) + '=' + attributes[i].Value;
+    end;
+    Result := Result + ']';
+  end;
 end;
 
 procedure TfrmDLMain.btnRescanClick(Sender: TObject);
@@ -132,6 +153,21 @@ begin
   end;
 end;
 
+procedure TfrmDLMain.DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
+var
+  children   : TArray<TSyntaxNode>;
+  i          : integer;
+  newPrefix  : string;
+  sAttributes: string;
+begin
+  sAttributes := AttributestoStr(node.Attributes);
+  outLog.Lines.Add(prefix + TRttiEnumerationType.GetName<TSyntaxNodeType>(node.Typ) + ' ' + sAttributes);
+  newPrefix := prefix + '  ';
+  children := node.ChildNodes;
+  for i := Low(children) to High(children) do
+    DumpSyntaxTree(children[i], newPrefix);
+end;
+
 procedure TfrmDLMain.EnableResultActions(Sender: TObject);
 begin
   (Sender as TAction).Enabled := assigned(FScanResult);
@@ -140,6 +176,24 @@ end;
 procedure TfrmDLMain.inpProjectChange(Sender: TObject);
 begin
   SaveSettings;
+end;
+
+procedure TfrmDLMain.lbFilesClick(Sender: TObject);
+var
+  i: integer;
+begin
+  if FShowing <> shParsedUnits then
+    Exit;
+
+  outLog.Clear;
+  outLog.Lines.BeginUpdate;
+  try
+    for i := 0 to FScanResult.ParsedUnits.Count - 1 do
+      if FScanResult.ParsedUnits[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
+        DumpSyntaxTree(FScanResult.ParsedUnits[i].SyntaxTree, '');
+        break; //for
+      end;
+  finally outLog.Lines.EndUpdate; end;
 end;
 
 procedure TfrmDLMain.LoadSettings;
@@ -209,9 +263,11 @@ procedure TfrmDLMain.ShowProblems;
 var
   i: integer;
 begin
+  lbFiles.Clear;
   outLog.Clear;
   for i := 0 to FScanResult.Problems.Count - 1 do
     outLog.Lines.Add(FScanResult.Problems[i].FileName + ': ' + FScanResult.Problems[i].Description);
+  FShowing := shProblems;
 end;
 
 end.

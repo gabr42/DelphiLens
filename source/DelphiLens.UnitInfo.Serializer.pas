@@ -21,13 +21,13 @@ type
     FStream: TStream;
   strict protected
     function  ReadInteger(var val: integer): boolean; inline;
-    function  ReadLocation(loc: TCoordinate): boolean; inline;
+    function  ReadLocation(loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
     function  ReadStrings(var strings: TArray<string>): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
-    procedure WriteLocation(loc: TCoordinate); inline;
+    procedure WriteLocation(loc: TDLCoordinate); inline;
     procedure WriteString(const s: string); inline;
     procedure WriteStrings(const strings: TArray<string>);
   public
@@ -74,7 +74,7 @@ begin
   Result := FStream.Read(val, 4) = 4;
 end; { TDLUnitInfoSerializer.ReadInteger }
 
-function TDLUnitInfoSerializer.ReadLocation(loc: TCoordinate): boolean;
+function TDLUnitInfoSerializer.ReadLocation(loc: TDLCoordinate): boolean;
 begin
   Result := ReadInteger(loc.X);
   if Result then
@@ -138,7 +138,7 @@ begin
   FStream.Write(val, 4);
 end; { TDLUnitInfoSerializer.WriteInteger }
 
-procedure TDLUnitInfoSerializer.WriteLocation(loc: TCoordinate);
+procedure TDLUnitInfoSerializer.WriteLocation(loc: TDLCoordinate);
 begin
   WriteInteger(loc.X);
   WriteInteger(loc.Y);

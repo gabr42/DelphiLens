@@ -15,7 +15,8 @@ uses
   ProjectIndexer,
   DelphiLens.Cache.Intf, DelphiLens.Cache,
   DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
-  DelphiLens.UnitInfo;
+  DelphiLens.UnitInfo,
+  DelphiLens.TreeAnalyzer.Intf, DelphiLens.TreeAnalyzer;
 
 type
   TDLScanResult = class(TInterfacedObject, IDLScanResult)
@@ -48,6 +49,7 @@ type
     FInterestingTypes  : set of TSyntaxNodeType;
     FProject           : string;
     FSearchPath        : string;
+    FTreeAnalyzer      : IDLTreeAnalyzer;
   strict protected
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
     procedure FilterSyntax(node: TSyntaxNode);
@@ -96,6 +98,7 @@ begin
   FCache.BindTo(FIndexer);
   FCache.DeserializeSyntaxTree := SyntaxTreeDeserializer;
   FCache.SerializeSyntaxTree := SyntaxTreeSerializer;
+  FTreeAnalyzer := CreateDLTreeAnalyzer;
 end; { TDelphiLens.Create }
 
 destructor TDelphiLens.Destroy;
@@ -106,7 +109,7 @@ end; { TDelphiLens.Destroy }
 
 procedure TDelphiLens.AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
 begin
-  // TODO : Implement: TDelphiLens.AnalyzeTree
+  FTreeAnalyzer.AnalyzeTree(tree, unitInfo);
 end; { TDelphiLens.AnalyzeTree }
 
 procedure TDelphiLens.FilterSyntax(node: TSyntaxNode);

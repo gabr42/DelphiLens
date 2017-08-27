@@ -10,26 +10,26 @@ uses
 
 type
   TfrmDLMain = class(TForm)
-    btnRescan     : TButton;
-    btnSelect     : TButton;
-    dlgOpenProject: TFileOpenDialog;
-    inpDefines    : TEdit;
-    inpProject    : TEdit;
-    inpSearchPath : TEdit;
-    lbFiles       : TListBox;
-    lblDefines    : TLabel;
-    lblProject    : TLabel;
-    lblSearchPath : TLabel;
-    outLog        : TMemo;
-    btnParsedUnits: TButton;
-    btnIncludeFiles: TButton;
-    btnNotFound: TButton;
-    ActionList: TActionList;
-    actParsedUnits: TAction;
     actIncludeFiles: TAction;
-    actNotFound: TAction;
-    btnProblems: TButton;
-    actProblems: TAction;
+    ActionList     : TActionList;
+    actNotFound    : TAction;
+    actParsedUnits : TAction;
+    actProblems    : TAction;
+    btnIncludeFiles: TButton;
+    btnNotFound    : TButton;
+    btnParsedUnits : TButton;
+    btnProblems    : TButton;
+    btnRescan      : TButton;
+    btnSelect      : TButton;
+    dlgOpenProject : TFileOpenDialog;
+    inpDefines     : TEdit;
+    inpProject     : TEdit;
+    inpSearchPath  : TEdit;
+    lbFiles        : TListBox;
+    lblDefines     : TLabel;
+    lblProject     : TLabel;
+    lblSearchPath  : TLabel;
+    outLog         : TMemo;
     procedure actIncludeFilesExecute(Sender: TObject);
     procedure actNotFoundExecute(Sender: TObject);
     procedure actParsedUnitsExecute(Sender: TObject);

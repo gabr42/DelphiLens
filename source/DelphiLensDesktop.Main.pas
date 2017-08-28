@@ -6,15 +6,17 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
-  DelphiLens.Intf, System.Actions, Vcl.ActnList, DelphiAST.Classes;
+  DelphiLens.Intf, System.Actions, Vcl.ActnList, DelphiAST.Classes, DelphiLens.UnitInfo;
 
 type
   TfrmDLMain = class(TForm)
+    actAnalysis    : TAction;
     actIncludeFiles: TAction;
     ActionList     : TActionList;
     actNotFound    : TAction;
     actParsedUnits : TAction;
     actProblems    : TAction;
+    btnAnalysis    : TButton;
     btnIncludeFiles: TButton;
     btnNotFound    : TButton;
     btnParsedUnits : TButton;
@@ -30,6 +32,7 @@ type
     lblProject     : TLabel;
     lblSearchPath  : TLabel;
     outLog         : TMemo;
+    procedure actAnalysisExecute(Sender: TObject);
     procedure actIncludeFilesExecute(Sender: TObject);
     procedure actNotFoundExecute(Sender: TObject);
     procedure actParsedUnitsExecute(Sender: TObject);
@@ -47,17 +50,20 @@ type
     CSettingsSearchPath         = 'SearchPath';
     CSettingsConditionalDefines = 'ConditionalDefines';
   type
-    TShowing = (shParsedUnits, shIncludeFiles, shNotFound, shProblems);
+    TShowing = (shAnalysis, shParsedUnits, shIncludeFiles, shNotFound, shProblems);
   var
     FDelphiLens: IDelphiLens;
     FLoading   : boolean;
     FScanResult: IDLScanResult;
     FShowing   : TShowing;
-    function AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
   strict protected
+    function  AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
+    procedure DumpAnalysis(const unitInfo: TDLUnitInfo);
     procedure DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
+    procedure DumpUses(const usesList: TArray<string>; const location: TDLCoordinate);
     procedure LoadSettings;
     procedure SaveSettings;
+    procedure ShowAnalysis;
     procedure ShowIncludeFiles;
     procedure ShowMissingFiles;
     procedure ShowParsedUnits;
@@ -73,11 +79,16 @@ implementation
 uses
   System.RTTI,
   DSiWin32,
-  GpVCL,
+  GpStuff, GpVCL,
   DelphiAST.Consts,
   DelphiLens;
 
 {$R *.dfm}
+
+procedure TfrmDLMain.actAnalysisExecute(Sender: TObject);
+begin
+  ShowAnalysis;
+end;
 
 procedure TfrmDLMain.actIncludeFilesExecute(Sender: TObject);
 begin
@@ -136,7 +147,7 @@ begin
       [FScanResult.ParsedUnits.Count, FScanResult.IncludeFiles.Count,
        FScanResult.NotFoundUnits.Count, FScanResult.Problems.Count,
       FScanResult.CacheStatistics.NumScanned, FScanResult.CacheStatistics.NumCached]);
-    ShowParsedUnits;
+    ShowAnalysis;
   end;
 end;
 
@@ -151,6 +162,26 @@ begin
     inpProject.Text := dlgOpenProject.FileName;
     FDelphiLens := nil;
   end;
+end;
+
+procedure TfrmDLMain.DumpAnalysis(const unitInfo: TDLUnitInfo);
+var
+  isProgram: boolean;
+begin
+  isProgram := not unitInfo.InterfaceLoc.IsValid;
+  outLog.Lines.Add(IFF(isProgram, 'program ', 'unit ') + unitInfo.Name);
+  if isProgram then
+    DumpUses(unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc)
+  else begin
+    outLog.Lines.Add('Interface @ ' + unitInfo.InterfaceLoc.ToString);
+    DumpUses(unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc);
+    outLog.Lines.Add('Implementation @ ' + unitInfo.ImplementationLoc.ToString);
+    DumpUses(unitInfo.ImplementationUses, unitInfo.ImplementationUsesLoc);
+  end;
+  if unitInfo.InitializationLoc.IsValid then
+    outLog.Lines.Add('Initialization @ ' + unitInfo.InitializationLoc.ToString);
+  if unitInfo.FinalizationLoc.IsValid then
+    outLog.Lines.Add('Finalization @ ' + unitInfo.FinalizationLoc.ToString);
 end;
 
 procedure TfrmDLMain.DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
@@ -168,6 +199,18 @@ begin
     DumpSyntaxTree(children[i], newPrefix);
 end;
 
+procedure TfrmDLMain.DumpUses(const usesList: TArray<string>; const location: TDLCoordinate);
+var
+  unitName: string;
+begin
+  if not location.IsValid then
+    Exit;
+
+  outLog.Lines.Add('uses @ ' + location.ToString);
+  for unitName in usesList do
+    outLog.Lines.Add('  ' + unitName);
+end;
+
 procedure TfrmDLMain.EnableResultActions(Sender: TObject);
 begin
   (Sender as TAction).Enabled := assigned(FScanResult);
@@ -182,17 +225,26 @@ procedure TfrmDLMain.lbFilesClick(Sender: TObject);
 var
   i: integer;
 begin
-  if FShowing <> shParsedUnits then
+  if not (FShowing in [shAnalysis, shParsedUnits]) then
     Exit;
 
   outLog.Clear;
   outLog.Lines.BeginUpdate;
   try
-    for i := 0 to FScanResult.ParsedUnits.Count - 1 do
-      if FScanResult.ParsedUnits[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
-        DumpSyntaxTree(FScanResult.ParsedUnits[i].SyntaxTree, '');
-        break; //for
-      end;
+    if FShowing = shAnalysis then begin
+      for i := 0 to FScanResult.Analysis.Count - 1 do
+        if FScanResult.Analysis[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
+          DumpAnalysis(FScanResult.Analysis[i]);
+          break; //for
+        end
+    end
+    else begin
+      for i := 0 to FScanResult.ParsedUnits.Count - 1 do
+        if FScanResult.ParsedUnits[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
+          DumpSyntaxTree(FScanResult.ParsedUnits[i].SyntaxTree, '');
+          break; //for
+        end;
+    end;
   finally outLog.Lines.EndUpdate; end;
 end;
 
@@ -218,6 +270,19 @@ end;
 procedure TfrmDLMain.SettingExit(Sender: TObject);
 begin
   SaveSettings;
+end;
+
+procedure TfrmDLMain.ShowAnalysis;
+var
+  i: integer;
+begin
+  lbFiles.Clear;
+  lbFiles.Items.BeginUpdate;
+  try
+    for i := 0 to FScanResult.Analysis.Count - 1 do
+      lbFiles.Items.Add(FScanResult.Analysis[i].Name);
+  finally lbFiles.Items.EndUpdate; end;
+  FShowing := shAnalysis;
 end;
 
 procedure TfrmDLMain.ShowIncludeFiles;
@@ -270,4 +335,6 @@ begin
   FShowing := shProblems;
 end;
 
+initialization
+  // test
 end.

@@ -3,11 +3,13 @@ unit DelphiLens.Intf;
 interface
 
 uses
-  System.Classes,
+  System.Classes, System.Generics.Collections,
   ProjectIndexer,
+  DelphiLens.UnitInfo,
   DelphiLens.Cache.Intf;
 
 type
+  TAnalyzedUnits = TList<TDLUnitInfo>;
   TParsedUnits = TProjectIndexer.TParsedUnits;
   TIncludeFiles = TProjectIndexer.TIncludeFiles;
   TProblems = TProjectIndexer.TProblems;
@@ -15,12 +17,14 @@ type
   TCacheStatistics = DelphiLens.Cache.Intf.TCacheStatistics;
 
   IDLScanResult = interface ['{69592BF1-A9BB-4495-87A8-1081FAB011B3}']
+    function  GetAnalysis: TAnalyzedUnits;
     function  GetCacheStatistics: TCacheStatistics;
     function  GetIncludeFiles: TIncludeFiles;
     function  GetNotFoundUnits: TStringList;
     function  GetParsedUnits: TParsedUnits;
     function  GetProblems: TProblems;
   //
+    property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
     property ParsedUnits: TParsedUnits read GetParsedUnits;
     property IncludeFiles: TIncludeFiles read GetIncludeFiles;

@@ -3,75 +3,75 @@ unit DelphiLens.UnitInfo;
 interface
 
 uses
-  System.Types;
+  System.Types,
+  DelphiAST.Classes;
 
 type
-  TDLCoordinate = TPoint; //Y = line, X = column
-
-  TDLCoordinateHelper = record helper for TDLCoordinate
-  private
-    function  GetColumn: integer; inline;
-    function  GetLine: integer; inline;
-    procedure SetColumn(const value: integer); inline;
-    procedure SetLine(const value: integer); inline;
+  TDLCoordinate = record
   public
-    class function Invalid: TDLCoordinate; static;
-    function IsValid: boolean;
-    property Column: integer read GetColumn write SetColumn;
-    property Line: integer read GetLine write SetLine;
+    Line  : integer;
+    Column: integer;
+    class function Invalid: TDLCoordinate; static; inline;
+    function  IsValid: boolean; inline;
+    procedure SetLocation(const node: TSyntaxNode);
+    function  ToString: string; inline;
   end; { TDLCoordinateHelper }
 
   TDLUnitInfo = record
-    InterfaceLoc      : TDLCoordinate;
-    ImplementationLoc : TDLCoordinate;
-    InitializationLoc : TDLCoordinate;
-    FinalizationLoc   : TDLCoordinate;
-    InterfaceUses     : TArray<string>; //program 'uses' when InterfaceLoc = -1
-    ImplementationUses: TArray<string>;
+    Name                 : string;
+    InterfaceLoc         : TDLCoordinate;
+    InterfaceUsesLoc     : TDLCoordinate;
+    ImplementationLoc    : TDLCoordinate;
+    ImplementationUsesLoc: TDLCoordinate;
+    InitializationLoc    : TDLCoordinate;
+    FinalizationLoc      : TDLCoordinate;
+    InterfaceUses        : TArray<string>; //program 'uses' when InterfaceLoc = -1
+    ImplementationUses   : TArray<string>;
     class function Empty: TDLUnitInfo; static;
   end; { TDLUnitInfo }
 
 implementation
 
-{ TDLCoordinateHelper }
+uses
+  System.SysUtils;
 
-function TDLCoordinateHelper.GetColumn: integer;
+{ TDLCoordinate }
+
+class function TDLCoordinate.Invalid: TDLCoordinate;
 begin
-  Result := X;
-end; { TDLCoordinateHelper.GetColumn }
+  Result.Line := -1;
+  Result.Column := -1;
+end; { TDLCoordinate.Invalid }
 
-function TDLCoordinateHelper.GetLine: integer;
-begin
-  Result := Y;
-end; { TDLCoordinateHelper.GetLine }
-
-class function TDLCoordinateHelper.Invalid: TDLCoordinate;
-begin
-  Result.X := -1;
-  Result.Y := -1;
-end; { TDLCoordinateHelper.Invalid }
-
-function TDLCoordinateHelper.IsValid: boolean;
+function TDLCoordinate.IsValid: boolean;
 begin
   Result := (Line >= 0) and (Column >= 0);
-end; { TDLCoordinateHelper.IsValid }
+end; { TDLCoordinate.IsValid }
 
-procedure TDLCoordinateHelper.SetColumn(const value: integer);
+procedure TDLCoordinate.SetLocation(const node: TSyntaxNode);
 begin
-  X := value;
-end; { TDLCoordinateHelper.SetColumn }
+  if not assigned(node) then
+    Self := TDLCoordinate.Invalid
+  else begin
+    Line := node.Line;
+    Column := node.Col;
+  end;
+end;
 
-procedure TDLCoordinateHelper.SetLine(const value: integer);
+function TDLCoordinate.ToString: string;
 begin
-  Y := value;
-end; { TDLCoordinateHelper.SetLine }
+  Result := Format('%d,%d', [Line, Column]);
+end; { TDLCoordinate.ToString }
 
 { TDLUnitInfo }
 
 class function TDLUnitInfo.Empty: TDLUnitInfo;
 begin
+  Result.Name := '';
   Result.InterfaceLoc := TDLCoordinate.Invalid;
+  Result.InterfaceUsesLoc := TDLCoordinate.Invalid;
   Result.ImplementationLoc := TDLCoordinate.Invalid;
+  Result.ImplementationUsesLoc := TDLCoordinate.Invalid;
   Result.InitializationLoc := TDLCoordinate.Invalid;
   Result.FinalizationLoc := TDLCoordinate.Invalid;
   SetLength(Result.InterfaceUses, 0);

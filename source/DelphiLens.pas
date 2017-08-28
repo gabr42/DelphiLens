@@ -21,16 +21,20 @@ uses
 type
   TDLScanResult = class(TInterfacedObject, IDLScanResult)
   strict private
-    FCache  : IDLCache;
-    FIndexer: TProjectIndexer;
+    [weak] FAnalysis: TAnalyzedUnits;
+           FCache   : IDLCache;
+    [weak] FIndexer : TProjectIndexer;
   strict protected
+    function  GetAnalysis: TAnalyzedUnits;
     function  GetCacheStatistics: TCacheStatistics;
     function  GetIncludeFiles: TIncludeFiles;
     function  GetNotFoundUnits: TStringList;
     function  GetParsedUnits: TParsedUnits;
     function  GetProblems: TProblems;
   public
-    constructor Create(ACache: IDLCache; AIndexer: TProjectIndexer);
+    constructor Create(AAnalysis: TAnalyzedUnits; ACache: IDLCache;
+      AIndexer: TProjectIndexer);
+    property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
     property ParsedUnits: TParsedUnits read GetParsedUnits;
     property IncludeFiles: TIncludeFiles read GetIncludeFiles;
@@ -43,6 +47,7 @@ type
     CCacheDataVersion = 1;
     CCacheExt = '.dlens';
   var
+    FAnalysis          : TAnalyzedUnits;
     FCache             : IDLCache;
     FConditionalDefines: string;
     FIndexer           : TProjectIndexer;
@@ -50,6 +55,7 @@ type
     FProject           : string;
     FSearchPath        : string;
     FTreeAnalyzer      : IDLTreeAnalyzer;
+    FUnitInfo          : TDLUnitInfo;
   strict protected
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
     procedure FilterSyntax(node: TSyntaxNode);
@@ -98,11 +104,13 @@ begin
   FCache.BindTo(FIndexer);
   FCache.DeserializeSyntaxTree := SyntaxTreeDeserializer;
   FCache.SerializeSyntaxTree := SyntaxTreeSerializer;
+  FAnalysis := TAnalyzedUnits.Create;
   FTreeAnalyzer := CreateDLTreeAnalyzer;
 end; { TDelphiLens.Create }
 
 destructor TDelphiLens.Destroy;
 begin
+  FreeAndNil(FAnalysis);
   FreeAndNil(FIndexer);
   inherited;
 end; { TDelphiLens.Destroy }
@@ -144,8 +152,9 @@ begin
   FCache.ClearStatistics;
   FIndexer.SearchPath := SearchPath;
   FIndexer.Defines := ConditionalDefines;
+  FAnalysis.Clear;
   FIndexer.Index(Project);
-  Result := TDLScanResult.Create(FCache, FIndexer);
+  Result := TDLScanResult.Create(FAnalysis, FCache, FIndexer);
 end; { TDelphiLens.Rescan }
 
 procedure TDelphiLens.SetConditionalDefines(const value: string);
@@ -163,7 +172,6 @@ var
   len       : integer;
   mem       : TMemoryStream;
   reader    : TBinarySerializer;
-  unitInfo  : TDLUnitInfo;
   unitReader: IDLUnitInfoSerializer;
 begin
   Result := true;
@@ -182,10 +190,8 @@ begin
     finally FreeAndNil(reader); end;
 
     unitReader := CreateSerializer;
-    if not unitReader.Read(mem, unitInfo) then
+    if not unitReader.Read(mem, FUnitInfo) then
       Exit(false)
-
-    // TODO 1 -oPrimoz Gabrijelcic : store analysis - where ?
   finally FreeAndNil(mem); end;
 end; { TDelphiLens.SyntaxTreeDeserializer }
 
@@ -199,6 +205,8 @@ var
 begin
   AnalyzeTree(tree, unitInfo);
   FilterSyntax(tree);
+
+  FAnalysis.Add(unitInfo);
 
   mem := TMemoryStream.Create;
   try
@@ -221,12 +229,19 @@ end; { TDelphiLens.SyntaxTreeSerializer }
 
 { TDLScanResult }
 
-constructor TDLScanResult.Create(ACache: IDLCache; AIndexer: TProjectIndexer);
+constructor TDLScanResult.Create(AAnalysis: TAnalyzedUnits; ACache: IDLCache;
+  AIndexer: TProjectIndexer);
 begin
   inherited Create;
+  FAnalysis := AAnalysis;
   FCache := ACache;
   FIndexer := AIndexer;
 end; { TDLScanResult.Create }
+
+function TDLScanResult.GetAnalysis: TAnalyzedUnits;
+begin
+  Result := FAnalysis;
+end; { TDLScanResult.GetAnalysis }
 
 function TDLScanResult.GetCacheStatistics: TCacheStatistics;
 begin

@@ -50,22 +50,16 @@ var
 begin
   Result := false;
   FStream := stream;
-  if not ReadInteger(version) then
-    Exit;
-  if version <> CVersion then
-    Exit;
-  if not ReadLocation(unitInfo.InterfaceLoc) then
-    Exit;
-  if not ReadLocation(unitInfo.ImplementationLoc) then
-    Exit;
-  if not ReadLocation(unitInfo.InitializationLoc) then
-    Exit;
-  if not ReadLocation(unitInfo.FinalizationLoc) then
-    Exit;
-  if not ReadStrings(unitInfo.InterfaceUses) then
-    Exit;
-  if not ReadStrings(unitInfo.ImplementationUses) then
-    Exit;
+  if not ReadInteger(version) then Exit;
+  if version <> CVersion then Exit;
+  if not ReadLocation(unitInfo.InterfaceLoc) then Exit;
+  if not ReadLocation(unitInfo.InterfaceUsesLoc) then Exit;
+  if not ReadLocation(unitInfo.ImplementationLoc) then Exit;
+  if not ReadLocation(unitInfo.ImplementationUsesLoc) then Exit;
+  if not ReadLocation(unitInfo.InitializationLoc) then Exit;
+  if not ReadLocation(unitInfo.FinalizationLoc) then Exit;
+  if not ReadStrings(unitInfo.InterfaceUses) then Exit;
+  if not ReadStrings(unitInfo.ImplementationUses) then Exit;
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
 
@@ -76,9 +70,9 @@ end; { TDLUnitInfoSerializer.ReadInteger }
 
 function TDLUnitInfoSerializer.ReadLocation(loc: TDLCoordinate): boolean;
 begin
-  Result := ReadInteger(loc.X);
+  Result := ReadInteger(loc.Line);
   if Result then
-    Result := ReadInteger(loc.Y);
+    Result := ReadInteger(loc.Column);
 end; { TDLUnitInfoSerializer.ReadLocation }
 
 function TDLUnitInfoSerializer.ReadString(var s: string): boolean;
@@ -126,7 +120,9 @@ begin
   FStream := stream;
   WriteInteger(CVersion);
   WriteLocation(unitInfo.InterfaceLoc);
+  WriteLocation(unitInfo.InterfaceUsesLoc);
   WriteLocation(unitInfo.ImplementationLoc);
+  WriteLocation(unitInfo.ImplementationUsesLoc);
   WriteLocation(unitInfo.InitializationLoc);
   WriteLocation(unitInfo.FinalizationLoc);
   WriteStrings(unitInfo.InterfaceUses);
@@ -140,8 +136,8 @@ end; { TDLUnitInfoSerializer.WriteInteger }
 
 procedure TDLUnitInfoSerializer.WriteLocation(loc: TDLCoordinate);
 begin
-  WriteInteger(loc.X);
-  WriteInteger(loc.Y);
+  WriteInteger(loc.Line);
+  WriteInteger(loc.Column);
 end; { TDLUnitInfoSerializer.WriteLocation }
 
 procedure TDLUnitInfoSerializer.WriteString(const s: string);

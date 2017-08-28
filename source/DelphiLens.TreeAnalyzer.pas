@@ -20,7 +20,7 @@ type
     function  FindNode(node: TSyntaxNode; nodeType: TSyntaxNodeType;
       var childNode: TSyntaxNode): boolean;
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
-    function  GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>): boolean;
+    procedure GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>);
   public
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
   end; { TDLTreeAnalyzer }
@@ -39,26 +39,43 @@ var
   ndImpl: TSyntaxNode;
   ndIntf: TSyntaxNode;
   ndUnit: TSyntaxNode;
+  ndUses: TSyntaxNode;
   units : TArray<string>;
 begin
   unitInfo := TDLUnitInfo.Empty;
   if not FindNode(tree, ntUnit, ndUnit) then
     Exit;
 
+  unitInfo.Name := ndUnit.GetAttribute(anName);
+
   ndIntf := FindType(ndUnit, ntInterface);
-  if assigned(ndIntf) then
-    ndImpl := FindType(ndUnit, ntImplementation)
+  if assigned(ndIntf) then begin
+    ndImpl := FindType(ndUnit, ntImplementation);
+    unitInfo.InterfaceLoc.SetLocation(ndIntf);
+    unitInfo.ImplementationLoc.SetLocation(ndImpl);
+  end
   else begin
     ndIntf := ndUnit; //alias to simplify .dpr parsing
     ndImpl := nil;
   end;
 
-  if GetUnitList(FindType(ndImpl, ntUses), units) then
+  unitInfo.InitializationLoc.SetLocation(FindType(ndUnit, ntInitialization));
+  unitInfo.FinalizationLoc.SetLocation(FindType(ndUnit, ntFinalization));
+
+  ndUses := FindType(ndIntf, ntUses);
+  if assigned(ndUses) then begin
+    GetUnitList(ndUses, units);
     unitinfo.InterfaceUses := units;
+    unitInfo.InterfaceUsesLoc.SetLocation(ndUses);
+  end;
 
   if assigned(ndImpl) then begin
-    if GetUnitList(FindType(ndImpl, ntUses), units) then
-      unitinfo.InterfaceUses := units;
+    ndUses := FindType(ndImpl, ntUses);
+    if assigned(ndUses) then begin
+      GetUnitList(ndUses, units);
+      unitinfo.ImplementationUses := units;
+      unitInfo.ImplementationUsesLoc.SetLocation(ndUses);
+    end;
   end;
 end; { TDLTreeAnalyzer.AnalyzeTree }
 
@@ -88,15 +105,11 @@ begin
     Result := node.FindNode(nodeType);
 end; { TDLTreeAnalyzer.FindType }
 
-function TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>): boolean;
+procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>);
 var
   childNode: TSyntaxNode;
   iUnit    : integer;
 begin
-  Result := false;
-  if not assigned(usesNode) then
-    Exit;
-
   SetLength(units, CountType(usesNode, ntUnit));
 
   iUnit := Low(units);

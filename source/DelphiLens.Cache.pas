@@ -208,6 +208,7 @@ begin
     mem := TMemoryStream.Create;
     try
       SerializeSyntaxTree(syntaxTree, mem);
+      str.Size := 0;
       str.CopyFrom(mem, 0);
     finally FreeAndNil(mem); end;
   finally FreeAndNil(str); end;

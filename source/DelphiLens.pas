@@ -55,7 +55,6 @@ type
     FProject           : string;
     FSearchPath        : string;
     FTreeAnalyzer      : IDLTreeAnalyzer;
-    FUnitInfo          : TDLUnitInfo;
   strict protected
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
     procedure FilterSyntax(node: TSyntaxNode);
@@ -172,6 +171,7 @@ var
   len       : integer;
   mem       : TMemoryStream;
   reader    : TBinarySerializer;
+  unitInfo  : TDLUnitInfo;
   unitReader: IDLUnitInfoSerializer;
 begin
   Result := true;
@@ -189,9 +189,14 @@ begin
         Exit(false);
     finally FreeAndNil(reader); end;
 
+    // Successful deserialization, therefore SyntaxTreeSerializer won't be called and
+    // we have to store analysis in the cache.
+
     unitReader := CreateSerializer;
-    if not unitReader.Read(mem, FUnitInfo) then
-      Exit(false)
+    data.Position := len + 4;
+    if not unitReader.Read(data, unitInfo) then
+      Exit(false);
+    FAnalysis.Add(unitInfo);
   finally FreeAndNil(mem); end;
 end; { TDelphiLens.SyntaxTreeDeserializer }
 

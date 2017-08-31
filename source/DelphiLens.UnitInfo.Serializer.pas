@@ -21,7 +21,7 @@ type
     FStream: TStream;
   strict protected
     function  ReadInteger(var val: integer): boolean; inline;
-    function  ReadLocation(loc: TDLCoordinate): boolean; inline;
+    function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
     function  ReadStrings(var strings: TArray<string>): boolean;
@@ -52,6 +52,7 @@ begin
   FStream := stream;
   if not ReadInteger(version) then Exit;
   if version <> CVersion then Exit;
+  if not ReadString(unitInfo.Name) then Exit;
   if not ReadLocation(unitInfo.InterfaceLoc) then Exit;
   if not ReadLocation(unitInfo.InterfaceUsesLoc) then Exit;
   if not ReadLocation(unitInfo.ImplementationLoc) then Exit;
@@ -68,7 +69,7 @@ begin
   Result := FStream.Read(val, 4) = 4;
 end; { TDLUnitInfoSerializer.ReadInteger }
 
-function TDLUnitInfoSerializer.ReadLocation(loc: TDLCoordinate): boolean;
+function TDLUnitInfoSerializer.ReadLocation(var loc: TDLCoordinate): boolean;
 begin
   Result := ReadInteger(loc.Line);
   if Result then
@@ -119,6 +120,7 @@ procedure TDLUnitInfoSerializer.Write(const unitInfo: TDLUnitInfo; stream: TStre
 begin
   FStream := stream;
   WriteInteger(CVersion);
+  WriteString(unitInfo.Name);
   WriteLocation(unitInfo.InterfaceLoc);
   WriteLocation(unitInfo.InterfaceUsesLoc);
   WriteLocation(unitInfo.ImplementationLoc);

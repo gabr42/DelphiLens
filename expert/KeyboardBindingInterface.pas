@@ -3,6 +3,7 @@ unit KeyboardBindingInterface;
 interface
 
 uses
+  Messages,
   ToolsAPI,
   Classes;
 
@@ -11,10 +12,12 @@ uses
 type
   TKeybindingTemplate = class(TNotifierObject, IOTAKeyboardBinding)
 {$IFDEF D2005} strict {$ENDIF} private
+    FWindow: THandle;
 {$IFDEF D2005} strict {$ENDIF} protected
-    procedure AddBreakPoint(const Context: IOTAKeyContext; KeyCode: TShortcut;
-      var BindingResult: TKeyBindingResult);
+    procedure WndProc(var Message: TMessage);
   public
+    constructor Create;
+    destructor Destroy; override;
     procedure BindKeyboard(const BindingServices: IOTAKeyBindingServices);
     function GetBindingType: TBindingType;
     function GetDisplayName: string;
@@ -24,6 +27,7 @@ type
 implementation
 
 uses
+  Windows,
   SysUtils,
   Dialogs,
   Menus,
@@ -33,40 +37,20 @@ uses
 
 procedure TKeybindingTemplate.BindKeyboard(const BindingServices: IOTAKeyBindingServices);
 begin
-//  BindingServices.AddKeyBinding([TextToShortcut('Ctrl+Shift+F8')],
-//    AddBreakPoint, nil);
-//  BindingServices.AddKeyBinding([TextToShortcut('Ctrl+Alt+F8')],
-//    AddBreakPoint, nil);
 end;
 
-procedure TKeybindingTemplate.AddBreakPoint(const Context: IOTAKeyContext;
-  KeyCode: TShortcut; var BindingResult: TKeyBindingResult);
-//var
-//  i: Integer;
-//  DS: IOTADebuggerServices;
-//  MS: IOTAModuleServices;
-//  strFileName: string;
-//  Source: IOTASourceEditor;
-//  CP: TOTAEditPos;
-//  BP: IOTABreakpoint;
+constructor TKeybindingTemplate.Create;
 begin
-//  MS := BorlandIDEServices as IOTAModuleServices;
-//  Source := SourceEditor(MS.CurrentModule);
-//  strFileName := Source.FileName;
-//  CP := Source.EditViews[0].CursorPos;
-//  DS := BorlandIDEServices as IOTADebuggerServices;
-//  BP := nil;
-//  for i := 0 to DS.SourceBkptCount - 1 do
-//    if (DS.SourceBkpts[i].LineNumber = CP.Line) and
-//      (AnsiCompareFileName(DS.SourceBkpts[i].FileName, strFileName) = 0) then
-//      BP := DS.SourceBkpts[i];;
-//  if BP = nil then
-//    BP := DS.NewSourceBreakpoint(strFileName, CP.Line, nil);
-//  if KeyCode = TextToShortcut('Ctrl+Shift+F8') then
-//    BP.Edit(True)
-//  else if KeyCode = TextToShortcut('Ctrl+Alt+F8') then
-//    BP.Enabled := not BP.Enabled;
-//  BindingResult := krHandled;
+  FWindow := AllocateHWnd(WndProc);
+  if not RegisterHotKey(FWindow, 1, MOD_WIN + MOD_ALT , VK_SPACE) then
+    OutputMessage('Failed to register hotkey: ' + SysErrorMessage(GetLastError), 'Keypress');
+end;
+
+destructor TKeybindingTemplate.Destroy;
+begin
+  UnregisterHotKey(Fwindow, 1);
+  DeallocateHWnd(FWindow);
+  inherited;
 end;
 
 function TKeybindingTemplate.GetBindingType: TBindingType;
@@ -82,6 +66,18 @@ end;
 function TKeybindingTemplate.GetName: string;
 begin
   Result := 'DelphiLens Keyboard Bindings';
+end;
+
+procedure TKeybindingTemplate.WndProc(var Message: TMessage);
+begin
+  if Message.Msg = WM_HOTKEY then begin
+     if Message.WParam = 1 then begin
+       OutputMessage('Activate', 'Keypress');
+       Message.Result := 0;
+     end;
+  end
+  else
+    DefWindowProc(FWindow, Message.Msg, Message.wParam, Message.lParam);
 end;
 
 end.

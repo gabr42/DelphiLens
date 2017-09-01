@@ -14,6 +14,7 @@ library DelphiLensExpert;
 
 {Generate by DGH OTA Wizard}
 uses
+  DelphiLensProxy in 'DelphiLensProxy.pas',
   InitialiseOTAInterface in 'InitialiseOTAInterface.pas',
   UtilityFunctions in 'UtilityFunctions.pas',
   WizardInterface in 'WizardInterface.pas',

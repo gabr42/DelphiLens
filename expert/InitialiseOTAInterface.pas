@@ -23,7 +23,6 @@ uses
   KeyboardBindingInterface,
   IDENotifierInterface,
   EditorNotifierInterface,
-
   UtilityFunctions;
 
 type

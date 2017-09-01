@@ -43,7 +43,8 @@ implementation
 
 uses
   SysUtils,
-  UtilityFunctions;
+  UtilityFunctions,
+  DelphiLensProxy;
 
 const
   strBoolean: array [False .. True] of string = ('False', 'True');
@@ -86,19 +87,20 @@ var
 begin
   if NotifyCode = ofnFileClosing then begin
     if ActiveProject = nil then
-      OutputMessage('[DL] Active project closed');
+      if assigned(DLProxy) then
+        DLProxy.ProjectClosed;
   end
   else if NotifyCode = ofnActiveProjectChanged then begin
-    OutputMessage(Format('[DL] Active project: %s', [FileName]));
-    // get dpr name from dproj
+    // get dpr/dpk name
     proj := ActiveProject;
     if assigned(proj) then begin
       module := ProjectModule(proj);
       if assigned(module) then begin
         if module.ModuleFileCount > 0 then begin
           edit := module.ModuleFileEditors[0];
-          if assigned(edit) then // that's how to get .dpr/.dpk
-            OutputMessage(Format('[DL] Project source: %s', [edit.FileName]));
+          if assigned(edit) then
+            if assigned(DLProxy) then
+              DLProxy.ProjectOpened(edit.FileName);
         end;
       end;
     end;

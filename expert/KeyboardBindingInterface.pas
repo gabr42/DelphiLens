@@ -31,7 +31,8 @@ uses
   SysUtils,
   Dialogs,
   Menus,
-  UtilityFunctions;
+  UtilityFunctions,
+  DelphiLensProxy;
 
 { TKeybindingTemplate }
 
@@ -43,7 +44,7 @@ constructor TKeybindingTemplate.Create;
 begin
   FWindow := AllocateHWnd(WndProc);
   if not RegisterHotKey(FWindow, 1, MOD_WIN + MOD_ALT , VK_SPACE) then
-    OutputMessage('Failed to register hotkey: ' + SysErrorMessage(GetLastError), 'Keypress');
+    OutputMessage('Failed to register hotkey: ' + SysErrorMessage(GetLastError), 'DelphiLens');
 end;
 
 destructor TKeybindingTemplate.Destroy;
@@ -72,7 +73,8 @@ procedure TKeybindingTemplate.WndProc(var Message: TMessage);
 begin
   if Message.Msg = WM_HOTKEY then begin
      if Message.WParam = 1 then begin
-       OutputMessage('Activate', 'Keypress');
+       if assigned(DLProxy) then
+         DLProxy.Activate;
        Message.Result := 0;
      end;
   end

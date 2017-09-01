@@ -33,6 +33,7 @@ requires
   designide;
 
 contains
+  DelphiLensProxy in 'DelphiLensProxy.pas',
   InitialiseOTAInterface in 'InitialiseOTAInterface.pas',
   UtilityFunctions in 'UtilityFunctions.pas',
   WizardInterface in 'WizardInterface.pas',

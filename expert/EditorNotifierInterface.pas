@@ -42,7 +42,8 @@ implementation
 
 uses
   SysUtils,
-  UtilityFunctions;
+  UtilityFunctions,
+  DelphiLensProxy;
 
 {$IFDEF D2005}
 { TEditorNotifier }
@@ -68,30 +69,26 @@ end;
 
 procedure TEditorNotifier.EditorViewActivated(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
-var
-  view: IOTAEditView;
 begin
-//  view := EditView.Buffer.TopView;
-//  if assigned(view) then begin
-//    OutputMessage(Format('EditorViewActivated: EditWindow = %s, EditView = %s',
-//      [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
-//      strEditorNotifierMessages);
-//    OutputMessage('EditorViewActivated: ' + view.Buffer.FileName, strEditorNotifierMessages)
-//  end;
+  if assigned(EditView) and assigned(EditView.Buffer)
+     and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
+     and assigned(DLProxy)
+  then
+    DLProxy.FileActivated(EditView.Buffer.TopView.Buffer.FileName);
 end;
 
 procedure TEditorNotifier.EditorViewModified(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
 begin
-//  OutputMessage(Format('EditorViewModified: EditWindow = %s, EditView = %s',
-//    [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
-//    strEditorNotifierMessages);
+  if assigned(EditView) and assigned(EditView.Buffer)
+     and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
+     and assigned(DLProxy)
+  then
+    DLProxy.FileModified(EditView.Buffer.TopView.Buffer.FileName);
 end;
 
 procedure TEditorNotifier.WindowActivated(const EditWindow: INTAEditWindow);
 begin
-//  OutputMessage(Format('WindowActivated: EditWindow = %s',
-//    [EditWindow.Form.Caption]), strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.WindowCommand(const EditWindow: INTAEditWindow;

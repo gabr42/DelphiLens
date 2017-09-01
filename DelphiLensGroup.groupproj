@@ -1,0 +1,60 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{8E8B1093-B8F8-4ACE-BE87-2C1EE05834FE}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="expert\DelphiLensExpertPackage.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="expert\DelphiLensExpert.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="source\DelphiLensDesktop.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DelphiLensExpertPackage">
+        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj"/>
+    </Target>
+    <Target Name="DelphiLensExpertPackage:Clean">
+        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DelphiLensExpertPackage:Make">
+        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DelphiLensExpert">
+        <MSBuild Projects="expert\DelphiLensExpert.dproj"/>
+    </Target>
+    <Target Name="DelphiLensExpert:Clean">
+        <MSBuild Projects="expert\DelphiLensExpert.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DelphiLensExpert:Make">
+        <MSBuild Projects="expert\DelphiLensExpert.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="DelphiLensDesktop">
+        <MSBuild Projects="source\DelphiLensDesktop.dproj"/>
+    </Target>
+    <Target Name="DelphiLensDesktop:Clean">
+        <MSBuild Projects="source\DelphiLensDesktop.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DelphiLensDesktop:Make">
+        <MSBuild Projects="source\DelphiLensDesktop.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensDesktop"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensDesktop:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensDesktop:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>

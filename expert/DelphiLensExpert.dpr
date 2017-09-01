@@ -17,7 +17,6 @@ uses
   InitialiseOTAInterface in 'InitialiseOTAInterface.pas',
   UtilityFunctions in 'UtilityFunctions.pas',
   WizardInterface in 'WizardInterface.pas',
-  CompilerNotifierInterface in 'CompilerNotifierInterface.pas',
   EditorNotifierInterface in 'EditorNotifierInterface.pas',
   IDENotifierInterface in 'IDENotifierInterface.pas',
   KeyboardBindingInterface in 'KeyboardBindingInterface.pas';

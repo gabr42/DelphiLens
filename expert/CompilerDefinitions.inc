@@ -160,7 +160,7 @@
   {$DEFINE DXE20}
 {$ENDIF}
 
-{$IFDEF VER310}
+{$IF CompilerVersion >= 29}
   {$DEFINE D0002}
   {$DEFINE D0003}
   {$DEFINE D0004}
@@ -177,5 +177,4 @@
   {$DEFINE DXE20}
   {$DEFINE DXE80}
 {$ENDIF}
-
 

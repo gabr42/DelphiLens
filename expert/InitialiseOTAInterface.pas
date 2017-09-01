@@ -22,7 +22,6 @@ uses
   WizardInterface,
   KeyboardBindingInterface,
   IDENotifierInterface,
-  CompilerNotifierInterface,
   EditorNotifierInterface,
 
   UtilityFunctions;
@@ -44,9 +43,6 @@ var
 {$ENDIF}
   iKeyBindingIndex: Integer = iWizardFailState;
   iIDENotfierIndex: Integer = iWizardFailState;
-{$IFDEF D2010}
-  iCompilerIndex: Integer = iWizardFailState;
-{$ENDIF}
 {$IFDEF D0006}
   iEditorIndex: Integer = iWizardFailState;
 {$ENDIF}
@@ -90,11 +86,6 @@ begin
   // Create IDE Notifier Interface
   iIDENotfierIndex := (BorlandIDEServices as IOTAServices)
     .AddNotifier(TIDENotifierTemplate.Create);
-{$IFDEF D2010}
-  // Create Compiler Notifier Interface
-  iCompilerIndex := (BorlandIDEServices as IOTACompileServices)
-    .AddNotifier(TCompilerNotifier.Create);
-{$ENDIF}
 {$IFDEF D2005}
   // Create Editor Notifier Interface
   iEditorIndex := (BorlandIDEServices as IOTAEditorServices)
@@ -147,11 +138,6 @@ if iKeyBindingIndex > iWizardFailState then
 // Remove IDE Notifier Interface
 if iIDENotfierIndex > iWizardFailState then
   (BorlandIDEServices as IOTAServices).RemoveNotifier(iIDENotfierIndex);
-{$IFDEF D2010}
-// Remove Compiler Notifier Interface
-if iCompilerIndex <> iWizardFailState then
-  (BorlandIDEServices as IOTACompileServices).RemoveNotifier(iCompilerIndex);
-{$ENDIF}
 {$IFDEF D2005}
 // Remove Editor Notifier Interface
 if iEditorIndex <> iWizardFailState then

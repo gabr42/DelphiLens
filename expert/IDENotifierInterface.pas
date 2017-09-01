@@ -53,92 +53,81 @@ const
 resourcestring
   strIDENotifierMessages = 'IDE Notifier Messages';
 {$ENDIF}
-  { TIDENotifierTemplate }
+
+{ TIDENotifierTemplate }
 
 {$IFDEF D0005}
 
 procedure TIDENotifierTemplate.BeforeCompile(const Project: IOTAProject;
   var Cancel: Boolean);
 begin
-//  OutputMessage(Format('BeforeCompile: Project: %s, Cancel = %s',
-//    [ExtractFileName(Project.FileName), strBoolean[Cancel]])
-//{$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.BeforeCompile(const Project: IOTAProject;
   IsCodeInsight: Boolean; var Cancel: Boolean);
 begin
-//  OutputMessage
-//    (Format('BeforeCompile: Project: %s, IsCodeInsight = %s, Cancel = %s',
-//    [ExtractFileName(Project.FileName), strBoolean[IsCodeInsight],
-//    strBoolean[Cancel]])
-//{$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.AfterCompile(Succeeded: Boolean);
 begin
-//  OutputMessage(Format('AfterCompile: Succeeded=  %s', [strBoolean[Succeeded]])
-//{$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.AfterCompile(Succeeded, IsCodeInsight: Boolean);
 begin
-//  OutputMessage(Format('AfterCompile: Succeeded=  %s, IsCodeInsight = %s',
-//    [strBoolean[Succeeded], strBoolean[IsCodeInsight]])
-//{$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.FileNotification
   (NotifyCode: TOTAFileNotification; const FileName: string;
   var Cancel: Boolean);
-//const
-//  strNotifyCode: array [low(TOTAFileNotification) .. high(TOTAFileNotification)
-//    ] of string = ('ofnFileOpening', 'ofnFileOpened', 'ofnFileClosing',
-//    'ofnDefaultDesktopLoad', 'ofnDefaultDesktopSave', 'ofnProjectDesktopLoad',
-//    'ofnProjectDesktopSave', 'ofnPackageInstalled', 'ofnPackageUninstalled'
-//    {$IFDEF D0007}, 'ofnActiveProjectChanged' {$ENDIF} {$IFDEF DXE80},
-//    // Dont have XE8 to check this so
-//    'ofnProjectOpenedFromTemplate' {$ENDIF}            // may need to be changed to DXE100
-//    );
+var
+  edit: IOTAEditor;
+  module: IOTAModule;
+  proj: IOTAProject;
 begin
-//  OutputMessage
-//    (Format('FileNotification: NotifyCode = %s, FileName = %s, Cancel = %s',
-//    [strNotifyCode[NotifyCode], ExtractFileName(FileName), strBoolean[Cancel]])
-//{$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
+  if NotifyCode = ofnFileClosing then begin
+    if ActiveProject = nil then
+      OutputMessage('[DL] Active project closed');
+  end
+  else if NotifyCode = ofnActiveProjectChanged then begin
+    OutputMessage(Format('[DL] Active project: %s', [FileName]));
+    // get dpr name from dproj
+    proj := ActiveProject;
+    if assigned(proj) then begin
+      module := ProjectModule(proj);
+      if assigned(module) then begin
+        if module.ModuleFileCount > 0 then begin
+          edit := module.ModuleFileEditors[0];
+          if assigned(edit) then // that's how to get .dpr/.dpk
+            OutputMessage(Format('[DL] Project source: %s', [edit.FileName]));
+        end;
+      end;
+    end;
+  end;
 end;
 
 {$ENDIF}
-{$IFDEF D2005}
 
+{$IFDEF D2005}
 procedure TIDENotifierTemplate.AfterCompile(const Project: IOTAProject;
   Succeeded, IsCodeInsight: Boolean);
 begin
-//  OutputMessage
-//    (Format('AfterCompile: Project: %s, Succeeded=  %s, IsCodeInsight = %s',
-//    [ExtractFileName(Project.FileName), strBoolean[Succeeded],
-//    strBoolean[IsCodeInsight]]), strIDENotifierMessages);
 end;
 {$ENDIF}
 
 procedure TIDENotifierTemplate.AfterSave;
 begin
-//  OutputMessage('AfterSave' {$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.BeforeSave;
 begin
-//  OutputMessage('BeforeSave' {$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.Destroyed;
 begin
-//  ClearMessages([cmCompiler .. cmTool]);
-//  OutputMessage('Destroyed' {$IFDEF D0006}, strIDENotifierMessages {$ENDIF});
 end;
 
 procedure TIDENotifierTemplate.Modified;
 begin
-//  OutputMessage('Modified' {$IFDEF D0006} , strIDENotifierMessages {$ENDIF});
 end;
 
 initialization

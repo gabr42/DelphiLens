@@ -54,73 +54,59 @@ const
 procedure TEditorNotifier.DockFormRefresh(const EditWindow: INTAEditWindow;
   DockForm: TDockableForm);
 begin
-//  OutputMessage(Format('DockFormRefresh: EditWindow = %s, DockForm = %s',
-//    [EditWindow.Form.Caption, DockForm.Caption]), strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.DockFormUpdated(const EditWindow: INTAEditWindow;
   DockForm: TDockableForm);
 begin
-//  OutputMessage(Format('DockFormUpdated: EditWindow = %s, DockForm = %s',
-//    [EditWindow.Form.Caption, DockForm.Caption]), strEditorNotifierMessages);
 end;
 
-procedure TEditorNotifier.DockFormVisibleChanged(const EditWindow
-  : INTAEditWindow; DockForm: TDockableForm);
+procedure TEditorNotifier.DockFormVisibleChanged(const EditWindow: INTAEditWindow;
+  DockForm: TDockableForm);
 begin
-//  OutputMessage(Format('DockFormVisibleChanged: EditWindow = %s, DockForm = %s',
-//    [EditWindow.Form.Caption, DockForm.Caption]), strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.EditorViewActivated(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
+var
+  view: IOTAEditView;
 begin
-//  OutputMessage(Format('EditorViewActivated: EditWindow = %s, EditView = %s',
-//    [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
-//    strEditorNotifierMessages);
+  view := EditView.Buffer.TopView;
+  if assigned(view) then begin
+    OutputMessage(Format('EditorViewActivated: EditWindow = %s, EditView = %s',
+      [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
+      strEditorNotifierMessages);
+    OutputMessage('EditorViewActivated: ' + view.Buffer.FileName, strEditorNotifierMessages)
+  end;
 end;
 
 procedure TEditorNotifier.EditorViewModified(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
 begin
-//  OutputMessage(Format('EditorViewModified: EditWindow = %s, EditView = %s',
-//    [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
-//    strEditorNotifierMessages);
+  OutputMessage(Format('EditorViewModified: EditWindow = %s, EditView = %s',
+    [EditWindow.Form.Caption, ExtractFileName(EditView.Buffer.FileName)]),
+    strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.WindowActivated(const EditWindow: INTAEditWindow);
 begin
-//  OutputMessage(Format('WindowActivated: EditWindow = %s',
-//    [EditWindow.Form.Caption]), strEditorNotifierMessages);
+  OutputMessage(Format('WindowActivated: EditWindow = %s',
+    [EditWindow.Form.Caption]), strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.WindowCommand(const EditWindow: INTAEditWindow;
   Command, Param: Integer; var Handled: Boolean);
 begin
-//  OutputMessage
-//    (Format('WindowCommand: EditWindow = %s, Command = %d, Param = %d',
-//    [EditWindow.Form.Caption, Command, Param, strBoolean[Handled]]),
-//    strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.WindowNotification(const EditWindow: INTAEditWindow;
   Operation: TOperation);
-const
-  strOperation: array [low(TOperation) .. high(TOperation)
-    ] of string = ('opInsert', 'opRemove');
 begin
-//  OutputMessage(Format('WindowNotification: EditWindow = %s, Operation = %s',
-//    [EditWindow.Form.Caption, strOperation[Operation]]),
-//    strEditorNotifierMessages);
 end;
 
 procedure TEditorNotifier.WindowShow(const EditWindow: INTAEditWindow;
   Show, LoadedFromDesktop: Boolean);
 begin
-//  OutputMessage
-//    (Format('WindowShow: EditWindow = %s, Show = %s, LoadedFromDesktop = %s',
-//    [EditWindow.Form.Caption, strBoolean[Show], strBoolean[LoadedFromDesktop]]),
-//    strEditorNotifierMessages);
 end;
 {$ENDIF}
 

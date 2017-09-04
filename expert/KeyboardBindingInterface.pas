@@ -43,6 +43,9 @@ end;
 constructor TKeybindingTemplate.Create;
 begin
   FWindow := AllocateHWnd(WndProc);
+  { TODO :
+This doesn't work well if >1 Delphi is using this wizard.
+Add keyboard shortcut configuration. }
   if not RegisterHotKey(FWindow, 1, MOD_WIN + MOD_ALT , VK_SPACE) then
     OutputMessage('Failed to register hotkey: ' + SysErrorMessage(GetLastError), 'DelphiLens');
 end;

@@ -19,7 +19,7 @@ uses
   SysUtils,
   Forms,
   Windows,
-  WizardInterface,
+//  WizardInterface,
   KeyboardBindingInterface,
   IDENotifierInterface,
   EditorNotifierInterface,
@@ -55,7 +55,7 @@ resourcestring
   strSplashScreenBuild = 'Freeware by Primož Gabrijelèiè (Build %d.%d.%d.%d)';
 {$ENDIF}
 
-function InitialiseWizard(WizardType: TWizardType): TWizardTemplate;
+procedure InitialiseWizard(WizardType: TWizardType);//: TWizardTemplate;
 var
   Svcs: IOTAServices;
 begin
@@ -74,11 +74,11 @@ begin
       [iMajor, iMinor, iBugFix, iBuild]));
 {$ENDIF}
   // Create Wizard / Menu Wizard
-  Result := TWizardTemplate.Create;
-  if WizardType = wtPackageWizard then
+//  Result := TWizardTemplate.Create;
+//  if WizardType = wtPackageWizard then
   // Only register main wizard this way if PACKAGE
-    iWizardIndex := (BorlandIDEServices as IOTAWizardServices)
-      .AddWizard(Result);
+//    iWizardIndex := (BorlandIDEServices as IOTAWizardServices)
+//      .AddWizard(Result);
   // Create Keyboard Binding Interface
   iKeyBindingIndex := (BorlandIDEServices as IOTAKeyboardServices)
     .AddKeyboardBinding(TKeybindingTemplate.Create);
@@ -103,7 +103,7 @@ function InitWizard(const BorlandIDEServices: IBorlandIDEServices;
 begin
   Result := BorlandIDEServices <> nil;
   if Result then
-    RegisterProc(InitialiseWizard(wtDLLWizard));
+    {RegisterProc(}InitialiseWizard(wtDLLWizard){)};
 end;
 
 initialization

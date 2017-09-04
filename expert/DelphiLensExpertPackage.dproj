@@ -73,7 +73,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_UnitSearchPath>..\source;..\GpDelphiUnits\src;..\DelphiAST\Project indexer;..\DelphiAST\source;..\DelphiAST\source\SimpleParser;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>..\source;..\GpDelphiUnits\src;..\DelphiAST\Project indexer;..\DelphiAST\source;..\DelphiAST\source\SimpleParser;..\OmniThreadLibrary;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Description>DelphiLens Expert</DCC_Description>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -96,7 +96,6 @@
         <DCCReference Include="DelphiLensProxy.pas"/>
         <DCCReference Include="InitialiseOTAInterface.pas"/>
         <DCCReference Include="UtilityFunctions.pas"/>
-        <DCCReference Include="WizardInterface.pas"/>
         <DCCReference Include="EditorNotifierInterface.pas"/>
         <DCCReference Include="IDENotifierInterface.pas"/>
         <DCCReference Include="KeyboardBindingInterface.pas"/>

@@ -17,12 +17,13 @@ var
 implementation
 
 uses
-  Windows,
-  Messages,
-  SysUtils,
+  Winapi.Windows, Winapi.Messages,
+  System.Win.Registry,
+  System.SysUtils, System.Classes,
+  ToolsAPI, DCCStrs,
   UtilityFunctions,
-  DelphiLens.Intf,
-  DelphiLens,
+  DSiWin32,
+  DelphiLens.Intf, DelphiLens,
   OtlCommon, OtlComm, OtlTaskControl;
 
 const
@@ -44,20 +45,109 @@ type
   end; { TDelphiLensProxy }
 
   TDelphiLensEngine = class(TOmniWorker)
-  strict private
+  strict private const
+    CTimerRescan         = 1;
+    CTimerRescanDelay_ms = 3000;
+  var
     FDelphiLens: IDelphiLens;
+    FScanResult: IDLScanResult;
   public
     procedure OpenProject(const projectName: TOmniValue);
     procedure CloseProject;
     procedure FileModified(const fileModified: TOmniValue);
+    procedure Rescan;
   end; { TDelphiLensEngine }
 
 { TDelphiLensProxy }
 
-procedure TDelphiLensProxy.Activate;
+procedure GetLibraryPath(Paths: TStrings; PlatformName: string);
+var
+  Svcs: IOTAServices;
+  Options: IOTAEnvironmentOptions;
+  Text: string;
+  List: TStrings;
+  ValueCompiler: string;
+  RegRead: TRegistry;
 begin
+  Svcs := BorlandIDEServices as IOTAServices;
+  if not Assigned(Svcs) then Exit;
+  Options := Svcs.GetEnvironmentOptions;
+  if not Assigned(Options) then Exit;
+
+  ValueCompiler := Svcs.GetBaseRegistryKey;
+
+  OutputMessage('ValueCompiler: ' + ValueCompiler, 'DelphiLens');
+
+  RegRead := TRegistry.Create;
+  List := TStringList.Create;
   try
-    // TODO 1 -oPrimoz Gabrijelcic : implement: TDelphiLensProxy.Activate
+    if PlatformName = '' then
+      Text := Options.GetOptionValue('LibraryPath')
+    else
+    begin
+      RegRead.RootKey := HKEY_CURRENT_USER;
+      RegRead.OpenKey(ValueCompiler + '\Library\' + PlatformName, False);
+      Text := RegRead.GetDataAsString('Search Path');
+    end;
+
+    List.Text := StringReplace(Text, ';', #13#10, [rfReplaceAll]);
+    Paths.AddStrings(List);
+
+{    if PlatformName = '' then
+      Text := Options.GetOptionValue('BrowsingPath')
+    else
+    begin
+      RegRead.RootKey := HKEY_CURRENT_USER;
+      RegRead.OpenKey(ValueCompiler + '\Library\' + PlatformName, False);
+      Text := RegRead.GetDataAsString('Browsing Path');
+    end;
+    List.Text := StringReplace(Text, ';', #13#10, [rfReplaceAll]);
+    Paths.AddStrings(List);
+}
+  finally
+    RegRead.Free;
+    List.Free;
+  end;
+end;
+
+procedure TDelphiLensProxy.Activate;
+var
+  proj: IOTAProject;
+  options: IOTAProjectOptions;
+  names: TOTAOptionNameArray;
+  name: TOTAOptionName;
+  configs: IOTAProjectOptionsConfigurations;
+  activeConfig: IOTABuildConfiguration;
+  sl: TStringList;
+  s: string;
+ begin
+  try
+    OutputMessage('Activate', 'DelphiLens');
+    proj := ActiveProject;
+    if assigned(proj) then begin
+      options := proj.ProjectOptions;
+      if assigned(options) then begin
+      end;
+      if Supports(options, IOTAProjectOptionsConfigurations, configs) then begin
+        activeConfig := configs.ActiveConfiguration;
+        if assigned(activeConfig) then begin
+          OutputMessage('Search: ' + activeConfig.Value[sUnitSearchPath], 'DelphiLens');
+          { that works:
+          sl := TStringList.Create;
+          try
+            GetLibraryPath(sl, configs.ActivePlatformName);
+            for s in sl do
+              OutputMessage('> ' + s, 'DelphiLens');
+          finally FreeAndNil(sl); end;
+          }
+          OutputMessage('$(BDS) = ' + DSiGetEnvironmentVariable('BDS'), 'DelphiLens');
+          OutputMessage('$(BDSCatalogRepository) = ' + DSiGetEnvironmentVariable('BDSCatalogRepository'), 'DelphiLens');
+          OutputMessage('$(BDSLIB) = ' + DSiGetEnvironmentVariable('BDSLIB'), 'DelphiLens');
+          OutputMessage('$(BDSUSERDIR) = ' + DSiGetEnvironmentVariable('BDSUSERDIR'), 'DelphiLens');
+          OutputMessage('$(BDSCOMMONDIR) = ' + DSiGetEnvironmentVariable('BDSCOMMONDIR'), 'DelphiLens');
+        end;
+      end;
+    end;
   except
     on E: Exception do
       OutputMessage(Format('%s in Activate, %s', [E.ClassName, E.Message]), 'DelphiLens');
@@ -146,12 +236,25 @@ end; { TDelphiLensEngine.CloseProject }
 
 procedure TDelphiLensEngine.FileModified(const fileModified: TOmniValue);
 begin
+  if not assigned(FDelphiLens) then
+    Exit;
+
+  Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensEngine.Rescan);
 end; { TDelphiLensEngine.FileModified }
 
 procedure TDelphiLensEngine.OpenProject(const projectName: TOmniValue);
 begin
   FDelphiLens := CreateDelphiLens(projectName);
 end; { TDelphiLensEngine.OpenProject }
+
+procedure TDelphiLensEngine.Rescan;
+begin
+  if not assigned(FDelphiLens) then
+    Exit;
+
+  Task.ClearTimer(CTimerRescan);
+  FScanResult := FDelphiLens.Rescan;
+end; { TDelphiLensEngine.Rescan }
 
 initialization
   DLProxy := TDelphiLensProxy.Create;

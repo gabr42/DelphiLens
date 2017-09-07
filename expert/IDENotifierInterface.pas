@@ -14,7 +14,13 @@ type
     IOTAIDENotifier)
 {$IFDEF D2005} strict {$ENDIF} private
 {$IFDEF D2005} strict {$ENDIF} protected
+    FModule: IOTAModule;
+    FProject: IOTAProject;
+    FProjectNotifier: integer;
+    procedure RegProjectNotifier;
+    procedure UnregProjectNotifier;
   public
+    procedure AfterConstruction; override;
     // IOTANotifier
     procedure AfterSave;
     procedure BeforeSave;
@@ -44,6 +50,7 @@ implementation
 uses
   SysUtils,
   UtilityFunctions,
+  ProjectNotifierInterface,
   DelphiLensProxy;
 
 const
@@ -82,8 +89,6 @@ procedure TIDENotifierTemplate.FileNotification
   var Cancel: Boolean);
 var
   edit: IOTAEditor;
-  module: IOTAModule;
-  proj: IOTAProject;
 begin
   if NotifyCode = ofnFileClosing then begin
     if ActiveProject = nil then
@@ -92,12 +97,15 @@ begin
   end
   else if NotifyCode = ofnActiveProjectChanged then begin
     // get dpr/dpk name
-    proj := ActiveProject;
-    if assigned(proj) then begin
-      module := ProjectModule(proj);
-      if assigned(module) then begin
-        if module.ModuleFileCount > 0 then begin
-          edit := module.ModuleFileEditors[0];
+    UnregProjectNotifier;
+    FProject := ActiveProject;
+    if assigned(FProject) then begin
+      OutputMessage('Active project: ' + FProject.FileName, 'DelphiLens');
+      RegProjectNotifier;
+      FModule := ProjectModule(FProject);
+      if assigned(FModule) then begin
+        if FModule.ModuleFileCount > 0 then begin
+          edit := FModule.ModuleFileEditors[0];
           if assigned(edit) then
             if assigned(DLProxy) then
               DLProxy.ProjectOpened(edit.FileName);
@@ -116,6 +124,22 @@ begin
 end;
 {$ENDIF}
 
+procedure TIDENotifierTemplate.AfterConstruction;
+begin
+  inherited;
+  Exit;
+  FProjectNotifier := -1;
+  try
+{ TODO : Sometimes crashes if this is executed in constructor. Do it via timer? }
+//    FProject := ActiveProject;
+//    if assigned(FProject) then
+//      RegProjectNotifier;
+  except
+    on E: Exception do
+      OutputMessage('Exception in TIDENotifierTemplate.AfterConstruction: ' + E.Message, 'DelphiLens');
+  end;
+end;
+
 procedure TIDENotifierTemplate.AfterSave;
 begin
 end;
@@ -126,10 +150,27 @@ end;
 
 procedure TIDENotifierTemplate.Destroyed;
 begin
+  UnregProjectNotifier;
 end;
 
 procedure TIDENotifierTemplate.Modified;
 begin
+end;
+
+procedure TIDENotifierTemplate.RegProjectNotifier;
+begin
+  if not assigned(FProject) then
+    Exit;
+
+  FProjectNotifier := FProject.AddNotifier(TProjectNotifier.Create());
+end;
+
+procedure TIDENotifierTemplate.UnregProjectNotifier;
+begin
+  if FProjectNotifier >= 0 then begin
+    FProject.RemoveNotifier(FProjectNotifier);
+    FProjectNotifier := -1;
+  end;
 end;
 
 initialization

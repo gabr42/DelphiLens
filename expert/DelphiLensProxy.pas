@@ -9,6 +9,7 @@ type
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
     procedure ProjectOpened(const projName: string);
+    procedure ProjectModified;
   end; { IDelphiLensProxy }
 
 var
@@ -42,6 +43,7 @@ type
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
     procedure ProjectOpened(const projName: string);
+    procedure ProjectModified;
   end; { TDelphiLensProxy }
 
   TDelphiLensEngine = class(TOmniWorker)
@@ -51,9 +53,12 @@ type
   var
     FDelphiLens: IDelphiLens;
     FScanResult: IDLScanResult;
+  strict protected
+    procedure ScheduleRescan;
   public
     procedure OpenProject(const projectName: TOmniValue);
     procedure CloseProject;
+    procedure ProjectModified;
     procedure FileModified(const fileModified: TOmniValue);
     procedure Rescan;
   end; { TDelphiLensEngine }
@@ -216,6 +221,17 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectClosed }
 
+procedure TDelphiLensProxy.ProjectModified;
+begin
+  try
+    if assigned(FWorker) then
+      FWorker.Invoke(@TDelphiLensEngine.ProjectModified);
+  except
+    on E: Exception do
+      OutputMessage(Format('%s in ProjectModified, %s', [E.ClassName, E.Message]), 'DelphiLens');
+  end;
+end; { TDelphiLensProxy.ProjectModified }
+
 procedure TDelphiLensProxy.ProjectOpened(const projName: string);
 begin
   try
@@ -236,16 +252,18 @@ end; { TDelphiLensEngine.CloseProject }
 
 procedure TDelphiLensEngine.FileModified(const fileModified: TOmniValue);
 begin
-  if not assigned(FDelphiLens) then
-    Exit;
-
-  Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensEngine.Rescan);
+  ScheduleRescan;
 end; { TDelphiLensEngine.FileModified }
 
 procedure TDelphiLensEngine.OpenProject(const projectName: TOmniValue);
 begin
   FDelphiLens := CreateDelphiLens(projectName);
 end; { TDelphiLensEngine.OpenProject }
+
+procedure TDelphiLensEngine.ProjectModified;
+begin
+  ScheduleRescan;
+end; { TDelphiLensEngine.ProjectModified }
 
 procedure TDelphiLensEngine.Rescan;
 begin
@@ -255,6 +273,12 @@ begin
   Task.ClearTimer(CTimerRescan);
   FScanResult := FDelphiLens.Rescan;
 end; { TDelphiLensEngine.Rescan }
+
+procedure TDelphiLensEngine.ScheduleRescan;
+begin
+  if assigned(FDelphiLens) then
+    Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensEngine.Rescan);
+end; { TDelphiLensEngine.ScheduleRescan }
 
 initialization
   DLProxy := TDelphiLensProxy.Create;

@@ -38,6 +38,7 @@ contains
   UtilityFunctions in 'UtilityFunctions.pas',
   EditorNotifierInterface in 'EditorNotifierInterface.pas',
   IDENotifierInterface in 'IDENotifierInterface.pas',
-  KeyboardBindingInterface in 'KeyboardBindingInterface.pas';
+  KeyboardBindingInterface in 'KeyboardBindingInterface.pas',
+  ProjectNotifierInterface in 'ProjectNotifierInterface.pas';
 
 end.

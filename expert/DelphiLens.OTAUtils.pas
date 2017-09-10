@@ -3,10 +3,16 @@ unit DelphiLens.OTAUtils;
 interface
 
 uses
+  ToolsAPI,
   System.SysUtils,
   System.Classes;
 
+function GetActivePlatform(const project: IOTAProject): string;
 function GetLibraryPath(const PlatformName: string; MapEnvVariables: boolean): string;
+function GetProjectConfigurations(const project: IOTAProject): IOTAProjectOptionsConfigurations; overload; inline;
+function GetProjectConfigurations(const project: IOTAProject; var configs: IOTAProjectOptionsConfigurations): boolean; overload; inline;
+function GetSearchPath(const project: IOTAProject; MapEnvVariables: boolean): string;
+
 function ReplaceEnvVariables(const s: string): string;
 
 procedure Log(const s: string); overload;
@@ -19,9 +25,19 @@ uses
   Winapi.Windows,
   System.Win.Registry,
   System.StrUtils,
-  ToolsAPI,
+  DCCStrs,
   DSiWin32,
   UtilityFunctions;
+
+function GetActivePlatform(const project: IOTAProject): string;
+var
+  config : IOTABuildConfiguration;
+  configs: IOTAProjectOptionsConfigurations;
+begin
+  Result := '';
+  if GetProjectConfigurations(project, configs) then
+    Result := configs.ActivePlatformName;
+end;
 
 // https://stackoverflow.com/q/38826629/4997
 function GetLibraryPath(const PlatformName: string; MapEnvVariables: boolean): string;
@@ -52,6 +68,31 @@ begin
 
   if MapEnvVariables then
     Result := ReplaceEnvVariables(Result);
+end;
+
+function GetProjectConfigurations(const project: IOTAProject): IOTAProjectOptionsConfigurations;
+begin
+  if not Supports(project.ProjectOptions, IOTAProjectOptionsConfigurations, Result) then
+    Result := nil;
+end;
+
+function GetProjectConfigurations(const project: IOTAProject;
+  var configs: IOTAProjectOptionsConfigurations): boolean;
+begin
+  configs := GetProjectConfigurations(project);
+  Result := assigned(configs);
+end;
+
+function GetSearchPath(const project: IOTAProject; MapEnvVariables: boolean): string;
+var
+  configs: IOTAProjectOptionsConfigurations;
+begin
+  Result := '';
+  if GetProjectConfigurations(project, configs) then begin
+    Result := configs.ActiveConfiguration.Value[sUnitSearchPath];
+    if MapEnvVariables then
+      Result := ReplaceEnvVariables(Result);
+  end;
 end;
 
 function ReplaceEnvVariables(const s: string): string;

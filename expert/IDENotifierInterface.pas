@@ -109,7 +109,9 @@ begin
             edit := FModule.ModuleFileEditors[0];
             if assigned(edit) then
               if assigned(DLProxy) then
-                DLProxy.ProjectOpened(edit.FileName);
+                DLProxy.ProjectOpened(edit.FileName,
+                  GetSearchPath(FProject, True) + ';' +
+                  GetLibraryPath(GetActivePlatform(FProject), True));
           end;
         end;
       end;

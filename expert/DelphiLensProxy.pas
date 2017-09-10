@@ -8,7 +8,7 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string);
+    procedure ProjectOpened(const projName: string; const searchPath: string);
     procedure ProjectModified;
   end; { IDelphiLensProxy }
 
@@ -42,7 +42,7 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string);
+    procedure ProjectOpened(const projName: string; const searchPath: string);
     procedure ProjectModified;
   end; { TDelphiLensProxy }
 
@@ -56,7 +56,7 @@ type
   strict protected
     procedure ScheduleRescan;
   public
-    procedure OpenProject(const projectName: TOmniValue);
+    procedure OpenProject(const projectInfo: TOmniValue);
     procedure CloseProject;
     procedure ProjectModified;
     procedure FileModified(const fileModified: TOmniValue);
@@ -170,11 +170,11 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectModified }
 
-procedure TDelphiLensProxy.ProjectOpened(const projName: string);
+procedure TDelphiLensProxy.ProjectOpened(const projName: string; const searchPath: string);
 begin
   try
     if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.OpenProject, projName);
+      FWorker.Invoke(@TDelphiLensEngine.OpenProject, [projName, searchPath]);
   except
     on E: Exception do
       Log('TDelphiLensProxy.ProjectOpened', E);
@@ -193,9 +193,10 @@ begin
   ScheduleRescan;
 end; { TDelphiLensEngine.FileModified }
 
-procedure TDelphiLensEngine.OpenProject(const projectName: TOmniValue);
+procedure TDelphiLensEngine.OpenProject(const projectInfo: TOmniValue);
 begin
-  FDelphiLens := CreateDelphiLens(projectName);
+  FDelphiLens := CreateDelphiLens(projectInfo[0]);
+  FDelphiLens.SearchPath := projectInfo[1];
 end; { TDelphiLensEngine.OpenProject }
 
 procedure TDelphiLensEngine.ProjectModified;

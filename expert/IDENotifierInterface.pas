@@ -113,6 +113,7 @@ begin
                 sPlatform := GetActivePlatform(FProject);
                 DLProxy.ProjectOpened(edit.FileName,
                   sPlatform,
+                  GetConditionalDefines(FProject),
                   GetSearchPath(FProject, True),
                   GetLibraryPath(sPlatform, True));
               end;

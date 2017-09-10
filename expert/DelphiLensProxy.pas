@@ -8,9 +8,9 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
+    procedure ProjectOpened(const projName: string; const sPlatform, conditionals, searchPath, libPath: string);
     procedure ProjectModified;
-    procedure SetProjectConfig(const sPlatform, searchPath, libPath: string);
+    procedure SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
   end; { IDelphiLensProxy }
 
 var
@@ -38,6 +38,7 @@ type
     FCurrentProject: record
       Name: string;
       ActivePlatform: string;
+      Conditionals: string;
       SearchPath: string;
       LibPath: string;
     end;
@@ -49,9 +50,9 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
+    procedure ProjectOpened(const projName: string; const sPlatform, conditionals, searchPath, libPath: string);
     procedure ProjectModified;
-    procedure SetProjectConfig(const sPlatform, searchPath, libPath: string);
+    procedure SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
   end; { TDelphiLensProxy }
 
   TDelphiLensEngine = class(TOmniWorker)
@@ -145,6 +146,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.CloseProject);
     FCurrentProject.Name := '';
     FCurrentProject.ActivePlatform := '';
+    FCurrentProject.Conditionals := '';
     FCurrentProject.SearchPath := '';
     FCurrentProject.LibPath := '';
   except
@@ -164,11 +166,12 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectModified }
 
-procedure TDelphiLensProxy.ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
+procedure TDelphiLensProxy.ProjectOpened(const projName: string; const sPlatform, conditionals, searchPath, libPath: string);
 begin
   try
     if SameText(FCurrentProject.Name, projName)
        and SameText(FCurrentProject.ActivePlatform, sPlatform)
+       and SameText(FCurrentProject.Conditionals, conditionals)
        and SameText(FCurrentProject.SearchPath, searchPath)
        and SameText(FCurrentProject.LibPath, libPath)
     then
@@ -178,6 +181,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.OpenProject, [projName, sPlatform, searchPath, libPath]);
     FCurrentProject.Name := projName;
     FCurrentProject.ActivePlatform := sPlatform;
+    FCurrentProject.Conditionals := conditionals;
     FCurrentProject.SearchPath := searchPath;
     FCurrentProject.LibPath := libPath;
   except
@@ -186,16 +190,14 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectOpened }
 
-procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, searchPath,
-  libPath: string);
+procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
 begin
   try
     if FCurrentProject.Name = '' then
       Exit;
 
-    Log('Project config: %s / %s / %s', [sPlatform, searchPath, libPath]);
     if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.SetProjectConfig, [sPlatform, searchPath, libPath]);
+      FWorker.Invoke(@TDelphiLensEngine.SetProjectConfig, [sPlatform, conditionals, searchPath, libPath]);
   except
     on E: Exception do
       Log('TDelphiLensProxy.SetProjectConfig', E);
@@ -245,7 +247,8 @@ begin
   if assigned(FDelphiLens) then begin
     { TODO : Implement: SetProjectConfig }
 //    FDelphiLens.Platform := configInfo[0];
-    FDelphiLens.SearchPath := configInfo[1].AsString + ';' + configInfo[2].AsString;
+    FDelphiLens.ConditionalDefines := configInfo[1];
+    FDelphiLens.SearchPath := configInfo[2].AsString + ';' + configInfo[3].AsString;
   end;
 end; { TDelphiLensEngine.SetProjectConfig }
 

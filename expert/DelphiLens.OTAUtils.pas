@@ -8,6 +8,7 @@ uses
   System.Classes;
 
 function GetActivePlatform(const project: IOTAProject): string;
+function GetConditionalDefines(const project: IOTAProject): string;
 function GetLibraryPath(const PlatformName: string; MapEnvVariables: boolean): string;
 function GetProjectConfigurations(const project: IOTAProject): IOTAProjectOptionsConfigurations; overload; inline;
 function GetProjectConfigurations(const project: IOTAProject; var configs: IOTAProjectOptionsConfigurations): boolean; overload; inline;
@@ -37,6 +38,15 @@ begin
   Result := '';
   if assigned(project) and GetProjectConfigurations(project, configs) then
     Result := configs.ActivePlatformName;
+end;
+
+function GetConditionalDefines(const project: IOTAProject): string;
+var
+  configs: IOTAProjectOptionsConfigurations;
+begin
+  Result := '';
+  if assigned(project) and GetProjectConfigurations(project, configs) then
+    Result := configs.ActiveConfiguration.Value[sDefine];
 end;
 
 // https://stackoverflow.com/q/38826629/4997

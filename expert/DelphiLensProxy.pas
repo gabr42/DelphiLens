@@ -8,8 +8,9 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string; const searchPath: string);
+    procedure ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
     procedure ProjectModified;
+    procedure SetProjectConfig(const sPlatform, searchPath, libPath: string);
   end; { IDelphiLensProxy }
 
 var
@@ -34,6 +35,12 @@ type
   TDelphiLensProxy = class(TInterfacedObject, IDelphiLensProxy)
   private
     FWorker: IOmniTaskControl;
+    FCurrentProject: record
+      Name: string;
+      ActivePlatform: string;
+      SearchPath: string;
+      LibPath: string;
+    end;
   public
     constructor Create;
     destructor  Destroy; override;
@@ -42,8 +49,9 @@ type
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
-    procedure ProjectOpened(const projName: string; const searchPath: string);
+    procedure ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
     procedure ProjectModified;
+    procedure SetProjectConfig(const sPlatform, searchPath, libPath: string);
   end; { TDelphiLensProxy }
 
   TDelphiLensEngine = class(TOmniWorker)
@@ -61,36 +69,15 @@ type
     procedure ProjectModified;
     procedure FileModified(const fileModified: TOmniValue);
     procedure Rescan;
+    procedure SetProjectConfig(const configInfo: TOmniValue);
   end; { TDelphiLensEngine }
 
 { TDelphiLensProxy }
 
 procedure TDelphiLensProxy.Activate;
-var
-  proj: IOTAProject;
-  options: IOTAProjectOptions;
-  names: TOTAOptionNameArray;
-  name: TOTAOptionName;
-  configs: IOTAProjectOptionsConfigurations;
-  activeConfig: IOTABuildConfiguration;
-  sl: TStringList;
-  s: string;
 begin
   try
     Log('Activate');
-    proj := ActiveProject;
-    if assigned(proj) then begin
-      options := proj.ProjectOptions;
-      if assigned(options) then begin
-      end;
-      if Supports(options, IOTAProjectOptionsConfigurations, configs) then begin
-        activeConfig := configs.ActiveConfiguration;
-        if assigned(activeConfig) then begin
-          Log('Search: ' + activeConfig.Value[sUnitSearchPath]);
-          Log('Library: ' + GetLibraryPath(configs.ActivePlatformName, true));
-        end;
-      end;
-    end;
   except
     on E: Exception do
       Log('TDelphiLensProxy.Activate', E);
@@ -151,8 +138,15 @@ end; { TDelphiLensProxy.FileModified }
 procedure TDelphiLensProxy.ProjectClosed;
 begin
   try
+    if FCurrentProject.Name = '' then
+      Exit;
+
     if assigned(FWorker) then
       FWorker.Invoke(@TDelphiLensEngine.CloseProject);
+    FCurrentProject.Name := '';
+    FCurrentProject.ActivePlatform := '';
+    FCurrentProject.SearchPath := '';
+    FCurrentProject.LibPath := '';
   except
     on E: Exception do
       Log('TDelphiLensProxy.ProjectClosed', E);
@@ -170,16 +164,43 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectModified }
 
-procedure TDelphiLensProxy.ProjectOpened(const projName: string; const searchPath: string);
+procedure TDelphiLensProxy.ProjectOpened(const projName: string; const sPlatform, searchPath, libPath: string);
 begin
   try
+    if SameText(FCurrentProject.Name, projName)
+       and SameText(FCurrentProject.ActivePlatform, sPlatform)
+       and SameText(FCurrentProject.SearchPath, searchPath)
+       and SameText(FCurrentProject.LibPath, libPath)
+    then
+      Exit;
+
     if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.OpenProject, [projName, searchPath]);
+      FWorker.Invoke(@TDelphiLensEngine.OpenProject, [projName, sPlatform, searchPath, libPath]);
+    FCurrentProject.Name := projName;
+    FCurrentProject.ActivePlatform := sPlatform;
+    FCurrentProject.SearchPath := searchPath;
+    FCurrentProject.LibPath := libPath;
   except
     on E: Exception do
       Log('TDelphiLensProxy.ProjectOpened', E);
   end;
 end; { TDelphiLensProxy.ProjectOpened }
+
+procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, searchPath,
+  libPath: string);
+begin
+  try
+    if FCurrentProject.Name = '' then
+      Exit;
+
+    Log('Project config: %s / %s / %s', [sPlatform, searchPath, libPath]);
+    if assigned(FWorker) then
+      FWorker.Invoke(@TDelphiLensEngine.SetProjectConfig, [sPlatform, searchPath, libPath]);
+  except
+    on E: Exception do
+      Log('TDelphiLensProxy.SetProjectConfig', E);
+  end;
+end; { TDelphiLensProxy.SetProjectConfig }
 
 { TDelphiLensEngine }
 
@@ -196,7 +217,7 @@ end; { TDelphiLensEngine.FileModified }
 procedure TDelphiLensEngine.OpenProject(const projectInfo: TOmniValue);
 begin
   FDelphiLens := CreateDelphiLens(projectInfo[0]);
-  FDelphiLens.SearchPath := projectInfo[1];
+  SetProjectConfig(TOmniValue.Create([projectInfo[1].AsString, projectInfo[2].AsString, projectInfo[3].AsString]));
 end; { TDelphiLensEngine.OpenProject }
 
 procedure TDelphiLensEngine.ProjectModified;
@@ -218,6 +239,15 @@ begin
   if assigned(FDelphiLens) then
     Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensEngine.Rescan);
 end; { TDelphiLensEngine.ScheduleRescan }
+
+procedure TDelphiLensEngine.SetProjectConfig(const configInfo: TOmniValue);
+begin
+  if assigned(FDelphiLens) then begin
+    { TODO : Implement: SetProjectConfig }
+//    FDelphiLens.Platform := configInfo[0];
+    FDelphiLens.SearchPath := configInfo[1].AsString + ';' + configInfo[2].AsString;
+  end;
+end; { TDelphiLensEngine.SetProjectConfig }
 
 initialization
   DLProxy := TDelphiLensProxy.Create;

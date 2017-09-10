@@ -35,7 +35,7 @@ var
   configs: IOTAProjectOptionsConfigurations;
 begin
   Result := '';
-  if GetProjectConfigurations(project, configs) then
+  if assigned(project) and GetProjectConfigurations(project, configs) then
     Result := configs.ActivePlatformName;
 end;
 
@@ -71,9 +71,12 @@ begin
 end;
 
 function GetProjectConfigurations(const project: IOTAProject): IOTAProjectOptionsConfigurations;
+var
+  configs: IOTAProjectOptionsConfigurations;
 begin
-  if not Supports(project.ProjectOptions, IOTAProjectOptionsConfigurations, Result) then
-    Result := nil;
+  Result := nil;
+  if assigned(project) and Supports(project.ProjectOptions, IOTAProjectOptionsConfigurations, configs) then
+    Result := configs;
 end;
 
 function GetProjectConfigurations(const project: IOTAProject;
@@ -88,7 +91,7 @@ var
   configs: IOTAProjectOptionsConfigurations;
 begin
   Result := '';
-  if GetProjectConfigurations(project, configs) then begin
+  if assigned(project) and GetProjectConfigurations(project, configs) then begin
     Result := configs.ActiveConfiguration.Value[sUnitSearchPath];
     if MapEnvVariables then
       Result := ReplaceEnvVariables(Result);
@@ -100,6 +103,7 @@ var
   pPrev: Integer;
   pEnv: Integer;
   pEnd: Integer;
+  envName: String;
   envVar: String;
 begin
   Result := s;
@@ -111,9 +115,13 @@ begin
     pEnd := PosEx(')', Result, pEnv+2);
     if pEnd = 0 then
       break;
-    envVar := DSiGetEnvironmentVariable(Copy(Result, pEnv + 2, pEnd - pEnv - 2));
+    envName := Copy(Result, pEnv + 2, pEnd - pEnv - 2);
+    if SameText(envName, 'Platform') then
+      envVar := GetActivePlatform(GetActiveProject)
+    else
+      envVar := DSiGetEnvironmentVariable(envName);
     Delete(Result, pEnv, pEnd - pEnv + 1);
-    Insert(Result, envVar, pEnv);
+    Insert(envVar, Result, pEnv);
   until false;
 end;
 

@@ -3,11 +3,24 @@ unit ProjectNotifierInterface;
 interface
 
 uses
-  ToolsApi;
+  ToolsApi,
+  Vcl.ExtCtrls;
 
 type
   TProjectNotifier = class(TModuleNotifierObject, IOTAModuleNotifier, IOTAProjectNotifier)
+  strict private const
+    CPathCheckInterval_sec = 5;
+  var
+    FProject: IOTAProject;
+    FSearchPath: string;
+    FPlatform: string;
+    FLibPath: string;
+    FTimer: TTimer;
+  strict protected
+    procedure CheckPaths(Sender: TObject);
   public
+    constructor Create(const project: IOTAProject);
+    destructor  Destroy; override;
     { IOTAModuleNotifier }
 
     { User has renamed the module }
@@ -28,11 +41,52 @@ type
 implementation
 
 uses
+  Vcl.Forms,
   System.SysUtils,
   UtilityFunctions,
   DelphiLens.OTAUtils, DelphiLensProxy;
 
 { TProjectNotifier }
+
+procedure TProjectNotifier.CheckPaths(Sender: TObject);
+var
+  searchPath: string;
+  sPlatform: string;
+  libPath: string;
+begin
+  searchPath := GetSearchPath(FProject, True);
+  sPlatform := GetActivePlatform(FProject);
+  libPath := GetLibraryPath(sPlatform, True);
+  if not (SameText(searchPath, FSearchPath)
+          and SameText(sPlatform, FPlatform)
+          and SameText(libPath, FLibPath)) then
+  begin
+    FSearchPath := searchPath;
+    FPlatform := sPlatform;
+    FLibPath := libPath;
+    if assigned(DLProxy) then
+      DLProxy.SetProjectConfig(FPlatform, FSearchPath, FLibPath);
+  end;
+end;
+
+constructor TProjectNotifier.Create(const project: IOTAProject);
+begin
+  inherited Create;
+  FProject := project;
+  FSearchPath := GetSearchPath(project, True);
+  FPlatform := GetActivePlatform(project);
+  FLibPath := GetLibraryPath(FPlatform, True);
+  FTimer := TTimer.Create(Application.MainForm);
+  FTimer.OnTimer := CheckPaths;
+  FTimer.Interval := CPathCheckInterval_sec * 1000;
+  FTimer.Enabled := true;
+end;
+
+destructor TProjectNotifier.Destroy;
+begin
+  FreeAndNil(FTimer);
+  inherited;
+end;
 
 procedure TProjectNotifier.ModuleAdded(const AFileName: string);
 begin

@@ -52,7 +52,8 @@ uses
   SysUtils,
   UtilityFunctions,
   ProjectNotifierInterface,
-  DelphiLens.OTAUtils, DelphiLensProxy;
+  DelphiLens.OTAUtils, DelphiLensProxy,
+  StrUtils, DSiWin32;
 
 const
   strBoolean: array [False .. True] of string = ('False', 'True');
@@ -90,6 +91,7 @@ procedure TIDENotifierTemplate.FileNotification
   var Cancel: Boolean);
 var
   edit: IOTAEditor;
+  sPlatform: string;
 begin
   try
     if NotifyCode = ofnFileClosing then begin
@@ -102,18 +104,21 @@ begin
       UnregProjectNotifier;
       FProject := ActiveProject;
       if assigned(FProject) then begin
-        RegProjectNotifier;
         FModule := ProjectModule(FProject);
         if assigned(FModule) then begin
           if FModule.ModuleFileCount > 0 then begin
             edit := FModule.ModuleFileEditors[0];
             if assigned(edit) then
-              if assigned(DLProxy) then
+              if assigned(DLProxy) then begin
+                sPlatform := GetActivePlatform(FProject);
                 DLProxy.ProjectOpened(edit.FileName,
-                  GetSearchPath(FProject, True) + ';' +
-                  GetLibraryPath(GetActivePlatform(FProject), True));
+                  sPlatform,
+                  GetSearchPath(FProject, True),
+                  GetLibraryPath(sPlatform, True));
+              end;
           end;
         end;
+        RegProjectNotifier;
       end;
     end;
   except
@@ -168,7 +173,7 @@ begin
     Exit;
 
   try
-    FProjectNotifierIntf := TProjectNotifier.Create();
+    FProjectNotifierIntf := TProjectNotifier.Create(FProject);
     FProjectNotifier := FProject.AddNotifier(FProjectNotifierIntf);
   except
     on E: Exception do

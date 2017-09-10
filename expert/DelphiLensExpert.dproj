@@ -96,6 +96,7 @@
         <DCCReference Include="EditorNotifierInterface.pas"/>
         <DCCReference Include="IDENotifierInterface.pas"/>
         <DCCReference Include="KeyboardBindingInterface.pas"/>
+        <DCCReference Include="ProjectNotifierInterface.pas"/>
         <None Include="CompilerDefinitions.inc"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>

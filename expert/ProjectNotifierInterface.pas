@@ -8,9 +8,6 @@ uses
 type
   TProjectNotifier = class(TModuleNotifierObject, IOTAModuleNotifier, IOTAProjectNotifier)
   public
-    constructor Create;
-    destructor Destroy; override;
-
     { IOTAModuleNotifier }
 
     { User has renamed the module }
@@ -31,46 +28,55 @@ type
 implementation
 
 uses
+  System.SysUtils,
   UtilityFunctions,
-  DelphiLensProxy;
+  DelphiLens.OTAUtils, DelphiLensProxy;
 
 { TProjectNotifier }
 
-constructor TProjectNotifier.Create;
-begin
-//  OutputMessage('TProjectNotifier created', 'DelphiLens');
-  inherited Create;
-end;
-
-destructor TProjectNotifier.Destroy;
-begin
-//  OutputMessage('TProjectNotifier destroyed', 'DelphiLens');
-  inherited;
-end;
-
 procedure TProjectNotifier.ModuleAdded(const AFileName: string);
 begin
-  if assigned(DLProxy) then
-    DLProxy.ProjectModified;
+  try
+    if assigned(DLProxy) then
+      DLProxy.ProjectModified;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.ModuleAdded', E);
+  end;
 end;
 
 procedure TProjectNotifier.ModuleRemoved(const AFileName: string);
 begin
-  if assigned(DLProxy) then
-    DLProxy.ProjectModified;
+  try
+    if assigned(DLProxy) then
+      DLProxy.ProjectModified;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.ModuleRemoved', E);
+  end;
 end;
 
 procedure TProjectNotifier.ModuleRenamed(const NewName: string);
 begin
-  if assigned(DLProxy) then
-    DLProxy.ProjectModified;
+  try
+    if assigned(DLProxy) then
+      DLProxy.ProjectModified;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.ModuleRenamed', E);
+  end;
 end;
 
 procedure TProjectNotifier.ModuleRenamed(const AOldFileName,
   ANewFileName: string);
 begin
-  if assigned(DLProxy) then
-    DLProxy.ProjectModified;
+  try
+    if assigned(DLProxy) then
+      DLProxy.ProjectModified;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.ModuleRenamed', E);
+  end;
 end;
 
 end.

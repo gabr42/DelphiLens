@@ -23,7 +23,8 @@ uses
   KeyboardBindingInterface,
   IDENotifierInterface,
   EditorNotifierInterface,
-  UtilityFunctions;
+  UtilityFunctions,
+  DelphiLens.OTAUtils;
 
 type
   TWizardType = (wtPackageWizard, wtDLLWizard);
@@ -59,37 +60,42 @@ procedure InitialiseWizard(WizardType: TWizardType);//: TWizardTemplate;
 var
   Svcs: IOTAServices;
 begin
-  Svcs := BorlandIDEServices as IOTAServices;
-  ToolsAPI.BorlandIDEServices := BorlandIDEServices;
-  Application.Handle := Svcs.GetParentHandle;
-{$IFDEF D2005}
-  // Aboutbox plugin
-  bmSplashScreen := LoadBitmap(hInstance, 'SplashScreenBitMap');
-  with VersionInfo do
-    iAboutPluginIndex := (BorlandIDEServices as IOTAAboutBoxServices)
-      .AddPluginInfo(Format(strSplashScreenName, [iMajor, iMinor,
-      Copy(strRevision, iBugFix + 1, 1)]), 'Wizard Description.',
-      bmSplashScreen, False, Format(strSplashScreenBuild,
-      [iMajor, iMinor, iBugFix, iBuild]), Format('SKU Build %d.%d.%d.%d',
-      [iMajor, iMinor, iBugFix, iBuild]));
-{$ENDIF}
-  // Create Wizard / Menu Wizard
-//  Result := TWizardTemplate.Create;
-//  if WizardType = wtPackageWizard then
-  // Only register main wizard this way if PACKAGE
-//    iWizardIndex := (BorlandIDEServices as IOTAWizardServices)
-//      .AddWizard(Result);
-  // Create Keyboard Binding Interface
-  iKeyBindingIndex := (BorlandIDEServices as IOTAKeyboardServices)
-    .AddKeyboardBinding(TKeybindingTemplate.Create);
-  // Create IDE Notifier Interface
-  iIDENotfierIndex := (BorlandIDEServices as IOTAServices)
-    .AddNotifier(TIDENotifierTemplate.Create);
-{$IFDEF D2005}
-  // Create Editor Notifier Interface
-  iEditorIndex := (BorlandIDEServices as IOTAEditorServices)
-    .AddNotifier(TEditorNotifier.Create);
-{$ENDIF}
+  try
+    Svcs := BorlandIDEServices as IOTAServices;
+    ToolsAPI.BorlandIDEServices := BorlandIDEServices;
+    Application.Handle := Svcs.GetParentHandle;
+  {$IFDEF D2005}
+    // Aboutbox plugin
+    bmSplashScreen := LoadBitmap(hInstance, 'SplashScreenBitMap');
+    with VersionInfo do
+      iAboutPluginIndex := (BorlandIDEServices as IOTAAboutBoxServices)
+        .AddPluginInfo(Format(strSplashScreenName, [iMajor, iMinor,
+        Copy(strRevision, iBugFix + 1, 1)]), 'Wizard Description.',
+        bmSplashScreen, False, Format(strSplashScreenBuild,
+        [iMajor, iMinor, iBugFix, iBuild]), Format('SKU Build %d.%d.%d.%d',
+        [iMajor, iMinor, iBugFix, iBuild]));
+  {$ENDIF}
+    // Create Wizard / Menu Wizard
+  //  Result := TWizardTemplate.Create;
+  //  if WizardType = wtPackageWizard then
+    // Only register main wizard this way if PACKAGE
+  //    iWizardIndex := (BorlandIDEServices as IOTAWizardServices)
+  //      .AddWizard(Result);
+    // Create Keyboard Binding Interface
+    iKeyBindingIndex := (BorlandIDEServices as IOTAKeyboardServices)
+      .AddKeyboardBinding(TKeybindingTemplate.Create);
+    // Create IDE Notifier Interface
+    iIDENotfierIndex := (BorlandIDEServices as IOTAServices)
+      .AddNotifier(TIDENotifierTemplate.Create);
+  {$IFDEF D2005}
+    // Create Editor Notifier Interface
+    iEditorIndex := (BorlandIDEServices as IOTAEditorServices)
+      .AddNotifier(TEditorNotifier.Create);
+  {$ENDIF}
+  except
+    on E: Exception do
+      Log('InitialiseWizard', E);
+  end;
 end;
 
 procedure Register;

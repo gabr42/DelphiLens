@@ -43,6 +43,7 @@ implementation
 uses
   SysUtils,
   UtilityFunctions,
+  DelphiLens.OTAUtils,
   DelphiLensProxy;
 
 {$IFDEF D2005}
@@ -70,21 +71,31 @@ end;
 procedure TEditorNotifier.EditorViewActivated(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
 begin
-  if assigned(EditView) and assigned(EditView.Buffer)
-     and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
-     and assigned(DLProxy)
-  then
-    DLProxy.FileActivated(EditView.Buffer.TopView.Buffer.FileName);
+  try
+    if assigned(EditView) and assigned(EditView.Buffer)
+       and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
+       and assigned(DLProxy)
+    then
+      DLProxy.FileActivated(EditView.Buffer.TopView.Buffer.FileName);
+  except
+    on E: Exception do
+      Log('TEditorNotifier.EditorViewActivated', E);
+  end;
 end;
 
 procedure TEditorNotifier.EditorViewModified(const EditWindow: INTAEditWindow;
   const EditView: IOTAEditView);
 begin
-  if assigned(EditView) and assigned(EditView.Buffer)
-     and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
-     and assigned(DLProxy)
-  then
-    DLProxy.FileModified(EditView.Buffer.TopView.Buffer.FileName);
+  try
+    if assigned(EditView) and assigned(EditView.Buffer)
+       and assigned(EditView.Buffer.TopView) and assigned(EditView.Buffer.TopView.Buffer)
+       and assigned(DLProxy)
+    then
+      DLProxy.FileModified(EditView.Buffer.TopView.Buffer.FileName);
+  except
+    on E: Exception do
+      Log('TEditorNotifier.EditorViewModified', E);
+  end;
 end;
 
 procedure TEditorNotifier.WindowActivated(const EditWindow: INTAEditWindow);

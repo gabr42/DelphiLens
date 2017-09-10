@@ -17,10 +17,10 @@ uses
   DelphiLensProxy in 'DelphiLensProxy.pas',
   InitialiseOTAInterface in 'InitialiseOTAInterface.pas',
   UtilityFunctions in 'UtilityFunctions.pas',
-//  WizardInterface in 'WizardInterface.pas',
   EditorNotifierInterface in 'EditorNotifierInterface.pas',
   IDENotifierInterface in 'IDENotifierInterface.pas',
-  KeyboardBindingInterface in 'KeyboardBindingInterface.pas';
+  KeyboardBindingInterface in 'KeyboardBindingInterface.pas',
+  ProjectNotifierInterface in 'ProjectNotifierInterface.pas';
 
 begin
 end.

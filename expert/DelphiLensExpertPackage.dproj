@@ -80,6 +80,8 @@
         <DCC_Namespace>Vcl;$(DCC_Namespace)</DCC_Namespace>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <DCC_WriteableConstants>true</DCC_WriteableConstants>
+        <Debugger_HostApplication>&quot;C:\Program Files (x86)\Embarcadero\Studio\19.0\bin\bds.exe&quot;</Debugger_HostApplication>
+        <Debugger_RunParams>-rOTA</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>
@@ -148,7 +150,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\18.0\Bpl\DelphiLensExpertPackage.bpl" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="C:\Users\Public\Documents\Embarcadero\Studio\19.0\Bpl\DelphiLensExpertPackage.bpl" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>DelphiLensExpertPackage.bpl</RemoteName>
                         <Overwrite>true</Overwrite>

@@ -24,7 +24,7 @@ uses
   ToolsAPI, DCCStrs,
   UtilityFunctions,
   DSiWin32,
-  DelphiLens.Intf, DelphiLens,
+  DelphiLens.Intf, DelphiLens, DelphiLens.OTAUtils,
   OtlCommon, OtlComm, OtlTaskControl;
 
 const
@@ -65,56 +65,6 @@ type
 
 { TDelphiLensProxy }
 
-procedure GetLibraryPath(Paths: TStrings; PlatformName: string);
-var
-  Svcs: IOTAServices;
-  Options: IOTAEnvironmentOptions;
-  Text: string;
-  List: TStrings;
-  ValueCompiler: string;
-  RegRead: TRegistry;
-begin
-  Svcs := BorlandIDEServices as IOTAServices;
-  if not Assigned(Svcs) then Exit;
-  Options := Svcs.GetEnvironmentOptions;
-  if not Assigned(Options) then Exit;
-
-  ValueCompiler := Svcs.GetBaseRegistryKey;
-
-  OutputMessage('ValueCompiler: ' + ValueCompiler, 'DelphiLens');
-
-  RegRead := TRegistry.Create;
-  List := TStringList.Create;
-  try
-    if PlatformName = '' then
-      Text := Options.GetOptionValue('LibraryPath')
-    else
-    begin
-      RegRead.RootKey := HKEY_CURRENT_USER;
-      RegRead.OpenKey(ValueCompiler + '\Library\' + PlatformName, False);
-      Text := RegRead.GetDataAsString('Search Path');
-    end;
-
-    List.Text := StringReplace(Text, ';', #13#10, [rfReplaceAll]);
-    Paths.AddStrings(List);
-
-{    if PlatformName = '' then
-      Text := Options.GetOptionValue('BrowsingPath')
-    else
-    begin
-      RegRead.RootKey := HKEY_CURRENT_USER;
-      RegRead.OpenKey(ValueCompiler + '\Library\' + PlatformName, False);
-      Text := RegRead.GetDataAsString('Browsing Path');
-    end;
-    List.Text := StringReplace(Text, ';', #13#10, [rfReplaceAll]);
-    Paths.AddStrings(List);
-}
-  finally
-    RegRead.Free;
-    List.Free;
-  end;
-end;
-
 procedure TDelphiLensProxy.Activate;
 var
   proj: IOTAProject;
@@ -125,9 +75,9 @@ var
   activeConfig: IOTABuildConfiguration;
   sl: TStringList;
   s: string;
- begin
+begin
   try
-    OutputMessage('Activate', 'DelphiLens');
+    Log('Activate');
     proj := ActiveProject;
     if assigned(proj) then begin
       options := proj.ProjectOptions;
@@ -136,26 +86,14 @@ var
       if Supports(options, IOTAProjectOptionsConfigurations, configs) then begin
         activeConfig := configs.ActiveConfiguration;
         if assigned(activeConfig) then begin
-          OutputMessage('Search: ' + activeConfig.Value[sUnitSearchPath], 'DelphiLens');
-          { that works:
-          sl := TStringList.Create;
-          try
-            GetLibraryPath(sl, configs.ActivePlatformName);
-            for s in sl do
-              OutputMessage('> ' + s, 'DelphiLens');
-          finally FreeAndNil(sl); end;
-          }
-          OutputMessage('$(BDS) = ' + DSiGetEnvironmentVariable('BDS'), 'DelphiLens');
-          OutputMessage('$(BDSCatalogRepository) = ' + DSiGetEnvironmentVariable('BDSCatalogRepository'), 'DelphiLens');
-          OutputMessage('$(BDSLIB) = ' + DSiGetEnvironmentVariable('BDSLIB'), 'DelphiLens');
-          OutputMessage('$(BDSUSERDIR) = ' + DSiGetEnvironmentVariable('BDSUSERDIR'), 'DelphiLens');
-          OutputMessage('$(BDSCOMMONDIR) = ' + DSiGetEnvironmentVariable('BDSCOMMONDIR'), 'DelphiLens');
+          Log('Search: ' + activeConfig.Value[sUnitSearchPath]);
+          Log('Library: ' + GetLibraryPath(configs.ActivePlatformName, true));
         end;
       end;
     end;
   except
     on E: Exception do
-      OutputMessage(Format('%s in Activate, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.Activate', E);
   end;
 end; { TDelphiLensProxy.Activate }
 
@@ -182,9 +120,9 @@ begin
 
   except
     on E: Exception do
-      OutputMessage(Format('%s in EngineFeedback, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.EngineFeedback', E);
   end;
-end;
+end; { TDelphiLensProxy.EngineFeedback }
 
 procedure TDelphiLensProxy.FileActivated(const fileName: string);
 begin
@@ -195,7 +133,7 @@ begin
     // Index into some temp cache?
   except
     on E: Exception do
-      OutputMessage(Format('%s in FileActivated, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.FileActivated', E);
   end;
 end; { TDelphiLensProxy.FileActivated }
 
@@ -206,7 +144,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.FileModified, fileName);
   except
     on E: Exception do
-      OutputMessage(Format('%s in FileModified, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.FileModified', E);
   end;
 end; { TDelphiLensProxy.FileModified }
 
@@ -217,7 +155,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.CloseProject);
   except
     on E: Exception do
-      OutputMessage(Format('%s in ProjectClosed, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.ProjectClosed', E);
   end;
 end; { TDelphiLensProxy.ProjectClosed }
 
@@ -228,7 +166,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.ProjectModified);
   except
     on E: Exception do
-      OutputMessage(Format('%s in ProjectModified, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.ProjectModified', E);
   end;
 end; { TDelphiLensProxy.ProjectModified }
 
@@ -239,7 +177,7 @@ begin
       FWorker.Invoke(@TDelphiLensEngine.OpenProject, projName);
   except
     on E: Exception do
-      OutputMessage(Format('%s in ProjectOpened, %s', [E.ClassName, E.Message]), 'DelphiLens');
+      Log('TDelphiLensProxy.ProjectOpened', E);
   end;
 end; { TDelphiLensProxy.ProjectOpened }
 

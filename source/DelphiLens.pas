@@ -86,17 +86,12 @@ end; { CreateDelphiLens }
 constructor TDelphiLens.Create(const AProject: string);
 begin
   inherited Create;
-//  FInterestingTypes := [ntAnonymousMethod, ntArguments, ntAs, ntAttribute, ntAttributes,
-//      ntCall, ntConstant, ntConstants, ntEnum, ntExternal, ntField, ntFields, ntFinalization, ntGeneric,
-//      ntHelper, ntIdentifier, ntImplementation, ntImplements, ntInherited, ntInitialization,
-//      ntInterface, ntLabel, ntMethod, ntName, ntNamedArgument, ntPackage, ntParameter,
-//      ntParameters, ntPath, ntPositionalArgument, ntProtected, ntPrivate, ntProperty,
-//      ntPublic, ntPublished, ntResolutionClause, ntResourceString, ntStrictPrivate,
-//      ntStrictProtected, ntType, ntTypeArgs, ntTypeDecl, ntTypeParam, ntTypeParams,
-//      ntTypeSection, ntVariable, ntVariables, ntUnit, ntUses];
   // Minimum set of types needed for ProjectIndexer to walk the 'uses' chain
   FInterestingTypes := [ntFinalization, ntImplementation, ntInitialization,
     ntInterface, ntUnit, ntUses];
+  // For now, store everything.
+  // Maybe sometimes later I'll want to filter this information and store it in a different - faster format.
+  FInterestingTypes := [];
   FProject := AProject;
   FIndexer := TProjectIndexer.Create;
   FCache := CreateDLCache(ChangeFileExt(FProject, CCacheExt), CCacheDataVersion);
@@ -124,7 +119,7 @@ var
   iChild: integer;
 begin
   for iChild := High(node.ChildNodes) downto Low(node.ChildNodes) do
-    if node.ChildNodes[iChild].Typ in FInterestingTypes then
+    if (FInterestingTypes = []) or (node.ChildNodes[iChild].Typ in FInterestingTypes) then
       FilterSyntax(node.ChildNodes[iChild])
     else
       node.DeleteChild(node.ChildNodes[iChild]);

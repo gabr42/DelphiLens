@@ -41,6 +41,13 @@ object frmDLMain: TfrmDLMain
     Caption = 'Conditional defines:'
     FocusControl = inpDefines
   end
+  object lblWhatIsShowing: TLabel
+    Left = 16
+    Top = 144
+    Width = 39
+    Height = 13
+    Caption = 'Analysis'
+  end
   object inpProject: TEdit
     Left = 117
     Top = 16
@@ -90,18 +97,18 @@ object frmDLMain: TfrmDLMain
   end
   object outLog: TMemo
     Left = 160
-    Top = 152
+    Top = 160
     Width = 589
-    Height = 329
+    Height = 321
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
     TabOrder = 11
   end
   object lbFiles: TListBox
     Left = 16
-    Top = 152
+    Top = 160
     Width = 138
-    Height = 329
+    Height = 321
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 10

@@ -10,28 +10,29 @@ uses
 
 type
   TfrmDLMain = class(TForm)
-    actAnalysis    : TAction;
-    actIncludeFiles: TAction;
-    ActionList     : TActionList;
-    actNotFound    : TAction;
-    actParsedUnits : TAction;
-    actProblems    : TAction;
-    btnAnalysis    : TButton;
-    btnIncludeFiles: TButton;
-    btnNotFound    : TButton;
-    btnParsedUnits : TButton;
-    btnProblems    : TButton;
-    btnRescan      : TButton;
-    btnSelect      : TButton;
-    dlgOpenProject : TFileOpenDialog;
-    inpDefines     : TEdit;
-    inpProject     : TEdit;
-    inpSearchPath  : TEdit;
-    lbFiles        : TListBox;
-    lblDefines     : TLabel;
-    lblProject     : TLabel;
-    lblSearchPath  : TLabel;
-    outLog         : TMemo;
+    actAnalysis     : TAction;
+    actIncludeFiles : TAction;
+    ActionList      : TActionList;
+    actNotFound     : TAction;
+    actParsedUnits  : TAction;
+    actProblems     : TAction;
+    btnAnalysis     : TButton;
+    btnIncludeFiles : TButton;
+    btnNotFound     : TButton;
+    btnParsedUnits  : TButton;
+    btnProblems     : TButton;
+    btnRescan       : TButton;
+    btnSelect       : TButton;
+    dlgOpenProject  : TFileOpenDialog;
+    inpDefines      : TEdit;
+    inpProject      : TEdit;
+    inpSearchPath   : TEdit;
+    lbFiles         : TListBox;
+    lblDefines      : TLabel;
+    lblProject      : TLabel;
+    lblSearchPath   : TLabel;
+    lblWhatIsShowing: TLabel;
+    outLog          : TMemo;
     procedure actAnalysisExecute(Sender: TObject);
     procedure actIncludeFilesExecute(Sender: TObject);
     procedure actNotFoundExecute(Sender: TObject);
@@ -153,6 +154,7 @@ end;
 
 procedure TfrmDLMain.FormCreate(Sender: TObject);
 begin
+  lblWhatIsShowing.Caption := '';
   LoadSettings;
 end;
 
@@ -186,13 +188,22 @@ end;
 
 procedure TfrmDLMain.DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
 var
-  children   : TArray<TSyntaxNode>;
-  i          : integer;
-  newPrefix  : string;
-  sAttributes: string;
+  children    : TArray<TSyntaxNode>;
+  i           : integer;
+  newPrefix   : string;
+  nodePosition: string;
+  sAttributes : string;
 begin
   sAttributes := AttributestoStr(node.Attributes);
-  outLog.Lines.Add(prefix + TRttiEnumerationType.GetName<TSyntaxNodeType>(node.Typ) + ' ' + sAttributes);
+  if Node is TCompoundSyntaxNode then
+    nodePosition := Format('%d,%d - %d,%d', [
+             TCompoundSyntaxNode(Node).Line, TCompoundSyntaxNode(Node).Col,
+             TCompoundSyntaxNode(Node).EndLine, TCompoundSyntaxNode(Node).EndCol])
+  else
+    nodePosition := Format('%d,%d', [node.Line, node.Col]);
+  outLog.Lines.Add(Format('%s%s %s @%s',
+    [prefix, TRttiEnumerationType.GetName<TSyntaxNodeType>(node.Typ),
+     sAttributes, nodePosition]));
   newPrefix := prefix + '  ';
   children := node.ChildNodes;
   for i := Low(children) to High(children) do
@@ -276,6 +287,7 @@ procedure TfrmDLMain.ShowAnalysis;
 var
   i: integer;
 begin
+  lblWhatIsShowing.Caption := 'Analysis';
   lbFiles.Clear;
   lbFiles.Items.BeginUpdate;
   try
@@ -289,6 +301,7 @@ procedure TfrmDLMain.ShowIncludeFiles;
 var
   i: integer;
 begin
+  lblWhatIsShowing.Caption := 'Include files';
   lbFiles.Clear;
   lbFiles.Items.BeginUpdate;
   try
@@ -302,6 +315,7 @@ procedure TfrmDLMain.ShowMissingFiles;
 var
   i: integer;
 begin
+  lblWhatIsShowing.Caption := 'Missing files';
   lbFiles.Clear;
   lbFiles.Items.BeginUpdate;
   try
@@ -315,6 +329,7 @@ procedure TfrmDLMain.ShowParsedUnits;
 var
   i: integer;
 begin
+  lblWhatIsShowing.Caption := 'Parsed units';
   lbFiles.Clear;
   lbFiles.Items.BeginUpdate;
   try
@@ -328,6 +343,7 @@ procedure TfrmDLMain.ShowProblems;
 var
   i: integer;
 begin
+  lblWhatIsShowing.Caption := 'Problems';
   lbFiles.Clear;
   outLog.Clear;
   for i := 0 to FScanResult.Problems.Count - 1 do

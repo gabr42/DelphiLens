@@ -10,17 +10,17 @@ function CreateDLTreeAnalyzer: IDLTreeAnalyzer;
 implementation
 
 uses
+  Spring.Collections,
   DelphiAST.Consts, DelphiAST.Classes,
   DelphiLens.UnitInfo;
 
 type
   TDLTreeAnalyzer = class(TInterfacedObject, IDLTreeAnalyzer)
   strict protected
-    function  CountType(node: TSyntaxNode; nodeType: TSyntaxNodeType): integer;
     function  FindNode(node: TSyntaxNode; nodeType: TSyntaxNodeType;
       var childNode: TSyntaxNode): boolean;
     function  FindType(node: TSyntaxNode; nodeType: TSyntaxNodeType): TSyntaxNode;
-    procedure GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>);
+    procedure GetUnitList(usesNode: TSyntaxNode; const units: IList<string>);
   public
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
   end; { TDLTreeAnalyzer }
@@ -42,7 +42,7 @@ var
   ndUses: TSyntaxNode;
   units : TArray<string>;
 begin
-  unitInfo := TDLUnitInfo.Empty;
+  unitInfo := TDLUnitInfo.Create;
   if not FindNode(tree, ntUnit, ndUnit) then
     Exit;
 
@@ -64,30 +64,22 @@ begin
 
   ndUses := FindType(ndIntf, ntUses);
   if assigned(ndUses) then begin
-    GetUnitList(ndUses, units);
-    unitinfo.InterfaceUses := units;
+    GetUnitList(ndUses, unitInfo.InterfaceUses);
     unitInfo.InterfaceUsesLoc.SetLocation(ndUses);
   end;
 
   if assigned(ndImpl) then begin
     ndUses := FindType(ndImpl, ntUses);
     if assigned(ndUses) then begin
-      GetUnitList(ndUses, units);
-      unitinfo.ImplementationUses := units;
+      GetUnitList(ndUses, unitInfo.ImplementationUses);
       unitInfo.ImplementationUsesLoc.SetLocation(ndUses);
     end;
   end;
-end; { TDLTreeAnalyzer.AnalyzeTree }
 
-function TDLTreeAnalyzer.CountType(node: TSyntaxNode; nodeType: TSyntaxNodeType): integer;
-var
-  child: TSyntaxNode;
-begin
-  Result := 0;
-  for child in node.ChildNodes do
-    if child.Typ = nodeType then
-      Inc(Result);
-end; { TDLTreeAnalyzer.CountType }
+//  unitInfo.InterfaceTypes := ParseTypes(ndIntf);
+//  if assigned(ndImpl) then
+//    unitInfo.ImplementationTypes := ParseTypes(ndImpl);
+end; { TDLTreeAnalyzer.AnalyzeTree }
 
 function TDLTreeAnalyzer.FindNode(node: TSyntaxNode; nodeType: TSyntaxNodeType;
   var childNode: TSyntaxNode): boolean;
@@ -105,19 +97,13 @@ begin
     Result := node.FindNode(nodeType);
 end; { TDLTreeAnalyzer.FindType }
 
-procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: TArray<string>);
+procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; const units: IList<string>);
 var
   childNode: TSyntaxNode;
-  iUnit    : integer;
 begin
-  SetLength(units, CountType(usesNode, ntUnit));
-
-  iUnit := Low(units);
   for childNode in usesNode.ChildNodes do
-    if childNode.Typ = ntUnit then begin
-      units[iUnit] := childNode.GetAttribute(anName);
-      Inc(iUnit);
-    end;
+    if childNode.Typ = ntUnit then
+      units.Add(childNode.GetAttribute(anName));
 end; { TDLTreeAnalyzer.GetUnitList }
 
 end.

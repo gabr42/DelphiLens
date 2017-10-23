@@ -11,6 +11,7 @@ implementation
 
 uses
   System.Classes,
+  Spring.Collections,
   DelphiLens.UnitInfo;
 
 type
@@ -24,12 +25,12 @@ type
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
-    function  ReadStrings(var strings: TArray<string>): boolean;
+    function ReadStrings(const strings: IList<string>): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;
     procedure WriteString(const s: string); inline;
-    procedure WriteStrings(const strings: TArray<string>);
+    procedure WriteStrings(const strings: IList<string>);
   public
     function  Read(stream: TStream; var unitInfo: TDLUnitInfo): boolean;
     procedure Write(const unitInfo: TDLUnitInfo; stream: TStream);
@@ -50,6 +51,7 @@ var
 begin
   Result := false;
   FStream := stream;
+  unitInfo := TDLUnitInfo.Create;
   if not ReadInteger(version) then Exit;
   if version <> CVersion then Exit;
   if not ReadString(unitInfo.Name) then Exit;
@@ -93,7 +95,7 @@ begin
   Result := true;
 end; { TDLUnitInfoSerializer.ReadString }
 
-function TDLUnitInfoSerializer.ReadStrings(var strings: TArray<string>): boolean;
+function TDLUnitInfoSerializer.ReadStrings(const strings: IList<string>): boolean;
 var
   i  : integer;
   len: word;
@@ -102,11 +104,11 @@ begin
   Result := false;
   if not ReadWord(len) then
     Exit;
-  SetLength(strings, len);
-  for i := Low(strings) to High(strings) do begin
+  strings.Capacity := len;
+  for i := 0 to len - 1 do begin
     if not ReadString(s) then
       Exit;
-    strings[i] := s;
+    strings.Add(s);
   end;
   Result := true;
 end; { TDLUnitInfoSerializer.ReadStrings }
@@ -149,11 +151,11 @@ begin
     FStream.Write(s[1], Length(s) * SizeOf(s[1]));
 end; { TDLUnitInfoSerializer.WriteString }
 
-procedure TDLUnitInfoSerializer.WriteStrings(const strings: TArray<string>);
+procedure TDLUnitInfoSerializer.WriteStrings(const strings: IList<string>);
 var
   s: string;
 begin
-  WriteWord(Length(strings));
+  WriteWord(strings.Count);
   for s in strings do
     WriteString(s);
 end; { TDLUnitInfoSerializer.WriteStrings }

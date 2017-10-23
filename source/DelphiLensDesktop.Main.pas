@@ -6,6 +6,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
+  Spring.Collections,
   DelphiLens.Intf, System.Actions, Vcl.ActnList, DelphiAST.Classes, DelphiLens.UnitInfo;
 
 type
@@ -61,7 +62,7 @@ type
     function  AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
     procedure DumpAnalysis(const unitInfo: TDLUnitInfo);
     procedure DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
-    procedure DumpUses(const usesList: TArray<string>; const location: TDLCoordinate);
+    procedure DumpUses(const usesList: IList<string>; const location: TDLCoordinate);
     procedure LoadSettings;
     procedure SaveSettings;
     procedure ShowAnalysis;
@@ -210,7 +211,7 @@ begin
     DumpSyntaxTree(children[i], newPrefix);
 end;
 
-procedure TfrmDLMain.DumpUses(const usesList: TArray<string>; const location: TDLCoordinate);
+procedure TfrmDLMain.DumpUses(const usesList: IList<string>; const location: TDLCoordinate);
 var
   unitName: string;
 begin

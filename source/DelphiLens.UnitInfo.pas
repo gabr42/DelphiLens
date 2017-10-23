@@ -4,7 +4,8 @@ interface
 
 uses
   System.Types,
-  DelphiAST.Classes;
+  DelphiAST.Classes,
+  Spring.Collections;
 
 type
   TDLCoordinate = record
@@ -17,6 +18,21 @@ type
     function  ToString: string; inline;
   end; { TDLCoordinateHelper }
 
+  TDLTypeSection = (secStrictPrivate, secPrivate, secStrictProtected, secProtected,
+    secPublic, secAutomated, secPublished);
+
+  TDLTypeInfo = class;
+
+  TDLTypeSectionInfo = class
+  public
+    Types: IList<TDLTypeInfo>;
+  end; { TDLTypeSectionInfo }
+
+  TDLTypeInfo = class
+  public
+    Sections: array [TDLTypeSection] of TDLTypeSectionInfo;
+  end; { TDLTypeInfo }
+
   TDLUnitInfo = record
     Name                 : string;
     InterfaceLoc         : TDLCoordinate;
@@ -25,9 +41,11 @@ type
     ImplementationUsesLoc: TDLCoordinate;
     InitializationLoc    : TDLCoordinate;
     FinalizationLoc      : TDLCoordinate;
-    InterfaceUses        : TArray<string>; //program 'uses' when InterfaceLoc = -1
-    ImplementationUses   : TArray<string>;
-    class function Empty: TDLUnitInfo; static;
+    InterfaceUses        : IList<string>;      //program 'uses' when InterfaceLoc = -1
+    InterfaceTypes       : IList<TDLTypeInfo>; //program types when InterfaceLoc = -1
+    ImplementationUses   : IList<string>;
+    ImplementationTypes  : IList<TDLTypeInfo>;
+    class function Create: TDLUnitInfo; static;
   end; { TDLUnitInfo }
 
 implementation
@@ -65,7 +83,7 @@ end; { TDLCoordinate.ToString }
 
 { TDLUnitInfo }
 
-class function TDLUnitInfo.Empty: TDLUnitInfo;
+class function TDLUnitInfo.Create: TDLUnitInfo;
 begin
   Result.Name := '';
   Result.InterfaceLoc := TDLCoordinate.Invalid;
@@ -74,8 +92,10 @@ begin
   Result.ImplementationUsesLoc := TDLCoordinate.Invalid;
   Result.InitializationLoc := TDLCoordinate.Invalid;
   Result.FinalizationLoc := TDLCoordinate.Invalid;
-  SetLength(Result.InterfaceUses, 0);
-  SetLength(Result.ImplementationUses, 0);
-end; { TDLUnitInfo.Empty }
+  Result.InterfaceUses := TCollections.CreateList<string>;
+  Result.InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
+  Result.ImplementationUses := TCollections.CreateList<string>;
+  Result.ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
+end; { TDLUnitInfo.Create }
 
 end.

@@ -19,19 +19,24 @@ type
   end; { TDLCoordinateHelper }
 
   TDLTypeSection = (secStrictPrivate, secPrivate, secStrictProtected, secProtected,
-    secPublic, secAutomated, secPublished);
+    secPublic, secPublished);
 
   TDLTypeInfo = class;
 
   TDLTypeSectionInfo = class
   public
-    Types: IList<TDLTypeInfo>;
+    Location: TDLCoordinate;
+    Types   : IList<TDLTypeInfo>;
   end; { TDLTypeSectionInfo }
 
   TDLTypeInfo = class
   public
+    Location: TDLCoordinate;
     Sections: array [TDLTypeSection] of TDLTypeSectionInfo;
+    function  EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
   end; { TDLTypeInfo }
+
+  TDLUnitType = (utProgram, utUnit);
 
   TDLUnitInfo = record
     Name                 : string;
@@ -41,11 +46,12 @@ type
     ImplementationUsesLoc: TDLCoordinate;
     InitializationLoc    : TDLCoordinate;
     FinalizationLoc      : TDLCoordinate;
-    InterfaceUses        : IList<string>;      //program 'uses' when InterfaceLoc = -1
-    InterfaceTypes       : IList<TDLTypeInfo>; //program types when InterfaceLoc = -1
+    InterfaceUses        : IList<string>;      //program 'uses' when UnitType = utProgram
+    InterfaceTypes       : IList<TDLTypeInfo>; //program types when UnitType = utProgram
     ImplementationUses   : IList<string>;
     ImplementationTypes  : IList<TDLTypeInfo>;
     class function Create: TDLUnitInfo; static;
+    function UnitType: TDLUnitType; inline;
   end; { TDLUnitInfo }
 
 implementation
@@ -97,5 +103,19 @@ begin
   Result.ImplementationUses := TCollections.CreateList<string>;
   Result.ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
 end; { TDLUnitInfo.Create }
+
+function TDLUnitInfo.UnitType: TDLUnitType;
+begin
+  Result := utProgram;
+  if InterfaceLoc.Line >= 0 then
+    Result := utUnit;
+end; { TDLUnitInfo.UnitType }
+
+function TDLTypeInfo.EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
+begin
+  if not assigned(Sections[sectionType]) then
+    Sections[sectionType] := TDLTypeSectionInfo.Create;
+  Result := Sections[sectionType];
+end; { TDLTypeInfo.EnsureSection }
 
 end.

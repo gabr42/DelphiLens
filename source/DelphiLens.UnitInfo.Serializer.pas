@@ -17,7 +17,7 @@ uses
 type
   TDLUnitInfoSerializer = class(TInterfacedObject, IDLUnitInfoSerializer)
   strict private const
-    CVersion = 1;
+    CVersion = 2;
   var
     FStream: TStream;
   strict protected
@@ -25,7 +25,7 @@ type
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
-    function ReadStrings(const strings: IList<string>): boolean;
+    function  ReadStrings(const strings: IList<string>): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;

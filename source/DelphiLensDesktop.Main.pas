@@ -4,10 +4,11 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages,
-  System.SysUtils, System.Variants, System.Classes,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
+  System.SysUtils, System.Variants, System.Classes, System.Actions,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ActnList,
   Spring.Collections,
-  DelphiLens.Intf, System.Actions, Vcl.ActnList, DelphiAST.Classes, DelphiLens.UnitInfo;
+  DelphiAST.Classes,
+  DelphiLens.Intf, DelphiLens.UnitInfo;
 
 type
   TfrmDLMain = class(TForm)
@@ -171,7 +172,7 @@ procedure TfrmDLMain.DumpAnalysis(const unitInfo: TDLUnitInfo);
 var
   isProgram: boolean;
 begin
-  isProgram := not unitInfo.InterfaceLoc.IsValid;
+  isProgram := (unitInfo.UnitType = utProgram);
   outLog.Lines.Add(IFF(isProgram, 'program ', 'unit ') + unitInfo.Name);
   if isProgram then
     DumpUses(unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc)

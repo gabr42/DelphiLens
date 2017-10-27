@@ -87,8 +87,8 @@ constructor TDelphiLens.Create(const AProject: string);
 begin
   inherited Create;
   // Minimum set of types needed for ProjectIndexer to walk the 'uses' chain
-  FInterestingTypes := [ntFinalization, ntImplementation, ntInitialization,
-    ntInterface, ntUnit, ntUses];
+  //FInterestingTypes := [ntFinalization, ntImplementation, ntInitialization,
+  //  ntInterface, ntUnit, ntUses];
   // For now, store everything.
   // Maybe sometimes later I'll want to filter this information and store it in a different - faster format.
   FInterestingTypes := [];

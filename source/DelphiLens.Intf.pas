@@ -9,7 +9,11 @@ uses
   DelphiLens.Cache.Intf;
 
 type
-  TAnalyzedUnits = TList<TDLUnitInfo>;
+  TAnalyzedUnits = class(TList<TDLUnitInfo>)
+  public
+    function Find(const unitName: string; var unitInfo: TDLUnitInfo): boolean;
+  end; { TAnalyzedUnits }
+
   TParsedUnits = TProjectIndexer.TParsedUnits;
   TIncludeFiles = TProjectIndexer.TIncludeFiles;
   TProblems = TProjectIndexer.TProblems;
@@ -46,5 +50,20 @@ type
   end; { IDelphiLens }
 
 implementation
+
+uses
+  System.SysUtils;
+
+function TAnalyzedUnits.Find(const unitName: string; var unitInfo: TDLUnitInfo): boolean;
+var
+  iUnit: integer;
+begin
+  Result := false;
+  for iUnit := 0 to Count - 1 do
+    if SameText(Items[iUnit].Name, unitName) then begin
+      unitInfo := Items[iUnit];
+      Exit(true);
+    end;
+end; { TAnalyzedUnits.Find }
 
 end.

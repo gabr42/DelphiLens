@@ -8,34 +8,44 @@ uses
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ActnList,
   Spring.Collections,
   DelphiAST.Classes,
-  DelphiLens.Intf, DelphiLens.UnitInfo;
+  DelphiLens.DelphiASTHelpers,
+  DelphiLens.Intf, DelphiLens.UnitInfo, Vcl.Samples.Spin;
 
 type
   TfrmDLMain = class(TForm)
-    actAnalysis     : TAction;
-    actIncludeFiles : TAction;
-    ActionList      : TActionList;
-    actNotFound     : TAction;
-    actParsedUnits  : TAction;
-    actProblems     : TAction;
-    btnAnalysis     : TButton;
-    btnIncludeFiles : TButton;
-    btnNotFound     : TButton;
-    btnParsedUnits  : TButton;
-    btnProblems     : TButton;
-    btnRescan       : TButton;
-    btnSelect       : TButton;
-    dlgOpenProject  : TFileOpenDialog;
-    inpDefines      : TEdit;
-    inpProject      : TEdit;
-    inpSearchPath   : TEdit;
-    lbFiles         : TListBox;
-    lblDefines      : TLabel;
-    lblProject      : TLabel;
-    lblSearchPath   : TLabel;
-    lblWhatIsShowing: TLabel;
-    outLog          : TMemo;
+    actAnalysis      : TAction;
+    actFindSyntaxNode: TAction;
+    actIncludeFiles  : TAction;
+    ActionList       : TActionList;
+    actNotFound      : TAction;
+    actParsedUnits   : TAction;
+    actProblems      : TAction;
+    btnAnalysis      : TButton;
+    btnFindNode      : TButton;
+    btnIncludeFiles  : TButton;
+    btnNotFound      : TButton;
+    btnParsedUnits   : TButton;
+    btnProblems      : TButton;
+    btnRescan        : TButton;
+    btnSelect        : TButton;
+    dlgOpenProject   : TFileOpenDialog;
+    inpCol           : TSpinEdit;
+    inpDefines       : TEdit;
+    inpLine          : TSpinEdit;
+    inpProject       : TEdit;
+    inpSearchPath    : TEdit;
+    lbFiles          : TListBox;
+    lblCol           : TLabel;
+    lblDefines       : TLabel;
+    lblLine          : TLabel;
+    lblProject       : TLabel;
+    lblSearchPath    : TLabel;
+    lblWhatIsShowing : TLabel;
+    outLog           : TMemo;
+    lblNodeName: TLabel;
     procedure actAnalysisExecute(Sender: TObject);
+    procedure actFindSyntaxNodeExecute(Sender: TObject);
+    procedure actFindSyntaxNodeUpdate(Sender: TObject);
     procedure actIncludeFilesExecute(Sender: TObject);
     procedure actNotFoundExecute(Sender: TObject);
     procedure actParsedUnitsExecute(Sender: TObject);
@@ -61,9 +71,10 @@ type
     FShowing   : TShowing;
   strict protected
     function  AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
-    procedure DumpAnalysis(const unitInfo: TDLUnitInfo);
-    procedure DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
-    procedure DumpUses(const usesList: IList<string>; const location: TDLCoordinate);
+    procedure DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);
+    procedure DumpSyntaxTree(log: TStrings; node: TSyntaxNode; const prefix: string);
+    procedure DumpUses(log: TStrings; const usesList: IList<string>; const location:
+      TDLCoordinate);
     procedure LoadSettings;
     procedure SaveSettings;
     procedure ShowAnalysis;
@@ -71,6 +82,7 @@ type
     procedure ShowMissingFiles;
     procedure ShowParsedUnits;
     procedure ShowProblems;
+    procedure TryToFocus(node: TSyntaxNode);
   public
   end;
 
@@ -84,13 +96,41 @@ uses
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts,
-  DelphiLens;
+  DelphiLens, ProjectIndexer;
 
 {$R *.dfm}
 
 procedure TfrmDLMain.actAnalysisExecute(Sender: TObject);
 begin
   ShowAnalysis;
+end;
+
+procedure TfrmDLMain.actFindSyntaxNodeExecute(Sender: TObject);
+var
+  node: TSyntaxNode;
+  unitInfo: TProjectIndexer.TUnitInfo;
+begin
+  if not FScanResult.ParsedUnits.Find(lbFiles.Items[lbFiles.ItemIndex], unitInfo) then
+    Exit;
+
+  node := unitInfo.SyntaxTree.FindLocation(inpLine.Value, inpCol.Value);
+  if not assigned(node) then
+    MessageBeep($FFFFFFFF)
+  else begin
+    TryToFocus(node);
+    node := node.FindParentWithName;
+    if not assigned(node) then
+      lblNodeName.Visible := false
+    else begin
+      lblNodeName.Caption := node.GetAttribute(anName);
+      lblNodeName.Visible := true;
+    end;
+  end;
+end;
+
+procedure TfrmDLMain.actFindSyntaxNodeUpdate(Sender: TObject);
+begin
+  (Sender as TAction).Enabled := (FShowing = shParsedUnits);
 end;
 
 procedure TfrmDLMain.actIncludeFilesExecute(Sender: TObject);
@@ -168,27 +208,27 @@ begin
   end;
 end;
 
-procedure TfrmDLMain.DumpAnalysis(const unitInfo: TDLUnitInfo);
+procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);
 var
   isProgram: boolean;
 begin
   isProgram := (unitInfo.UnitType = utProgram);
-  outLog.Lines.Add(IFF(isProgram, 'program ', 'unit ') + unitInfo.Name);
+  log.Add(IFF(isProgram, 'program ', 'unit ') + unitInfo.Name);
   if isProgram then
-    DumpUses(unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc)
+    DumpUses(log, unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc)
   else begin
-    outLog.Lines.Add('Interface @ ' + unitInfo.InterfaceLoc.ToString);
-    DumpUses(unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc);
-    outLog.Lines.Add('Implementation @ ' + unitInfo.ImplementationLoc.ToString);
-    DumpUses(unitInfo.ImplementationUses, unitInfo.ImplementationUsesLoc);
+    log.Add('Interface @ ' + unitInfo.InterfaceLoc.ToString);
+    DumpUses(log, unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc);
+    log.Add('Implementation @ ' + unitInfo.ImplementationLoc.ToString);
+    DumpUses(log, unitInfo.ImplementationUses, unitInfo.ImplementationUsesLoc);
   end;
   if unitInfo.InitializationLoc.IsValid then
-    outLog.Lines.Add('Initialization @ ' + unitInfo.InitializationLoc.ToString);
+    log.Add('Initialization @ ' + unitInfo.InitializationLoc.ToString);
   if unitInfo.FinalizationLoc.IsValid then
-    outLog.Lines.Add('Finalization @ ' + unitInfo.FinalizationLoc.ToString);
+    log.Add('Finalization @ ' + unitInfo.FinalizationLoc.ToString);
 end;
 
-procedure TfrmDLMain.DumpSyntaxTree(node: TSyntaxNode; const prefix: string);
+procedure TfrmDLMain.DumpSyntaxTree(log: TStrings; node: TSyntaxNode; const prefix: string);
 var
   children    : TArray<TSyntaxNode>;
   i           : integer;
@@ -203,25 +243,24 @@ begin
              TCompoundSyntaxNode(Node).EndLine, TCompoundSyntaxNode(Node).EndCol])
   else
     nodePosition := Format('%d,%d', [node.Line, node.Col]);
-  outLog.Lines.Add(Format('%s%s %s @%s',
-    [prefix, TRttiEnumerationType.GetName<TSyntaxNodeType>(node.Typ),
-     sAttributes, nodePosition]));
+  log.Add(Format('%s%s %s @%s',
+    [prefix, node.TypeName, sAttributes, nodePosition]));
   newPrefix := prefix + '  ';
   children := node.ChildNodes;
   for i := Low(children) to High(children) do
-    DumpSyntaxTree(children[i], newPrefix);
+    DumpSyntaxTree(log, children[i], newPrefix);
 end;
 
-procedure TfrmDLMain.DumpUses(const usesList: IList<string>; const location: TDLCoordinate);
+procedure TfrmDLMain.DumpUses(log: TStrings; const usesList: IList<string>; const location: TDLCoordinate);
 var
   unitName: string;
 begin
   if not location.IsValid then
     Exit;
 
-  outLog.Lines.Add('uses @ ' + location.ToString);
+  log.Add('uses @ ' + location.ToString);
   for unitName in usesList do
-    outLog.Lines.Add('  ' + unitName);
+    log.Add('  ' + unitName);
 end;
 
 procedure TfrmDLMain.EnableResultActions(Sender: TObject);
@@ -236,29 +275,29 @@ end;
 
 procedure TfrmDLMain.lbFilesClick(Sender: TObject);
 var
-  i: integer;
+  dlUnitInfo: TDLUnitInfo;
+  i         : integer;
+  outSl     : TStringList;
+  unitInfo  : TProjectIndexer.TUnitInfo;
 begin
   if not (FShowing in [shAnalysis, shParsedUnits]) then
     Exit;
 
   outLog.Clear;
-  outLog.Lines.BeginUpdate;
+  outLog.Update;
+  outSl := TStringList.Create;
   try
-    if FShowing = shAnalysis then begin
-      for i := 0 to FScanResult.Analysis.Count - 1 do
-        if FScanResult.Analysis[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
-          DumpAnalysis(FScanResult.Analysis[i]);
-          break; //for
-        end
-    end
-    else begin
-      for i := 0 to FScanResult.ParsedUnits.Count - 1 do
-        if FScanResult.ParsedUnits[i].Name = lbFiles.Items[lbFiles.ItemIndex] then begin
-          DumpSyntaxTree(FScanResult.ParsedUnits[i].SyntaxTree, '');
-          break; //for
-        end;
-    end;
-  finally outLog.Lines.EndUpdate; end;
+    Screen.Cursor := crHourGlass;
+    try
+      if (FShowing = shAnalysis)
+         and FScanResult.Analysis.Find(lbFiles.Items[lbFiles.ItemIndex], dlUnitInfo)
+      then
+        DumpAnalysis(outSl, dlUnitInfo)
+      else if FScanResult.ParsedUnits.Find(lbFiles.Items[lbFiles.ItemIndex], unitInfo) then
+        DumpSyntaxTree(outSl, unitInfo.SyntaxTree, '');
+      outLog.Lines.Assign(outSl);
+    finally Screen.Cursor := crDefault; end;
+  finally FreeAndNil(outSl); end;
 end;
 
 procedure TfrmDLMain.LoadSettings;
@@ -351,6 +390,28 @@ begin
   for i := 0 to FScanResult.Problems.Count - 1 do
     outLog.Lines.Add(FScanResult.Problems[i].FileName + ': ' + FScanResult.Problems[i].Description);
   FShowing := shProblems;
+end;
+
+procedure TfrmDLMain.TryToFocus(node: TSyntaxNode);
+var
+  iLine: integer;
+  loc: string;
+begin
+  if node is TCompoundSyntaxNode then
+    loc := Format('@%d,%d - %d,%d', [
+             TCompoundSyntaxNode(Node).Line, TCompoundSyntaxNode(Node).Col,
+             TCompoundSyntaxNode(Node).EndLine, TCompoundSyntaxNode(Node).EndCol])
+  else
+    loc := Format('@%d,%d', [node.Line, node.Col]);
+
+  for iLine := 0 to outLog.Lines.Count - 1 do
+    if outLog.Lines[iLine].EndsWith(loc) and TrimLeft(outLog.Lines[iLine]).StartsWith(node.TypeName) then begin
+      outLog.Perform(EM_LINESCROLL, 0, iLine - outLog.Perform(EM_GETFIRSTVISIBLELINE, 0, 0));
+      Exit;
+    end;
+
+  // Should not happen
+  ShowMessage('Internal error: Node not found in the list!');
 end;
 
 initialization

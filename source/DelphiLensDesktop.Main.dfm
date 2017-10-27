@@ -43,10 +43,32 @@ object frmDLMain: TfrmDLMain
   end
   object lblWhatIsShowing: TLabel
     Left = 16
-    Top = 144
+    Top = 152
     Width = 39
     Height = 13
     Caption = 'Analysis'
+  end
+  object lblLine: TLabel
+    Left = 160
+    Top = 145
+    Width = 23
+    Height = 13
+    Caption = 'Line:'
+  end
+  object lblCol: TLabel
+    Left = 279
+    Top = 145
+    Width = 39
+    Height = 13
+    Caption = 'Column:'
+  end
+  object lblNodeName: TLabel
+    Left = 517
+    Top = 145
+    Width = 53
+    Height = 13
+    Caption = '<invisible>'
+    Visible = False
   end
   object inpProject: TEdit
     Left = 117
@@ -97,18 +119,18 @@ object frmDLMain: TfrmDLMain
   end
   object outLog: TMemo
     Left = 160
-    Top = 160
+    Top = 168
     Width = 589
-    Height = 321
+    Height = 313
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
     TabOrder = 11
   end
   object lbFiles: TListBox
     Left = 16
-    Top = 160
+    Top = 168
     Width = 138
-    Height = 321
+    Height = 313
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 10
@@ -153,6 +175,34 @@ object frmDLMain: TfrmDLMain
     Height = 25
     Action = actAnalysis
     TabOrder = 5
+  end
+  object inpLine: TSpinEdit
+    Left = 194
+    Top = 142
+    Width = 64
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 12
+    Value = 1
+  end
+  object inpCol: TSpinEdit
+    Left = 328
+    Top = 142
+    Width = 64
+    Height = 22
+    MaxValue = 0
+    MinValue = 0
+    TabOrder = 13
+    Value = 1
+  end
+  object btnFindNode: TButton
+    Left = 398
+    Top = 142
+    Width = 113
+    Height = 22
+    Action = actFindSyntaxNode
+    TabOrder = 14
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'
@@ -201,6 +251,11 @@ object frmDLMain: TfrmDLMain
       Caption = 'Show analysis'
       OnExecute = actAnalysisExecute
       OnUpdate = EnableResultActions
+    end
+    object actFindSyntaxNode: TAction
+      Caption = 'Find syntax node'
+      OnExecute = actFindSyntaxNodeExecute
+      OnUpdate = actFindSyntaxNodeUpdate
     end
   end
 end

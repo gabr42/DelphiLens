@@ -28,14 +28,26 @@ type
   end; { TSyntaxTreeEnumeratorIntf }
 
   TSyntaxNodeHelper = class helper for TSyntaxNode
+  strict private
+  class var
+    FNodeTypeNames: array [TSyntaxNodeType] of string;
+  strict protected
+    function  GetTypeName: string;
   public
+    class constructor Create;
     function  FindAll(nodeType: TSyntaxNodeType; childrenOnly: boolean = true): TSyntaxTreeEnumerator; overload;
     function  FindAll(nodeTypes: TSyntaxNodeTypes; childrenOnly: boolean = true): TSyntaxTreeEnumerator; overload;
     function  FindFirst(nodeType: TSyntaxNodeType): TSyntaxNode; overload;
     function  FindFirst(nodeType: TSyntaxNodeType; var childNode: TSyntaxNode): boolean; overload; inline;
+    function  FindParentWithName: TSyntaxNode; overload;
+    function  FindLocation(line, column: integer): TSyntaxNode;
+    property TypeName: string read GetTypeName;
   end; { TSyntaxNodeHelper }
 
 implementation
+
+uses
+  System.Rtti;
 
 { TSyntaxTreeEnumerator }
 
@@ -72,20 +84,26 @@ end; { TSyntaxTreeEnumerator.MoveNext }
 
 procedure TSyntaxTreeEnumerator.PushChildrenOnStack(node: TSyntaxNode);
 var
-  children: TArray<TSyntaxNode>;
-  iChild  : integer;
+  iChild: integer;
 begin
   if not FCanGoDeeper then
     Exit;
   if FChildrenOnly then
     FCanGoDeeper := false;
 
-  children := node.ChildNodes;
-  for iChild := High(children) downto Low(children) do
-    FUnvisited.Push(children[iChild]);
+  for iChild := High(node.ChildNodes) downto Low(node.ChildNodes) do
+    FUnvisited.Push(node.ChildNodes[iChild]);
 end; { TSyntaxTreeEnumerator.PushChildrenOnStack }
 
 { TSyntaxNodeHelper }
+
+class constructor TSyntaxNodeHelper.Create;
+var
+  nodeType: TSyntaxNodeType;
+begin
+  for nodeType := Low(TSyntaxNodeType) to High(TSyntaxNodeType) do
+    FNodeTypeNames[nodeType] := TRttiEnumerationType.GetName<TSyntaxNodeType>(nodeType);
+end; { TSyntaxNodeHelper.Create }
 
 function TSyntaxNodeHelper.FindAll(nodeType: TSyntaxNodeType; childrenOnly: boolean): TSyntaxTreeEnumerator;
 begin
@@ -111,5 +129,58 @@ begin
   childNode := FindFirst(nodetype);
   Result := assigned(childNode);
 end; { TSyntaxNodeHelper.FindFirst }
+
+function TSyntaxNodeHelper.FindLocation(line, column: integer): TSyntaxNode;
+var
+  child: TSyntaxNode;
+  nodeWidth: integer;
+begin
+  Result := nil;
+
+  nodeWidth := Length(Self.GetAttribute(anName));
+
+  if (Self.Line > line)
+     or ((Self.Line = line) and (Self.Col > column))
+  then
+    // This node starts after the location
+    Exit;
+
+  if (Self is TCompoundSyntaxNode)
+     and ((TCompoundSyntaxNode(Self).EndLine < line)
+          or ((TCompoundSyntaxNode(Self).EndLine = line) and (TCompoundSyntaxNode(Self).EndCol <= column)))
+  then
+    // This node ends before the location
+    Exit;
+
+  for child in ChildNodes do begin
+    Result := child.FindLocation(line, column);
+    if assigned(Result) then
+      Exit;
+  end;
+
+  if Self is TCompoundSyntaxNode then begin
+    if ((Self.Line < line)
+         or ((Self.Line = line) and (Self.Col <= column)))
+       and
+       ((TCompoundSyntaxNode(Self).EndLine > line)
+         or ((TCompoundSyntaxNode(Self).EndLine = line) and ((TCompoundSyntaxNode(Self).EndCol) >= column)))
+    then
+      Result := Self;
+  end
+  else if (Self.Line = line) and (Self.Col <= column) and (Self.Col + nodeWidth >= column) then
+    Result := Self;
+end; { TSyntaxNodeHelper.FindLocation }
+
+function TSyntaxNodeHelper.FindParentWithName: TSyntaxNode;
+begin
+  Result := Self;
+  while assigned(Result) and (not Result.HasAttribute(anName)) do
+    Result := Result.ParentNode;
+end; { TSyntaxNodeHelper.FindParentWithName }
+
+function TSyntaxNodeHelper.GetTypeName: string;
+begin
+  Result := FNodeTypeNames[Typ];
+end; { TSyntaxNodeHelper.GetTypeName }
 
 end.

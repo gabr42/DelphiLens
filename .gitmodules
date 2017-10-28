@@ -4,9 +4,6 @@
 [submodule "GpDelphiUnits"]
 	path = GpDelphiUnits
 	url = https://github.com/gabr42/GpDelphiUnits.git
-[submodule "OmniThreadLibrary"]
-	path = OmniThreadLibrary
-	url = https://github.com/gabr42/OmniThreadLibrary
 [submodule "Spring4D"]
 	path = Spring4D
 	url = https://bitbucket.org/sglienke/spring4d.git

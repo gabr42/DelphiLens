@@ -204,6 +204,15 @@ object frmDLMain: TfrmDLMain
     Action = actFindSyntaxNode
     TabOrder = 14
   end
+  object btnShowUI: TButton
+    Left = 636
+    Top = 140
+    Width = 113
+    Height = 25
+    Caption = 'Show UI'
+    TabOrder = 15
+    OnClick = btnShowUIClick
+  end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'
     FavoriteLinks = <>

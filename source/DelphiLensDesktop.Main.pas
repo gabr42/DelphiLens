@@ -43,6 +43,7 @@ type
     lblWhatIsShowing : TLabel;
     outLog           : TMemo;
     lblNodeName: TLabel;
+    btnShowUI: TButton;
     procedure actAnalysisExecute(Sender: TObject);
     procedure actFindSyntaxNodeExecute(Sender: TObject);
     procedure actFindSyntaxNodeUpdate(Sender: TObject);
@@ -53,6 +54,7 @@ type
     procedure btnRescanClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
+    procedure btnShowUIClick(Sender: TObject);
     procedure EnableResultActions(Sender: TObject);
     procedure inpProjectChange(Sender: TObject);
     procedure lbFilesClick(Sender: TObject);
@@ -66,6 +68,7 @@ type
     TShowing = (shAnalysis, shParsedUnits, shIncludeFiles, shNotFound, shProblems);
   var
     FDelphiLens: IDelphiLens;
+    FDLUIHandle: THandle;
     FLoading   : boolean;
     FScanResult: IDLScanResult;
     FShowing   : TShowing;
@@ -93,12 +96,15 @@ implementation
 
 uses
   System.RTTI,
+  Winapi.GDIPOBJ,
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts,
   DelphiLens, ProjectIndexer;
 
 {$R *.dfm}
+
+procedure DLUIShowForm; external 'DelphiLensUI' name 'DLUIShowForm' delayed;
 
 procedure TfrmDLMain.actAnalysisExecute(Sender: TObject);
 begin
@@ -206,6 +212,14 @@ begin
     inpProject.Text := dlgOpenProject.FileName;
     FDelphiLens := nil;
   end;
+end;
+
+procedure TfrmDLMain.btnShowUIClick(Sender: TObject);
+begin
+  if FDLUIHandle = 0 then
+    FDLUIHandle := LoadLibrary('DelphiLensUI.dll');
+  if FDLUIHandle > 0 then
+    DLUIShowForm;
 end;
 
 procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);

@@ -295,7 +295,7 @@ begin
         DumpAnalysis(outSl, dlUnitInfo)
       else if FScanResult.ParsedUnits.Find(lbFiles.Items[lbFiles.ItemIndex], unitInfo) then
         DumpSyntaxTree(outSl, unitInfo.SyntaxTree, '');
-      outLog.Lines.Assign(outSl);
+      outLog.Text := outSl.Text;
     finally Screen.Cursor := crDefault; end;
   finally FreeAndNil(outSl); end;
 end;

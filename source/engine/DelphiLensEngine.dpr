@@ -11,10 +11,35 @@ library DelphiLensEngine;
   using PChar or ShortString parameters. }
 
 uses
+  Winapi.Windows,
   System.SysUtils,
-  System.Classes;
+  System.Classes,
+  DelphiLensEngine.DLLExports,
+  DelphiLensEngine.Worker in 'DelphiLensEngine.Worker.pas';
 
 {$R *.res}
 
+exports
+  DLEOpenProject,
+  DLECloseProject,
+  DLEProjectModified,
+  DLEFileModified,
+  DLESetProjectConfig,
+  DLERescanProject;
+
+var
+  SaveDllProc: TDLLProc;
+
+procedure LibExit(reason: integer);
 begin
+  if Reason = DLL_PROCESS_DETACH then
+    DLEFinalize;
+
+  SaveDllProc(reason);	// call saved entry point procedure
+end; { LibExit }
+
+begin
+  DLEInitialize;
+  SaveDllProc := DllProc; // save exit procedure chain
+  DllProc := @LibExit;	  // install LibExit exit procedure
 end.

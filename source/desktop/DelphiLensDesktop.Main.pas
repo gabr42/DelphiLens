@@ -290,7 +290,7 @@ end;
 procedure TfrmDLMain.lbFilesClick(Sender: TObject);
 var
   dlUnitInfo: TDLUnitInfo;
-   outSl     : TStringList;
+  outSl     : TStringList;
   unitInfo  : TProjectIndexer.TUnitInfo;
 begin
   if not (FShowing in [shAnalysis, shParsedUnits]) then

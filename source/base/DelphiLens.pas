@@ -11,8 +11,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes,
-  DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary,
-  ProjectIndexer,
+  DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary, DelphiAST.ProjectIndexer,
   DelphiLens.Cache.Intf, DelphiLens.Cache,
   DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
   DelphiLens.UnitInfo,

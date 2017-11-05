@@ -5,8 +5,7 @@ interface
 uses
   System.SysUtils,
   System.Classes,
-  DelphiAST.Classes,
-  ProjectIndexer;
+  DelphiAST.Classes, DelphiAST.ProjectIndexer;
 
 type
   TCacheStatistics = record

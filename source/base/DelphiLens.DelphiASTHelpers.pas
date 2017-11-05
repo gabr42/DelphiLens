@@ -5,7 +5,7 @@ interface
 uses
   System.Generics.Collections,
   Spring,
-  DelphiAST.Consts, DelphiAST.Classes;
+  DelphiAST.Consts, DelphiAST.Classes, DelphiAST.ProjectIndexer;
 
 type
   TSyntaxNodeTypes = set of TSyntaxNodeType;
@@ -44,10 +44,16 @@ type
     property TypeName: string read GetTypeName;
   end; { TSyntaxNodeHelper }
 
+  TParsedUnitsHelper = class helper for TProjectIndexer.TParsedUnits
+  public
+    function Find(const unitName: string; var unitInfo: TProjectIndexer.TUnitInfo): boolean;
+  end; { TParsedUnitsHelper }
+
 implementation
 
 uses
-  System.Rtti;
+  System.Rtti,
+  System.SysUtils;
 
 { TSyntaxTreeEnumerator }
 
@@ -182,5 +188,20 @@ function TSyntaxNodeHelper.GetTypeName: string;
 begin
   Result := FNodeTypeNames[Typ];
 end; { TSyntaxNodeHelper.GetTypeName }
+
+{ TParsedUnitsHelper }
+
+function TParsedUnitsHelper.Find(const unitName: string;
+  var unitInfo: TProjectIndexer.TUnitInfo): boolean;
+var
+  iUnit: integer;
+begin
+  Result := false;
+  for iUnit := 0 to Count - 1 do
+    if SameText(Items[iUnit].Name, unitName) then begin
+      unitInfo := Items[iUnit];
+      Exit(true);
+    end;
+end; { TParsedUnitsHelper.Find }
 
 end.

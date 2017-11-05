@@ -42,8 +42,8 @@ type
     lblSearchPath    : TLabel;
     lblWhatIsShowing : TLabel;
     outLog           : TMemo;
-    lblNodeName: TLabel;
-    btnShowUI: TButton;
+    lblNodeName      : TLabel;
+    btnShowUI        : TButton;
     procedure actAnalysisExecute(Sender: TObject);
     procedure actFindSyntaxNodeExecute(Sender: TObject);
     procedure actFindSyntaxNodeUpdate(Sender: TObject);
@@ -99,8 +99,8 @@ uses
   Winapi.GDIPOBJ,
   DSiWin32,
   GpStuff, GpVCL,
-  DelphiAST.Consts,
-  DelphiLens, ProjectIndexer;
+  DelphiAST.Consts, DelphiAST.ProjectIndexer,
+  DelphiLens;
 
 {$R *.dfm}
 
@@ -290,8 +290,7 @@ end;
 procedure TfrmDLMain.lbFilesClick(Sender: TObject);
 var
   dlUnitInfo: TDLUnitInfo;
-  i         : integer;
-  outSl     : TStringList;
+   outSl     : TStringList;
   unitInfo  : TProjectIndexer.TUnitInfo;
 begin
   if not (FShowing in [shAnalysis, shParsedUnits]) then

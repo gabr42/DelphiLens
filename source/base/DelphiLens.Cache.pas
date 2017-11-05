@@ -11,8 +11,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.Generics.Defaults, System.Generics.Collections,
-  DelphiAST.Classes,
-  ProjectIndexer,
+  DelphiAST.Classes, DelphiAST.ProjectIndexer,
   DSiWin32,
   GpStuff, GpStructuredStorage;
 

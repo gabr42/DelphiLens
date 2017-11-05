@@ -4,7 +4,7 @@ interface
 
 uses
   System.Classes, System.Generics.Collections,
-  ProjectIndexer,
+  DelphiAST.ProjectIndexer,
   DelphiLens.UnitInfo,
   DelphiLens.Cache.Intf;
 

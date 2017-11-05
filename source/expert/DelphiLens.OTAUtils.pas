@@ -30,9 +30,15 @@ uses
   DSiWin32,
   UtilityFunctions;
 
+function GetProjectConfigurations(const project: IOTAProject;
+  var configs: IOTAProjectOptionsConfigurations): boolean;    //inline
+begin
+  configs := GetProjectConfigurations(project);
+  Result := assigned(configs);
+end;
+
 function GetActivePlatform(const project: IOTAProject): string;
 var
-  config : IOTABuildConfiguration;
   configs: IOTAProjectOptionsConfigurations;
 begin
   Result := '';
@@ -89,13 +95,6 @@ begin
     Result := configs;
 end;
 
-function GetProjectConfigurations(const project: IOTAProject;
-  var configs: IOTAProjectOptionsConfigurations): boolean;
-begin
-  configs := GetProjectConfigurations(project);
-  Result := assigned(configs);
-end;
-
 function GetSearchPath(const project: IOTAProject; MapEnvVariables: boolean): string;
 var
   configs: IOTAProjectOptionsConfigurations;
@@ -110,7 +109,6 @@ end;
 
 function ReplaceEnvVariables(const s: string): string;
 var
-  pPrev: Integer;
   pEnv: Integer;
   pEnd: Integer;
   envName: String;

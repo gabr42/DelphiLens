@@ -1,30 +1,26 @@
-unit DelphiLensEngine.DLLExports;
+unit DelphiLensUI.DLLExports;
 
 interface
 
-const
-  NO_ERROR              = 0;
-  ERR_EXCEPTION         = 1;
-  ERR_PROJECT_NOT_FOUND = 2;
+uses
+  DelphiLensUI.Error;
 
-procedure DLEInitialize;
-procedure DLEFinalize;
+procedure DLUIInitialize;
+procedure DLUIFinalize;
 
-/// After DLEOpenProject caller should next call DLESetProjectConfig followed by DLERescanProject.
+/// After DLUIOpenProject caller should next call DLUISetProjectConfig followed by DLUIRescanProject.
 
-function  DLEOpenProject(const projectName: PChar; var projectID: integer): integer; stdcall;
-function  DLESetProjectConfig(projectID: integer; platform,
-            searchPath, libraryPath: PChar): integer; stdcall;
-function  DLERescanProject(projectID: integer): integer; stdcall;
+function  DLUIOpenProject(const projectName: PChar; var projectID: integer): integer; stdcall;
+function  DLUISetProjectConfig(projectID: integer; platformName,
+            conditionalDefines, searchPath: PChar): integer; stdcall;
+function  DLUIRescanProject(projectID: integer): integer; stdcall;
 
-function  DLEProjectModified(projectID: integer): integer; stdcall;
-function  DLEFileModified(projectID: integer; const fileName: PChar): integer; stdcall;
+function  DLUIProjectModified(projectID: integer): integer; stdcall;
+function  DLUIFileModified(projectID: integer; const fileName: PChar): integer; stdcall;
 
-function  DLECloseProject(projectID: integer): integer; stdcall;
+function  DLUICloseProject(projectID: integer): integer; stdcall;
 
-
-
-function  DLEGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
+function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
 
 implementation
 
@@ -32,13 +28,13 @@ uses
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
   OtlSync, OtlCommon,
-  DelphiLensEngine.Worker;
+  DelphiLensUI.Worker;
 
 type
   TErrorInfo = TPair<integer,string>;
 
 var
-  GDLEngineWorkers: TObjectDictionary<integer, TDelphiLensEngineProject>;
+  GDLEngineWorkers: TObjectDictionary<integer, TDelphiLensUIProject>;
   GDLEngineErrors : TDictionary<integer, TErrorInfo>;
   GDLEngineID     : TOmniAlignedInt32;
   GDLWorkerLock   : TOmniCS;
@@ -64,7 +60,7 @@ begin
   Result := SetError(projectiD, NO_ERROR, '');
 end; { ClearError }
 
-function GetProject(projectID: integer; var project: TDelphiLensEngineProject): boolean;
+function GetProject(projectID: integer; var project: TDelphiLensUIProject): boolean;
 begin
   GDLWorkerLock.Acquire;
   try
@@ -72,14 +68,14 @@ begin
   finally GDLWorkerLock.Release; end;
 end; { GetProject }
 
-function DLEOpenProject(const projectName: PChar; var projectID: integer): integer;
+function DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
     projectID := GDLEngineID.Increment;
-    project := TDelphiLensEngineProject.Create(string(projectName));
+    project := TDelphiLensUIProject.Create(string(projectName));
     GDLWorkerLock.Acquire;
     try
       GDLEngineWorkers.Add(projectID, project);
@@ -88,11 +84,11 @@ begin
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLEOpenProject }
+end; { DLUIOpenProject }
 
-function DLECloseProject(projectID: integer): integer;
+function DLUICloseProject(projectID: integer): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
@@ -108,11 +104,11 @@ begin
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLECloseProject }
+end; { DLUICloseProject }
 
-function DLEProjectModified(projectID: integer): integer;
+function DLUIProjectModified(projectID: integer): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
@@ -124,11 +120,11 @@ begin
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLEProjectModified }
+end; { DLUIProjectModified }
 
-function DLEFileModified(projectID: integer; const fileName: PChar): integer;
+function DLUIFileModified(projectID: integer; const fileName: PChar): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
@@ -140,11 +136,11 @@ begin
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLEFileModified }
+end; { DLUIFileModified }
 
-function DLERescanProject(projectID: integer): integer;
+function DLUIRescanProject(projectID: integer): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
@@ -156,40 +152,41 @@ begin
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLERescanPRoject }
+end; { DLUIRescanPRoject }
 
-function DLESetProjectConfig(projectID: integer; platform, searchPath, libraryPath: PChar): integer;
+function DLUISetProjectConfig(projectID: integer; platformName, conditionalDefines,
+  searchPath: PChar): integer;
 var
-  project: TDelphiLensEngineProject;
+  project: TDelphiLensUIProject;
 begin
   Result := ClearError(projectID);
   try
     if not GetProject(projectID, project) then
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
     else
-      project.SetConfig(TDLEProjectConfig.Create(string(platform), string(searchPath), string(libraryPath)));
+      project.SetConfig(TDLUIProjectConfig.Create(string(platformName), string(conditionalDefines), string(searchPath)));
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
-end; { DLESetProjectConfig }
+end; { DLUISetProjectConfig }
 
-procedure DLEInitialize;
+procedure DLUIInitialize;
 begin
   GDLEngineID.Value := 0;
-  GDLEngineWorkers := TObjectDictionary<integer, TDelphiLensEngineProject>.Create([doOwnsValues]);
+  GDLEngineWorkers := TObjectDictionary<integer, TDelphiLensUIProject>.Create([doOwnsValues]);
   GDLEngineErrors := TDictionary<integer, TErrorInfo>.Create;
   GDLWorkerLock.Initialize;
   GDLErrorLock.Initialize;
-end; { DLEInitialize }
+end; { DLUIInitialize }
 
-procedure DLEFinalize;
+procedure DLUIFinalize;
 begin
   FreeAndNil(GDLEngineWorkers);
   FreeAndNil(GDLEngineErrors);
-end; { DLEFinalize }
+end; { DLUIFinalize }
 
-function DLEGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
+function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
 var
   errorInfo: TErrorInfo;
 begin
@@ -202,6 +199,6 @@ begin
       Result := errorInfo.Key;
     end;
   finally GDLErrorLock.Release; end;
-end; { DLEGetLastError }
+end; { DLUIGetLastError }
 
 end.

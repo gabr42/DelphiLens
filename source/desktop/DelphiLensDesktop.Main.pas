@@ -5,11 +5,11 @@ interface
 uses
   Winapi.Windows, Winapi.Messages,
   System.SysUtils, System.Variants, System.Classes, System.Actions,
-  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ActnList,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ActnList, Vcl.Samples.Spin,
   Spring.Collections,
   DelphiAST.Classes,
   DelphiLens.DelphiASTHelpers,
-  DelphiLens.Intf, DelphiLens.UnitInfo, Vcl.Samples.Spin;
+  DelphiLens.Intf, DelphiLens.UnitInfo;
 
 type
   TfrmDLMain = class(TForm)
@@ -100,7 +100,8 @@ uses
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  DelphiLens;
+  DelphiLens,
+  DelphiLensUI.Import;
 
 {$R *.dfm}
 

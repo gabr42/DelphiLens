@@ -9,9 +9,6 @@
         <Projects Include="expert\DelphiLensExpert.dproj">
             <Dependencies/>
         </Projects>
-        <Projects Include="engine\DelphiLensEngine.dproj">
-            <Dependencies/>
-        </Projects>
         <Projects Include="ui\DelphiLensUI.dproj">
             <Dependencies/>
         </Projects>
@@ -44,15 +41,6 @@
     <Target Name="DelphiLensExpert:Make">
         <MSBuild Projects="expert\DelphiLensExpert.dproj" Targets="Make"/>
     </Target>
-    <Target Name="DelphiLensEngine">
-        <MSBuild Projects="engine\DelphiLensEngine.dproj"/>
-    </Target>
-    <Target Name="DelphiLensEngine:Clean">
-        <MSBuild Projects="engine\DelphiLensEngine.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="DelphiLensEngine:Make">
-        <MSBuild Projects="engine\DelphiLensEngine.dproj" Targets="Make"/>
-    </Target>
     <Target Name="DelphiLensUI">
         <MSBuild Projects="ui\DelphiLensUI.dproj"/>
     </Target>
@@ -72,13 +60,13 @@
         <MSBuild Projects="desktop\DelphiLensDesktop.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensEngine;DelphiLensUI;DelphiLensDesktop"/>
+        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensUI;DelphiLensDesktop"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensEngine:Clean;DelphiLensUI:Clean;DelphiLensDesktop:Clean"/>
+        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensUI:Clean;DelphiLensDesktop:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensEngine:Make;DelphiLensUI:Make;DelphiLensDesktop:Make"/>
+        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensUI:Make;DelphiLensDesktop:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

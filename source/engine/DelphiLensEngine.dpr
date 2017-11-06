@@ -14,8 +14,7 @@ uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensEngine.DLLExports,
-  DelphiLensEngine.Worker in 'DelphiLensEngine.Worker.pas';
+  DelphiLensEngine.DLLExports;
 
 {$R *.res}
 

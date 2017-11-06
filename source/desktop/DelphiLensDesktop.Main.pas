@@ -105,8 +105,6 @@ uses
 
 {$R *.dfm}
 
-procedure DLUIShowForm; external 'DelphiLensUI' name 'DLUIShowForm' delayed;
-
 procedure TfrmDLMain.actAnalysisExecute(Sender: TObject);
 begin
   ShowAnalysis;
@@ -216,11 +214,19 @@ begin
 end;
 
 procedure TfrmDLMain.btnShowUIClick(Sender: TObject);
+var
+  projectID: integer;
 begin
-  if FDLUIHandle = 0 then
-    FDLUIHandle := LoadLibrary('DelphiLensUI.dll');
-  if FDLUIHandle > 0 then
-    DLUIShowForm;
+  if IsDLUIAvailable
+     and (DLUIOpenProject(PChar(inpProject.Text), projectID) = NO_ERROR) then
+  begin
+    if (DLUISetProjectConfig(projectID, nil, PChar(inpDefines.Text), PChar(inpSearchPath.Text)) = NO_ERROR)
+       and (DLUIRescanProject(projectID) = NO_ERROR)
+    then begin
+      DLUIActivate(projectID);
+    end;
+    DLUICloseProject(projectID);
+  end;
 end;
 
 procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);

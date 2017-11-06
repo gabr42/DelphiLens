@@ -1,24 +1,26 @@
 object frmDLMain: TfrmDLMain
   Left = 0
   Top = 0
+  BorderStyle = None
   Caption = 'Form1'
   ClientHeight = 480
   ClientWidth = 640
   Position = ScreenCenter
   StyleBook = StyleBook1
+  Transparency = True
   FormFactor.Width = 320
   FormFactor.Height = 480
   FormFactor.Devices = [Desktop]
   DesignerMasterStyle = 0
   object btnClose: TButton
-    ModalResult = 1
     Position.X = 384.000000000000000000
-    Position.Y = 344.000000000000000000
+    Position.Y = 320.000000000000000000
     Size.Width = 216.000000000000000000
     Size.Height = 86.000000000000000000
     Size.PlatformDefault = False
     TabOrder = 0
     Text = 'btnClose'
+    OnClick = btnCloseClick
   end
   object StyleBook1: TStyleBook
     Styles = <

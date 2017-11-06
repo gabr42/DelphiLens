@@ -11,6 +11,7 @@ type
   TfrmDLMain = class(TForm)
     btnClose: TButton;
     StyleBook1: TStyleBook;
+    procedure btnCloseClick(Sender: TObject);
   private
   public
   end;
@@ -28,10 +29,23 @@ procedure DLUIShowForm;
 var
   frm: TfrmDLMain;
 begin
+//  Application.Initialize;
+//  Application.CreateForm(TfrmDLMain, frm);
+//  Application.Run;
+
   frm := TfrmDLMain.Create(Application);
   try
     frm.ShowModal;
+//    frm.Release;
+//    Application.Terminate;
   finally FreeAndNil(frm); end;
+  Application.ProcessMessages;
+end;
+
+procedure TfrmDLMain.btnCloseClick(Sender: TObject);
+begin
+//  Application.Terminate;
+  Close;
 end;
 
 end.

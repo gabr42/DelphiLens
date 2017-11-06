@@ -4,8 +4,9 @@ interface
 
 const
   NO_ERROR              = 0;
-  ERR_EXCEPTION         = 1;
-  ERR_PROJECT_NOT_FOUND = 2;
+  ERR_NOT_IMPLEMENTED   = 1;
+  ERR_EXCEPTION         = 2;
+  ERR_PROJECT_NOT_FOUND = 3;
 
 implementation
 

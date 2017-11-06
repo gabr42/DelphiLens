@@ -10,35 +10,38 @@ const
 
   function  IsDLUIAvailable: boolean;
 
-  function  DLUIOpenProject(const projectName: PChar; var projectID: integer): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUISetProjectConfig(projectID: integer; platform,
-              searchPath, libraryPath: PChar): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUISetProjectConfig(projectID: integer;
+              platformName, searchPath, libraryPath: PChar): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIRescanProject(projectID: integer): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUIRescanProject(projectID: integer): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIProjectModified(projectID: integer): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUIProjectModified(projectID: integer): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIFileModified(projectID: integer; const fileName: PChar): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUIFileModified(projectID: integer; const fileName: PChar): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUICloseProject(projectID: integer): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUICloseProject(projectID: integer): integer;
+    stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
-    external DelphiLensUIDLL delayed;
+  function  DLUIActivate(projectID: integer): integer;
+    stdcall; external DelphiLensUIDLL delayed;
+
+  function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;
+    stdcall; external DelphiLensUIDLL delayed;
+
+var
+  GDLUILibraryHandle: THandle;
 
 implementation
 
 uses
   Winapi.Windows;
-
-var
-  GDLUILibraryHandle: THandle;
 
   function IsDLUIAvailable: boolean;
   begin

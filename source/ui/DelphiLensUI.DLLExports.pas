@@ -22,6 +22,8 @@ function  DLUICloseProject(projectID: integer): integer; stdcall;
 
 function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
 
+function DLUIActivate(projectID: integer): integer; stdcall;
+
 implementation
 
 uses
@@ -67,6 +69,21 @@ begin
     Result := GDLEngineWorkers.TryGetValue(projectID, project);
   finally GDLWorkerLock.Release; end;
 end; { GetProject }
+
+function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
+var
+  errorInfo: TErrorInfo;
+begin
+  GDLErrorLock.Acquire;
+  try
+    if not GDLEngineErrors.TryGetValue(projectID, errorInfo) then
+      Result := NO_ERROR
+    else begin
+      errorMsg := PChar(errorInfo.Value);
+      Result := errorInfo.Key;
+    end;
+  finally GDLErrorLock.Release; end;
+end; { DLUIGetLastError }
 
 function DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
 var
@@ -171,6 +188,22 @@ begin
   end;
 end; { DLUISetProjectConfig }
 
+function DLUIActivate(projectID: integer): integer; stdcall;
+var
+  project: TDelphiLensUIProject;
+begin
+  Result := ClearError(projectID);
+  try
+    if not GetProject(projectID, project) then
+      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
+    else
+      project.Activate;
+  except
+    on E: Exception do
+      Result := SetError(projectID, ERR_EXCEPTION, E.Message);
+  end;
+end; { DLUIActivate }
+
 procedure DLUIInitialize;
 begin
   GDLEngineID.Value := 0;
@@ -185,20 +218,5 @@ begin
   FreeAndNil(GDLEngineWorkers);
   FreeAndNil(GDLEngineErrors);
 end; { DLUIFinalize }
-
-function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
-var
-  errorInfo: TErrorInfo;
-begin
-  GDLErrorLock.Acquire;
-  try
-    if not GDLEngineErrors.TryGetValue(projectID, errorInfo) then
-      Result := NO_ERROR
-    else begin
-      errorMsg := PChar(errorInfo.Value);
-      Result := errorInfo.Key;
-    end;
-  finally GDLErrorLock.Release; end;
-end; { DLUIGetLastError }
 
 end.

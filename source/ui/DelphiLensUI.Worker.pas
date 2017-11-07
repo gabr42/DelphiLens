@@ -35,7 +35,8 @@ uses
   System.SysUtils,
   OtlCommon,
   DelphiLens,
-  DelphiLensUI.Main;
+  DelphiLensUI.VCL.Main;
+//  DelphiLensUI.Main;
 
 type
   TDelphiLensUIWorker = class(TOmniWorker)

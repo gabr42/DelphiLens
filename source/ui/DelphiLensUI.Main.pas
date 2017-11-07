@@ -23,28 +23,30 @@ procedure DLUIShowForm;
 
 implementation
 
+uses
+  Winapi.Windows,
+  Winapi.GDIPAPI,
+  Winapi.GDIPOBJ;
+
 {$R *.fmx}
 
 procedure DLUIShowForm;
 var
   frm: TfrmDLMain;
+  i: Integer;
 begin
-//  Application.Initialize;
-//  Application.CreateForm(TfrmDLMain, frm);
-//  Application.Run;
-
+  Application.Initialize;
   frm := TfrmDLMain.Create(Application);
-  try
-    frm.ShowModal;
-//    frm.Release;
-//    Application.Terminate;
-  finally FreeAndNil(frm); end;
-  Application.ProcessMessages;
+  frm.ShowModal;
+//  frm.Release;
+  frm.Free;
+  Application.Terminate;
 end;
 
 procedure TfrmDLMain.btnCloseClick(Sender: TObject);
 begin
 //  Application.Terminate;
+//  ModalResult := mrOK;
   Close;
 end;
 

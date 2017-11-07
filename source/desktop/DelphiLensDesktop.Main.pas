@@ -68,7 +68,6 @@ type
     TShowing = (shAnalysis, shParsedUnits, shIncludeFiles, shNotFound, shProblems);
   var
     FDelphiLens: IDelphiLens;
-    FDLUIHandle: THandle;
     FLoading   : boolean;
     FScanResult: IDLScanResult;
     FShowing   : TShowing;
@@ -227,6 +226,7 @@ begin
     end;
     DLUICloseProject(projectID);
   end;
+  Application.OnMessage := nil;
 end;
 
 procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);

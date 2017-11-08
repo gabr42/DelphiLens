@@ -71,6 +71,7 @@ uses
 
 procedure TfrmDLUITestMain.btnRescanClick(Sender: TObject);
 begin
+  CloseUIProject;
   CreateUnitNamesList;
   OpenUIProject;
 end;

@@ -76,6 +76,7 @@ begin
   inherited Create;
   FWorker := CreateTask(TDelphiLensUIWorker.Create(), 'DelphiLens engine for ' + projectName)
                .SetParameter('owner', Self)
+               .Unobserved
                .Run;
   FWorker.Invoke(@TDelphiLensUIWorker.Open, projectName);
 end; { TDelphiLensUIProject.Create }

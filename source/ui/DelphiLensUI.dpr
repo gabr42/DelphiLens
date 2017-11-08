@@ -8,7 +8,9 @@ uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensUI.DLLExports;
+  DelphiLensUI.DLLExports,
+  DelphiLensUI.UIXAnalyzer.Intf in 'DelphiLensUI.UIXAnalyzer.Intf.pas',
+  DelphiLensUI.UIXAnalyzer.Navigation in 'DelphiLensUI.UIXAnalyzer.Navigation.pas';
 
 {$R *.res}
 

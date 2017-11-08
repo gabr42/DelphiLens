@@ -5,23 +5,23 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls,
-  DelphiLensUI.VCL.Form2;
+  DelphiLens.Intf;
 
 type
   TfrmDLMain = class(TForm)
-    btnClose: TButton;
     Button1: TButton;
     procedure FormCreate(Sender: TObject);
     procedure btnCloseClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   private
-    Form2: TForm1;
   protected
     procedure UpdateShadow;
   public
   end;
 
-procedure DLUIShowForm;
+procedure DLUIShowForm(const scanResult: IDLScanResult; const unitName: string;
+  line, column: integer);
 
 implementation
 
@@ -31,7 +31,8 @@ uses
 
 {$R *.dfm}
 
-procedure DLUIShowForm;
+procedure DLUIShowForm(const scanResult: IDLScanResult; const unitName: string; line,
+  column: integer);
 var
   frm: TfrmDLMain;
 begin
@@ -63,6 +64,12 @@ begin
     Application.ProcessMessages;
     Sleep(5);
   end;
+end;
+
+procedure TfrmDLMain.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if Key = VK_ESCAPE then
+    Close;
 end;
 
 procedure TfrmDLMain.UpdateShadow;

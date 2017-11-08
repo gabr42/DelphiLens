@@ -16,13 +16,13 @@ function  DLUISetProjectConfig(projectID: integer; platformName,
 function  DLUIRescanProject(projectID: integer): integer; stdcall;
 
 function  DLUIProjectModified(projectID: integer): integer; stdcall;
-function  DLUIFileModified(projectID: integer; const fileName: PChar): integer; stdcall;
+function  DLUIFileModified(projectID: integer; fileName: PChar): integer; stdcall;
 
 function  DLUICloseProject(projectID: integer): integer; stdcall;
 
 function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
 
-function DLUIActivate(projectID: integer): integer; stdcall;
+function  DLUIActivate(projectID: integer; fileName: PChar; line, column: integer): integer; stdcall;
 
 implementation
 
@@ -92,7 +92,7 @@ begin
   Result := ClearError(projectID);
   try
     projectID := GDLEngineID.Increment;
-    project := TDelphiLensUIProject.Create(string(projectName));
+    project := TDelphiLensUIProject.Create(projectName);
     GDLWorkerLock.Acquire;
     try
       GDLEngineWorkers.Add(projectID, project);
@@ -139,7 +139,7 @@ begin
   end;
 end; { DLUIProjectModified }
 
-function DLUIFileModified(projectID: integer; const fileName: PChar): integer;
+function DLUIFileModified(projectID: integer; fileName: PChar): integer;
 var
   project: TDelphiLensUIProject;
 begin
@@ -148,7 +148,7 @@ begin
     if not GetProject(projectID, project) then
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
     else
-      project.FileModified(string(fileName));
+      project.FileModified(fileName);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -181,14 +181,14 @@ begin
     if not GetProject(projectID, project) then
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
     else
-      project.SetConfig(TDLUIProjectConfig.Create(string(platformName), string(conditionalDefines), string(searchPath)));
+      project.SetConfig(TDLUIProjectConfig.Create(platformName, conditionalDefines, searchPath));
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
 end; { DLUISetProjectConfig }
 
-function DLUIActivate(projectID: integer): integer; stdcall;
+function DLUIActivate(projectID: integer; fileName: PChar; line, column: integer): integer;
 var
   project: TDelphiLensUIProject;
 begin
@@ -197,7 +197,7 @@ begin
     if not GetProject(projectID, project) then
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
     else
-      project.Activate;
+      project.Activate(fileName, line, column);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);

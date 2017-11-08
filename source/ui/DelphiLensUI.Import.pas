@@ -23,13 +23,13 @@ const
   function  DLUIProjectModified(projectID: integer): integer;
     stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIFileModified(projectID: integer; const fileName: PChar): integer;
+  function  DLUIFileModified(projectID: integer; fileName: PChar): integer;
     stdcall; external DelphiLensUIDLL delayed;
 
   function  DLUICloseProject(projectID: integer): integer;
     stdcall; external DelphiLensUIDLL delayed;
 
-  function  DLUIActivate(projectID: integer): integer;
+  function  DLUIActivate(projectID: integer; unitName: PChar; line, column: integer): integer;
     stdcall; external DelphiLensUIDLL delayed;
 
   function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;

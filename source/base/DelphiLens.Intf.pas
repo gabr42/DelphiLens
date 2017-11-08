@@ -14,6 +14,7 @@ type
     function Find(const unitName: string; var unitInfo: TDLUnitInfo): boolean;
   end; { TAnalyzedUnits }
 
+  TUnitInfo = TProjectIndexer.TUnitInfo;
   TParsedUnits = TProjectIndexer.TParsedUnits;
   TIncludeFiles = TProjectIndexer.TIncludeFiles;
   TProblems = TProjectIndexer.TProblems;

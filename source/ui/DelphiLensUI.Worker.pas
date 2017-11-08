@@ -16,13 +16,14 @@ type
 
   TDelphiLensUIProject = class
   strict private
-    FWorker: IOmniTaskControl;
+    FScanResult: IDLScanResult;
+    FWorker    : IOmniTaskControl;
   protected
     procedure ScanComplete(const result: IDLScanResult);
   public
     constructor Create(const projectName: string);
     destructor  Destroy; override;
-    procedure Activate;
+    procedure Activate(const fileName: string; line, column: integer);
     procedure FileModified(const fileName: string);
     procedure ProjectModified;
     procedure Rescan;
@@ -89,10 +90,10 @@ begin
   inherited;
 end; { TDelphiLensUIProject.Destroy }
 
-procedure TDelphiLensUIProject.Activate;
+procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer);
 begin
   //TODO: Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
-  DLUIShowForm;
+  DLUIShowForm(FScanResult, fileName, line, column);
 end; { TDelphiLensUIProject.Activate }
 
 procedure TDelphiLensUIProject.FileModified(const fileName: string);
@@ -112,8 +113,7 @@ end; { TDelphiLensUIProject.Rescan }
 
 procedure TDelphiLensUIProject.ScanComplete(const result: IDLScanResult);
 begin
-  sleep(0);
-  // TODO 1 -oPrimoz Gabrijelcic : implement: TDelphiLensUIProject.ScanComplete
+  FScanResult := result;
 end; { TDelphiLensUIProject.ScanComplete }
 
 procedure TDelphiLensUIProject.SetConfig(const config: TDLUIProjectConfig);

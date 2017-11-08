@@ -8,8 +8,7 @@ uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensUI.DLLExports,
-  DelphiLensUI.VCL.Form2 in 'DelphiLensUI.VCL.Form2.pas' {Form1};
+  DelphiLensUI.DLLExports;
 
 {$R *.res}
 

@@ -13,21 +13,13 @@ object frmDLMain: TfrmDLMain
   Font.Height = -11
   Font.Name = 'Tahoma'
   Font.Style = []
+  KeyPreview = True
   OldCreateOrder = False
   Position = poScreenCenter
   OnCreate = FormCreate
+  OnKeyDown = FormKeyDown
   PixelsPerInch = 96
   TextHeight = 13
-  object btnClose: TButton
-    Tag = 1
-    Left = 520
-    Top = 272
-    Width = 75
-    Height = 25
-    Caption = 'Close'
-    TabOrder = 0
-    OnClick = btnCloseClick
-  end
   object Button1: TButton
     Tag = 1
     Left = 40
@@ -35,7 +27,7 @@ object frmDLMain: TfrmDLMain
     Width = 201
     Height = 81
     Caption = 'Button1'
-    TabOrder = 1
+    TabOrder = 0
     OnClick = Button1Click
   end
 end

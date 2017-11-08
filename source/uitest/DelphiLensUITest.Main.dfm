@@ -95,7 +95,7 @@ object frmDLUITestMain: TfrmDLUITestMain
     Height = 337
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
-    TabOrder = 6
+    TabOrder = 7
   end
   object lbFiles: TListBox
     Left = 16
@@ -114,7 +114,7 @@ object frmDLUITestMain: TfrmDLUITestMain
     Height = 25
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Show UI'
-    TabOrder = 7
+    TabOrder = 6
     OnClick = btnShowUIClick
   end
   object dlgOpenProject: TFileOpenDialog

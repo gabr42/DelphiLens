@@ -3,51 +3,76 @@ unit DelphiLensUI.Main;
 interface
 
 uses
-  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
-  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs,
-  FMX.Controls.Presentation, FMX.StdCtrls;
+  DelphiLens.Intf;
 
-type
-  TfrmDLMain = class(TForm)
-    btnClose: TButton;
-    StyleBook1: TStyleBook;
-    procedure btnCloseClick(Sender: TObject);
-  private
-  public
-  end;
-
-var
-  frmDLMain: TfrmDLMain;
-
-procedure DLUIShowForm;
+procedure DLUIShowUI(const projectInfo: IDLScanResult; const fileName: string;
+  line, column: integer);
 
 implementation
 
 uses
-  Winapi.Windows,
-  Winapi.GDIPAPI,
-  Winapi.GDIPOBJ;
+  System.SysUtils,
+  DelphiLensUI.UIXEngine.Intf,
+  DelphiLensUI.UIXEngine.VCLFloating;
 
-{$R *.fmx}
+type
+  TDLUserInterface = class
+  strict private
+    FColumn     : integer;
+    FFileName   : string;
+    FLine       : integer;
+    FProjectInfo: IDLScanResult;
+    FUIXEngine  : IDLUIXEngine;
+  public
+    constructor Create(const uixEngine: IDLUIXEngine);
+    procedure Activate;
+    procedure Build(const projectInfo: IDLScanResult; const fileName: string;
+      const line, column: integer);
+    procedure Teardown;
+  end; { TDLUserInterface }
 
-procedure DLUIShowForm;
+{ exports }
+
+procedure DLUIShowUI(const projectInfo: IDLScanResult; const fileName: string;
+  line, column: integer);
 var
-  frm: TfrmDLMain;
-  i: Integer;
+  ui: TDLUserInterface;
 begin
-  Application.Initialize;
-  frm := TfrmDLMain.Create(Application);
-  frm.ShowModal;
-//  frm.Release;
-  frm.Free;
-  Application.Terminate;
-end;
+  ui := TDLUserInterface.Create(CreateUIXEngine);
+  try
+    ui.Build(projectInfo, fileName, line, column);
+    try
+      ui.Activate;
+    finally ui.Teardown; end;
+  finally FreeAndNil(ui); end;
+end; { DLUIShowUI }
 
-procedure TfrmDLMain.btnCloseClick(Sender: TObject);
+{ TDLUserInterface }
+
+constructor TDLUserInterface.Create(const uixEngine: IDLUIXEngine);
 begin
-//  Application.Terminate;
-//  ModalResult := mrOK;
-  Close;
-end;
+  inherited Create;
+  FUIXEngine := uixEngine;
+end; { TDLUserInterface.Create }
+
+procedure TDLUserInterface.Activate;
+begin
+  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUserInterface.Activate
+end; { TDLUserInterface.Activate }
+
+procedure TDLUserInterface.Build(const projectInfo: IDLScanResult;
+  const fileName: string; const line, column: integer);
+begin
+  FProjectInfo := projectInfo;
+  FFileName := fileName;
+  FLine := line;
+  FColumn := column;
+  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUserInterface.Build
+end; { TDLUserInterface.Build }
+
+procedure TDLUserInterface.Teardown;
+begin
+  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUserInterface.Teardown
+end; { TDLUserInterface.Teardown }
 
 end.

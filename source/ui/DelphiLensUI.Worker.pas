@@ -36,8 +36,7 @@ uses
   System.SysUtils,
   OtlCommon,
   DelphiLens,
-  DelphiLensUI.VCL.Main;
-//  DelphiLensUI.Main;
+  DelphiLensUI.Main;
 
 type
   TDelphiLensUIWorker = class(TOmniWorker)
@@ -93,7 +92,7 @@ end; { TDelphiLensUIProject.Destroy }
 procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer);
 begin
   //TODO: Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
-  DLUIShowForm(FScanResult, fileName, line, column);
+  DLUIShowUI(FScanResult, fileName, line, column);
 end; { TDelphiLensUIProject.Activate }
 
 procedure TDelphiLensUIProject.FileModified(const fileName: string);

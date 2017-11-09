@@ -17,22 +17,26 @@ uses
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXEngine.Intf,
+  DelphiLensUI.UIXEngine.Actions,
   DelphiLensUI.UIXEngine.VCLFloating;
 
 type
+  TDLAnalyzerInfo = TPair<string, IDLUIXAnalyzer>;
+  TDLAnalyzers = IList<TDLAnalyzerInfo>;
+
   TDLUserInterface = class
   strict private
     FAnalysisState: TDLAnalysisState;
     FUIXAnalyzers : TDLAnalyzers;
     FUIXEngine    : IDLUIXEngine;
   strict protected
-    procedure BuildUIXForAnalyzer(const analyzer: TDLAnalyzerInfo);
+    procedure ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
+      const analyzer: IDLUIXAnalyzer);
   public
     constructor Create(const uixEngine: IDLUIXEngine; const analyzers: TDLAnalyzers);
-    procedure Activate;
-    procedure Build(const projectInfo: IDLScanResult; const fileName: string;
+    procedure Initialize(const projectInfo: IDLScanResult; const fileName: string;
       const line, column: integer);
-    procedure Teardown;
+    procedure ShowMain;
   end; { TDLUserInterface }
 
 { exports }
@@ -48,10 +52,8 @@ begin
 
   ui := TDLUserInterface.Create(CreateUIXEngine, analyzers);
   try
-    ui.Build(projectInfo, fileName, line, column);
-    try
-      ui.Activate;
-    finally ui.Teardown; end;
+    ui.Initialize(projectInfo, fileName, line, column);
+    ui.ShowMain;
   finally FreeAndNil(ui); end;
 end; { DLUIShowUI }
 
@@ -65,36 +67,51 @@ begin
   FUIXAnalyzers := analyzers;
 end; { TDLUserInterface.Create }
 
-procedure TDLUserInterface.Activate;
-begin
-  FUIXEngine.ShowFrame;
-end; { TDLUserInterface.Activate }
-
-procedure TDLUserInterface.Build(const projectInfo: IDLScanResult;
+procedure TDLUserInterface.Initialize(const projectInfo: IDLScanResult;
   const fileName: string; const line, column: integer);
-var
-  analyzer: TDLAnalyzerInfo;
 begin
   FAnalysisState := TDLAnalysisState.Create(projectInfo, fileName, line, column);
+end; { TDLUserInterface.Initialize }
 
-  FUIXEngine.CreateFrame;
+procedure TDLUserInterface.ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
+  const  analyzer: IDLUIXAnalyzer);
+var
+  frame: IDLUIXFrame;
+begin
+  frame := FUIXEngine.CreateFrame(parentFrame);
+  // build content according to the frame
+  FUIXEngine.CompleteFrame(frame);
+//  frame.OnAction :=
+//    procedure (const frame: IDLUIXFrame; const action: IDLUIXAction)
+//    begin
+//      if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
+//        ShowAnalyzerPanel(frame, openAnalyzer.Analyzer);
+//    end;
+//  FUIXEngine.Disable(parentFrame);
+  FUIXEngine.ShowFrame(frame);
+  FUIXEngine.DestroyFrame(frame);
+end; { TDLUserInterface.ShowAnalyzerPanel }
 
+procedure TDLUserInterface.ShowMain;
+var
+  analyzer    : TDLAnalyzerInfo;
+  frame       : IDLUIXFrame;
+  openAnalyzer: IDLUIXOpenAnalyzerAction;
+begin
+  frame := FUIXEngine.CreateFrame(nil);
   for analyzer in FUIXAnalyzers do
-    BuildUIXForAnalyzer(analyzer);
+    if analyzer.Value.CanHandle(FAnalysisState) then
+      frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
 
-  FUIXEngine.CompleteFrame;
-end; { TDLUserInterface.Build }
-
-procedure TDLUserInterface.BuildUIXForAnalyzer(const analyzer: TDLAnalyzerInfo);
-begin
-  if analyzer.Value.CanHandle(FAnalysisState) then begin
-    FUIXEngine.CreateAction(analyzer);
-  end;
-end;
-
-procedure TDLUserInterface.Teardown;
-begin
-  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUserInterface.Teardown
-end; { TDLUserInterface.Teardown }
+  FUIXEngine.CompleteFrame(frame);
+  frame.OnAction :=
+    procedure (const frame: IDLUIXFrame; const action: IDLUIXAction)
+    begin
+      if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
+        ShowAnalyzerPanel(frame, openAnalyzer.Analyzer);
+    end;
+  FUIXEngine.ShowFrame(frame);
+  FUIXEngine.DestroyFrame(frame);
+end; { TDLUserInterface.ShowMain }
 
 end.

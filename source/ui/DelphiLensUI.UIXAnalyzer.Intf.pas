@@ -21,9 +21,6 @@ type
     function CanHandle(const state: TDLAnalysisState): boolean;
   end; { IDLUIXAnalyzer }
 
-  TDLAnalyzerInfo = TPair<string, IDLUIXAnalyzer>;
-  TDLAnalyzers = IList<TDLAnalyzerInfo>;
-
 implementation
 
 constructor TDLAnalysisState.Create(const AProjectInfo: IDLScanResult; const AFileName:

@@ -14,7 +14,7 @@ const
     stdcall; external DelphiLensUIDLL delayed;
 
   function  DLUISetProjectConfig(projectID: integer;
-              platformName, searchPath, libraryPath: PChar): integer;
+              platformName, conditionalDefines, searchPath: PChar): integer;
     stdcall; external DelphiLensUIDLL delayed;
 
   function  DLUIRescanProject(projectID: integer): integer;

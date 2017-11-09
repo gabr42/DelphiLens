@@ -92,7 +92,8 @@ end; { TDelphiLensUIProject.Destroy }
 
 procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer);
 begin
-  //TODO: Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
+  //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
+  //TODO: *** Also worker must not be rescanning while UI is shown as FScanResult refers to worker's data
   DLUIShowUI(FScanResult, fileName, line, column);
 end; { TDelphiLensUIProject.Activate }
 

@@ -12,31 +12,46 @@ implementation
 uses
   Winapi.Windows,
   System.Types, System.SysUtils, System.Classes,
+  Spring, Spring.Collections,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.Styles, Vcl.Themes,
   DelphiLensUI.UIXAnalyzer.Intf;
 
 type
   TVCLFloatingForm = class(TForm)
-  strict protected
-    procedure FormCreate(Sender: TObject);
-    procedure UpdateMask;
+  protected
+    procedure ExitOnEscape(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
-    constructor Create(AOwner: TComponent); override;
+    procedure UpdateMask;
   end; { TVCLFloatingForm }
 
-  TDLUIXVCLFloatingEngine = class(TInterfacedObject, IDLUIXEngine)
+  TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame)
   strict private const
     CDefaultButtonWidth  = 201;
     CDefaultButtonHeight =  81;
     CDefaultSpacing      =  15;
   var
-    FForm: TVCLFloatingForm;
+    [Managed(false)] FActionMap: IDictionary<TObject, IDLUIXAction>;
+    [Managed(false)] FForm     : TVCLFloatingForm;
+  var
+    FOnAction: TDLUIXFrameAction;
+    FParent  : IDLUIXFrame;
+  strict protected
+    procedure ForwardAction(Sender: TObject);
+    function  GetOnAction: TDLUIXFrameAction;
+    procedure SetOnAction(const value: TDLUIXFrameAction);
   public
-    procedure CompleteFrame;
-    procedure CreateAction(const analyzerInfo: TDLAnalyzerInfo);
-    procedure CreateFrame;
-    procedure DestroyFrame;
-    procedure ShowFrame;
+    constructor Create(const parentFrame: IDLUIXFrame);
+    procedure CreateAction(const action: IDLUIXAction);
+    procedure Show;
+    property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
+  end; { TDLUIXVCLFloatingFrame }
+
+  TDLUIXVCLFloatingEngine = class(TInterfacedObject, IDLUIXEngine)
+  public
+    procedure CompleteFrame(const frame: IDLUIXFrame);
+    function  CreateFrame(const parentFrame: IDLUIXFrame): IDLUIXFrame;
+    procedure DestroyFrame(var frame: IDLUIXFrame);
+    procedure ShowFrame(const frame: IDLUIXFrame);
   end; { TDLUIXVCLFloatingEngine }
 
 { exports }
@@ -46,62 +61,14 @@ begin
   Result := TDLUIXVCLFloatingEngine.Create;
 end; { CreateUIXEngine }
 
-{ TDLUIXVCLFloatingEngine }
-
-procedure TDLUIXVCLFloatingEngine.CompleteFrame;
-begin
-  // do nothing
-end; { TDLUIXVCLFloatingEngine.CompleteFrame }
-
-procedure TDLUIXVCLFloatingEngine.CreateAction(const analyzerInfo: TDLAnalyzerInfo);
-var
-  button: TButton;
-begin
-  if FForm.ClientHeight = 0 then
-    FForm.ClientHeight := CDefaultButtonHeight
-  else
-    FForm.ClientHeight := FForm.ClientHeight + CDefaultButtonHeight + CDefaultSpacing;
-
-  button := TButton.Create(FForm);
-  button.Parent := FForm;
-  button.Left := 0;
-  button.Top := FForm.ClientHeight - CDefaultButtonHeight;
-end; { TDLUIXVCLFloatingEngine.CreateAction }
-
-procedure TDLUIXVCLFloatingEngine.CreateFrame;
-begin
-  FForm := TVCLFloatingForm.CreateNew(Application);
-  FForm.BorderStyle := bsNone;
-  FForm.Position := poScreenCenter;
-  FForm.ClientWidth := CDefaultButtonWidth;
-  FForm.ClientHeight := 0;
-end; { TDLUIXVCLFloatingEngine.CreateFrame }
-
-procedure TDLUIXVCLFloatingEngine.DestroyFrame;
-begin
-  FreeAndNil(FForm);
-end; { TDLUIXVCLFloatingEngine.DestroyFrame }
-
-procedure TDLUIXVCLFloatingEngine.ShowFrame;
-begin
-  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
-  Application.Title := 'DelphiLens';
-  Application.MainFormOnTaskBar := false;
-  FForm.ShowModal;
-end; { TDLUIXVCLFloatingEngine.ShowFrame }
-
 { TVCLFloatingForm }
 
-constructor TVCLFloatingForm.Create(AOwner: TComponent);
+procedure TVCLFloatingForm.ExitOnEscape(Sender: TObject; var Key: Word; Shift:
+  TShiftState);
 begin
-  inherited;
-  OnCreate := FormCreate;
-end;
-
-procedure TVCLFloatingForm.FormCreate(Sender: TObject);
-begin
-  UpdateMask;
-end;
+  if Key = VK_ESCAPE then
+    Close;
+end; { TVCLFloatingForm.ExitOnEscape }
 
 procedure TVCLFloatingForm.UpdateMask;
 var
@@ -128,5 +95,91 @@ begin
     DeleteObject(rgn);
   end;
 end; { TVCLFloatingForm.UpdateMask }
+
+{ TDLUIXVCLFloatingFrame }
+
+constructor TDLUIXVCLFloatingFrame.Create(const parentFrame: IDLUIXFrame);
+begin
+  inherited Create;
+  FActionMap := TCollections.CreateDictionary<TObject, IDLUIXAction>;
+  FParent := parentFrame;
+  FForm := TVCLFloatingForm.CreateNew(Application);
+  FForm.BorderStyle := bsNone;
+  FForm.Position := poScreenCenter;
+  FForm.ClientWidth := CDefaultButtonWidth;
+  FForm.ClientHeight := 0;
+  FForm.AlphaBlend := true;
+  FForm.AlphaBlendValue := 192;
+  FForm.KeyPreview := true;
+  FForm.OnKeyDown := FForm.ExitOnEscape;
+end; { TDLUIXVCLFloatingFrame.Create }
+
+procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
+var
+  button: TButton;
+begin
+  if FForm.ClientHeight = 0 then
+    FForm.ClientHeight := CDefaultButtonHeight
+  else
+    FForm.ClientHeight := FForm.ClientHeight + CDefaultButtonHeight + CDefaultSpacing;
+
+  button := TButton.Create(FForm);
+  button.Parent := FForm;
+  button.Width := CDefaultButtonWidth;
+  button.Height := CDefaultButtonHeight;
+  button.Left := 0;
+  button.Top := FForm.ClientHeight - CDefaultButtonHeight;
+  button.Caption := action.Name + ' >';
+  button.OnClick := ForwardAction;
+
+  FActionMap.Add(button, action);
+end; { TDLUIXVCLFloatingFrame.CreateAction }
+
+procedure TDLUIXVCLFloatingFrame.ForwardAction(Sender: TObject);
+begin
+  if assigned(OnAction) then
+    OnAction(Self, FActionMap[Sender]);
+end; { TDLUIXVCLFloatingFrame.ForwardAction }
+
+function TDLUIXVCLFloatingFrame.GetOnAction: TDLUIXFrameAction;
+begin
+  Result := FOnAction;
+end; { TDLUIXVCLFloatingFrame.GetOnAction }
+
+procedure TDLUIXVCLFloatingFrame.SetOnAction(const value: TDLUIXFrameAction);
+begin
+  FOnAction := value;
+end; { TDLUIXVCLFloatingFrame.SetOnAction }
+
+procedure TDLUIXVCLFloatingFrame.Show;
+begin
+  FForm.UpdateMask;
+  FForm.ShowModal;
+end; { TDLUIXVCLFloatingFrame.Show }
+
+{ TDLUIXVCLFloatingEngine }
+
+procedure TDLUIXVCLFloatingEngine.CompleteFrame(const frame: IDLUIXFrame);
+begin
+  // do nothing
+end; { TDLUIXVCLFloatingEngine.CompleteFrame }
+
+function TDLUIXVCLFloatingEngine.CreateFrame(const parentFrame: IDLUIXFrame): IDLUIXFrame;
+begin
+  Result := TDLUIXVCLFloatingFrame.Create(parentFrame);
+end; { TDLUIXVCLFloatingEngine.CreateFrame }
+
+procedure TDLUIXVCLFloatingEngine.DestroyFrame(var frame: IDLUIXFrame);
+begin
+  frame := nil;
+end; { TDLUIXVCLFloatingEngine.DestroyFrame }
+
+procedure TDLUIXVCLFloatingEngine.ShowFrame(const frame: IDLUIXFrame);
+begin
+  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
+  Application.Title := 'DelphiLens';
+  Application.MainFormOnTaskBar := false;
+  frame.Show;
+end; { TDLUIXVCLFloatingEngine.ShowFrame }
 
 end.

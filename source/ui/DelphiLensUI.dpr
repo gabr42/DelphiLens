@@ -10,7 +10,8 @@ uses
   System.Classes,
   DelphiLensUI.DLLExports,
   DelphiLensUI.UIXAnalyzer.Intf in 'DelphiLensUI.UIXAnalyzer.Intf.pas',
-  DelphiLensUI.UIXAnalyzer.Navigation in 'DelphiLensUI.UIXAnalyzer.Navigation.pas';
+  DelphiLensUI.UIXAnalyzer.Navigation in 'DelphiLensUI.UIXAnalyzer.Navigation.pas',
+  DelphiLensUI.UIXEngine.Actions in 'DelphiLensUI.UIXEngine.Actions.pas';
 
 {$R *.res}
 

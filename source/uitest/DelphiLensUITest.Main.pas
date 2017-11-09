@@ -178,7 +178,7 @@ begin
       ReportUIError('DLUIOpenProject');
       FUIProject := 0;
     end
-    else if DLUISetProjectConfig(FUIProject, nil, PChar(inpSearchPath.Text), PChar(inpDefines.Text)) <> 0 then
+    else if DLUISetProjectConfig(FUIProject, nil, PChar(inpDefines.Text), PChar(inpSearchPath.Text)) <> 0 then
       ReportUIError('DLUISetProjectConfig')
     else if DLUIRescanProject(FUIProject) <> 0 then
       ReportUIError('DLUIRescanProject');

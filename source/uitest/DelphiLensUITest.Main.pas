@@ -48,6 +48,7 @@ type
     procedure CopyUnitNames(const units: TParsedUnits);
     procedure CreateUnitNamesList;
     procedure LoadSettings;
+    procedure NavigateTo(navToFile: string; navToLine, navToColumn: integer);
     procedure ReportUIError(const functionName: string);
     procedure OpenUIProject;
     procedure SaveSettings;
@@ -60,7 +61,7 @@ var
 implementation
 
 uses
-  System.RTTI,
+  System.Types,
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
@@ -97,14 +98,21 @@ begin
 end;
 
 procedure TfrmDLUITestMain.btnShowUIClick(Sender: TObject);
+var
+  navToColumn: integer;
+  navToFile  : PChar;
+  navToLine  : integer;
 begin
   if lbFiles.ItemIndex < 0 then
     Exit;
 
   if DLUIActivate(FUIProject, PChar(lbFiles.Items[lbFiles.ItemIndex]),
-       outSource.CaretPos.Y + 1, outSource.CaretPos.X + 1) <> 0
+       outSource.CaretPos.Y + 1, outSource.CaretPos.X + 1,
+       navToFile, navToLine, navToColumn) <> 0
   then
-    ReportUIError('DLUIActivate');
+    ReportUIError('DLUIActivate')
+  else if assigned(navToFile) then
+    NavigateTo(navToFile, navToLine, navToColumn);
 end;
 
 procedure TfrmDLUITestMain.CloseUIProject;
@@ -168,6 +176,22 @@ begin
   inpDefines.Text := DSiReadRegistry(CSettingsKey, CSettingsConditionalDefines, '');
   FLoading := false;
 end;
+
+procedure TfrmDLUITestMain.NavigateTo(navToFile: string; navToLine, navToColumn: integer);
+var
+  idxFile: integer;
+begin
+  idxFile := lbFiles.Items.IndexOf(navToFile);
+  if idxFile >= 0 then begin
+    if idxFile <> lbFiles.ItemIndex then begin
+      lbFiles.ItemIndex := idxFile;
+      lbFiles.OnClick(lbFiles);
+    end;
+    outSource.CaretPos := Point(navToColumn - 1, navToLine - 1);
+    outSource.Perform(EM_LINESCROLL, 0, navToLine - 1 - outSource.Perform(EM_GETFIRSTVISIBLELINE, 0, 0));
+    ActiveControl := outSource;
+  end;
+end; { TfrmDLUITestMain.NavigateTo }
 
 procedure TfrmDLUITestMain.OpenUIProject;
 begin

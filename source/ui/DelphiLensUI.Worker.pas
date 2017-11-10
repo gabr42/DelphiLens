@@ -14,17 +14,30 @@ type
     constructor Create(const APlatform, AConditionalDefines, ASearchPath: string);
   end; { TDLUIProjectConfig }
 
+  TDLUINavigationInfo = record
+  private
+    FileNameStr: string;
+  public
+    FileName  : PChar;
+    Line      : integer;
+    Column    : integer;
+    constructor Create(const AFileName: string; ALine, AColumn: integer);
+  end; { TDLUINavigationInfo }
+  PDLUINavigationInfo = ^TDLUINavigationInfo;
+
   TDelphiLensUIProject = class
   strict private
-    FScanResult: IDLScanResult;
-    FWorker    : IOmniTaskControl;
+    FNavigationInfo: TDLUINavigationInfo;
+    FScanResult    : IDLScanResult;
+    FWorker        : IOmniTaskControl;
   protected
     procedure ScanComplete(const result: IDLScanResult);
   public
     constructor Create(const projectName: string);
     destructor  Destroy; override;
-    procedure Activate(const fileName: string; line, column: integer);
+    procedure Activate(const fileName: string; line, column: integer; var navigate: boolean);
     procedure FileModified(const fileName: string);
+    function  GetNavigationInfo: PDLUINavigationInfo; inline;
     procedure ProjectModified;
     procedure Rescan;
     procedure SetConfig(const config: TDLUIProjectConfig);
@@ -90,17 +103,36 @@ begin
   inherited;
 end; { TDelphiLensUIProject.Destroy }
 
-procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer);
+procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer;
+  var navigate: boolean);
+var
+  newColumn: integer;
+  newFile  : string;
+  newLine  : integer;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
   //TODO: *** Also worker must not be rescanning while UI is shown as FScanResult refers to worker's data
-  DLUIShowUI(FScanResult, fileName, line, column);
+  newFile := fileName;
+  newLine := line;
+  newColumn := column;
+  DLUIShowUI(FScanResult, newFile, newLine, newColumn);
+  if SameText(newFile, fileName) and (newLine = line) and (newColumn = column) then
+    navigate := false
+  else begin
+    navigate := true;
+    FNavigationInfo := TDLUINavigationInfo.Create(newFile, newLine, newColumn);
+  end;
 end; { TDelphiLensUIProject.Activate }
 
 procedure TDelphiLensUIProject.FileModified(const fileName: string);
 begin
   FWorker.Invoke(@TDelphiLensUIWorker.FileModified, fileName);
 end; { TDelphiLensUIProject.FileModified }
+
+function TDelphiLensUIProject.GetNavigationInfo: PDLUINavigationInfo;
+begin
+  Result := @FNavigationInfo;
+end; { TDelphiLensUIProject.GetNavigationInfo }
 
 procedure TDelphiLensUIProject.ProjectModified;
 begin
@@ -186,5 +218,16 @@ begin
     FDelphiLens.SearchPath := config.SearchPath;
   end;
 end; { TDelphiLensUIWorker.SetConfig }
+
+{ TDLUINavigationInfo }
+
+constructor TDLUINavigationInfo.Create(const AFileName: string; ALine, AColumn: integer);
+begin
+  FileNameStr := AFileName;
+  UniqueString(FileNameStr);
+  FileName := PChar(FileNameStr);
+  Line := ALine;
+  Column := AColumn;
+end; { TDLUINavigationInfo.Create }
 
 end.

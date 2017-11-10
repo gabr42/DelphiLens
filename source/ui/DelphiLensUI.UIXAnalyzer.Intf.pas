@@ -5,7 +5,8 @@ interface
 uses
   System.Generics.Collections,
   Spring.Collections,
-  DelphiLens.Intf;
+  DelphiLens.Intf,
+  DelphiLensUI.UIXEngine.Intf;
 
 type
   TDLAnalysisState = record
@@ -18,7 +19,8 @@ type
   end; { TDLAnalysisState }
 
   IDLUIXAnalyzer = interface ['{CB412130-697D-4486-B2B6-153E5BDF4E4A}']
-    function CanHandle(const state: TDLAnalysisState): boolean;
+    procedure BuildFrame(const frame: IDLUIXFrame);
+    function  CanHandle(const state: TDLAnalysisState): boolean;
   end; { IDLUIXAnalyzer }
 
 implementation

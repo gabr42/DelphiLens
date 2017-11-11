@@ -6,7 +6,7 @@ uses
   DelphiLens.Intf,
   DelphiLensUI.UIXStorage;
 
-procedure DLUIShowUI(const uixStorage: IUIXStorage; const projectInfo: IDLScanResult;
+procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
   var fileName: string; var line, column: integer);
 
 implementation
@@ -17,6 +17,7 @@ uses
   Spring.Collections,
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
+  DelphiLensUI.UIXAnalyzer.History,
   DelphiLensUI.UIXEngine.Intf,
   DelphiLensUI.UIXEngine.Actions,
   DelphiLensUI.UIXEngine.VCLFloating;
@@ -48,7 +49,7 @@ type
 
 { exports }
 
-procedure DLUIShowUI(const uixStorage: IUIXStorage; const projectInfo: IDLScanResult;
+procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
   var fileName: string; var line, column: integer);
 var
   analyzers : TDLAnalyzers;
@@ -57,6 +58,7 @@ var
 begin
   analyzers := TCollections.CreateList<TDLAnalyzerInfo>;
   analyzers.Add(TDLAnalyzerInfo.Create('&Navigation', CreateNavigationAnalyzer));
+  analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer(uixStorage)));
 
   ui := TDLUserInterface.Create(CreateUIXEngine, analyzers);
   try

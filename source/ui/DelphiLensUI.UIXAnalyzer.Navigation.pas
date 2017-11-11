@@ -16,7 +16,7 @@ uses
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
-  TDLUIXAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
+  TDLUIXNavigationAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private
     FDLUnitInfo  : TDLUnitInfo;
     FTreeAnalyzer: IDLTreeAnalyzer;
@@ -24,16 +24,16 @@ type
   public
     procedure BuildFrame(const frame: IDLUIXFrame);
     function  CanHandle(const state: TDLAnalysisState): boolean;
-  end; { TDLUIXAnalyzer }
+  end; { TDLUIXNavigationAnalyzer }
 
 { exports }
 
 function CreateNavigationAnalyzer: IDLUIXAnalyzer;
 begin
-  Result := TDLUIXAnalyzer.Create;
+  Result := TDLUIXNavigationAnalyzer.Create;
 end; { CreateNavigationAnalyzer }
 
-procedure TDLUIXAnalyzer.BuildFrame(const frame: IDLUIXFrame);
+procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame);
 
   procedure AddNavigation(const name: string; const location: TDLCoordinate);
   begin
@@ -41,7 +41,7 @@ procedure TDLUIXAnalyzer.BuildFrame(const frame: IDLUIXFrame);
       location.Line, location.Column));
   end; { AddNavigation }
 
-begin { TDLUIXAnalyzer.BuildFrame }
+begin { TDLUIXNavigationAnalyzer.BuildFrame }
   if FDLUnitInfo.UnitType = utProgram then begin
     AddNavigation('&Uses list', FDLUnitInfo.InterfaceLoc);
   end
@@ -56,9 +56,9 @@ begin { TDLUIXAnalyzer.BuildFrame }
     else if FDLUnitInfo.ImplementationLoc.IsValid then
       AddNavigation('I&mplementation', FDLUnitInfo.ImplementationLoc);
   end;
-end; { TDLUIXAnalyzer.BuildFrame }
+end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
-function TDLUIXAnalyzer.CanHandle(const state: TDLAnalysisState): boolean;
+function TDLUIXNavigationAnalyzer.CanHandle(const state: TDLAnalysisState): boolean;
 begin
   Result := state.ProjectInfo.ParsedUnits.Find(state.FileName, FUnitInfo);
   if not assigned(FTreeAnalyzer) then begin
@@ -78,6 +78,6 @@ begin
     then
       Result := false;
   end;
-end; { TDLUIXAnalyzer.CanHandle }
+end; { TDLUIXNavigationAnalyzer.CanHandle }
 
 end.

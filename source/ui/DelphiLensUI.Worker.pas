@@ -30,7 +30,7 @@ type
   strict private
     FNavigationInfo: TDLUINavigationInfo;
     FScanResult    : IDLScanResult;
-    FUIXStorage    : IUIXStorage;
+    FUIXStorage    : IDLUIXStorage;
     FWorker        : IOmniTaskControl;
   protected
     procedure ScanComplete(const result: IDLScanResult);

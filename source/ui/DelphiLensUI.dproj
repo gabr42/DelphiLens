@@ -92,6 +92,7 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <DCCReference Include="DelphiLensUI.UIXAnalyzer.History.pas"/>
         <RcItem Include="C:\Users\Public\Documents\Embarcadero\Studio\19.0\Styles\CobaltXEMedia.vsf">
             <ContainerId>ResourceItem</ContainerId>
             <ResourceType>VCLSTYLE</ResourceType>

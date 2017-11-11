@@ -3,21 +3,21 @@ unit DelphiLensUI.UIXStorage;
 interface
 
 type
-  IUIXStorage = interface ['{6B71F4E7-C860-4958-A33A-AD01F18D501B}']
-  end; { IUIXStorage }
+  IDLUIXStorage = interface ['{6B71F4E7-C860-4958-A33A-AD01F18D501B}']
 
-function CreateUIXStorage: IUIXStorage;
+  end; { IDLUIXStorage }
+
+function CreateUIXStorage: IDLUIXStorage;
 
 implementation
 
 type
-  TUIXStorage = class(TInterfacedObject, IUIXStorage)
-
+  TUIXStorage = class(TInterfacedObject, IDLUIXStorage)
   end; { TUIXStorage }
 
 { exports }
 
-function CreateUIXStorage: IUIXStorage;
+function CreateUIXStorage: IDLUIXStorage;
 begin
   Result := TUIXStorage.Create;
 end; { CreateUIXStorage }

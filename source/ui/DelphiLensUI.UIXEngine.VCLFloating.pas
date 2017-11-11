@@ -191,7 +191,7 @@ var
   newAlphaBlend: integer;
 begin
   newAlphaBlend := IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive);
-  FEasing := Easing.InOutCubic{Linear}(FForm.AlphaBlendValue, newAlphaBlend, 500, 10,
+  FEasing := Easing.InOutCubic(FForm.AlphaBlendValue, newAlphaBlend, 500, 10,
     procedure (value: integer)
     begin
       if not (csDestroying in FForm.ComponentState) then

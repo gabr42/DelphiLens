@@ -1,10 +1,13 @@
 library DelphiLensUI;
 
+{$R *.dres}
+
 uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensUI.DLLExports;
+  DelphiLensUI.DLLExports,
+  DelphiLensUI.UIXAnalyzer.History in 'DelphiLensUI.UIXAnalyzer.History.pas';
 
 {$R *.res}
 

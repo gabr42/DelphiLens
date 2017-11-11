@@ -1,6 +1,7 @@
 unit GpEasing;
 
 // Easing functions: http://www.timotheegroleau.com/Flash/experiments/easing_function_generator.htm
+// Robert Penner, Tweening: http://robertpenner.com/easing/penner_chapter7_tweening.pdf
 
 interface
 

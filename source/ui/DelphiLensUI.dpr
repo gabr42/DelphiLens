@@ -1,17 +1,10 @@
 library DelphiLensUI;
 
-
-
-{$R *.dres}
-
 uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensUI.DLLExports,
-  DelphiLensUI.UIXAnalyzer.Intf in 'DelphiLensUI.UIXAnalyzer.Intf.pas',
-  DelphiLensUI.UIXAnalyzer.Navigation in 'DelphiLensUI.UIXAnalyzer.Navigation.pas',
-  DelphiLensUI.UIXEngine.Actions in 'DelphiLensUI.UIXEngine.Actions.pas';
+  DelphiLensUI.DLLExports;
 
 {$R *.res}
 

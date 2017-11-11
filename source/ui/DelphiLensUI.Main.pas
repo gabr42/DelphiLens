@@ -3,10 +3,11 @@ unit DelphiLensUI.Main;
 interface
 
 uses
-  DelphiLens.Intf;
+  DelphiLens.Intf,
+  DelphiLensUI.UIXStorage;
 
-procedure DLUIShowUI(const projectInfo: IDLScanResult; var fileName: string;
-  var line, column: integer);
+procedure DLUIShowUI(const uixStorage: IUIXStorage; const projectInfo: IDLScanResult;
+  var fileName: string; var line, column: integer);
 
 implementation
 
@@ -47,8 +48,8 @@ type
 
 { exports }
 
-procedure DLUIShowUI(const projectInfo: IDLScanResult; var fileName: string;
-  var line, column: integer);
+procedure DLUIShowUI(const uixStorage: IUIXStorage; const projectInfo: IDLScanResult;
+  var fileName: string; var line, column: integer);
 var
   analyzers : TDLAnalyzers;
   navigation: IDLUIXNavigationAction;

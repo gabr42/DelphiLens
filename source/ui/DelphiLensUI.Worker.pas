@@ -4,7 +4,8 @@ interface
 
 uses
   OtlComm, OtlTaskControl,
-  DelphiLens.Intf;
+  DelphiLens.Intf,
+  DelphiLensUI.UIXStorage;
 
 type
   TDLUIProjectConfig = record
@@ -29,6 +30,7 @@ type
   strict private
     FNavigationInfo: TDLUINavigationInfo;
     FScanResult    : IDLScanResult;
+    FUIXStorage    : IUIXStorage;
     FWorker        : IOmniTaskControl;
   protected
     procedure ScanComplete(const result: IDLScanResult);
@@ -92,6 +94,7 @@ begin
                .Unobserved
                .Run;
   FWorker.Invoke(@TDelphiLensUIWorker.Open, projectName);
+  FUIXStorage := CreateUIXStorage;
 end; { TDelphiLensUIProject.Create }
 
 destructor TDelphiLensUIProject.Destroy;
@@ -115,7 +118,7 @@ begin
   newFile := fileName;
   newLine := line;
   newColumn := column;
-  DLUIShowUI(FScanResult, newFile, newLine, newColumn);
+  DLUIShowUI(FUIXStorage, FScanResult, newFile, newLine, newColumn);
   if SameText(newFile, fileName) and (newLine = line) and (newColumn = column) then
     navigate := false
   else begin

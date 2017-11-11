@@ -43,6 +43,7 @@ type
     [Managed(false)] FActionToGUIMap: IDictionary<IDLUIXAction, TObject>;
     [Managed(false)] FForm          : TVCLFloatingForm;
   var
+    FEasing  : IEasing;
     FOnAction: TDLUIXFrameAction;
     FParent  : IDLUIXFrame;
   strict protected
@@ -186,11 +187,15 @@ begin
 end; { TDLUIXVCLFloatingFrame.GetOnAction }
 
 procedure TDLUIXVCLFloatingFrame.MarkActive(isActive: boolean);
+var
+  newAlphaBlend: integer;
 begin
-  Easing.Linear(FForm.AlphaBlendValue, IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive), 500, 10,
+  newAlphaBlend := IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive);
+  FEasing := Easing.InOutCubic{Linear}(FForm.AlphaBlendValue, newAlphaBlend, 500, 10,
     procedure (value: integer)
     begin
-      FForm.AlphaBlendValue := value;
+      if not (csDestroying in FForm.ComponentState) then
+        FForm.AlphaBlendValue := value;
     end);
 end; { TDLUIXVCLFloatingFrame.MarkActive }
 

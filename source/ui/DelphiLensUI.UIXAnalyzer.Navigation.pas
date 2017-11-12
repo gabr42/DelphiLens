@@ -37,8 +37,7 @@ procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame);
 
   procedure AddNavigation(const name: string; const location: TDLCoordinate);
   begin
-    frame.CreateAction(CreateNavigationAction(name, FUnitInfo.Name,
-      location.Line, location.Column));
+    frame.CreateAction(CreateNavigationAction(name, TDLUIXLocation.Create(FDLUnitInfo.Name, location)));
   end; { AddNavigation }
 
 begin { TDLUIXNavigationAnalyzer.BuildFrame }

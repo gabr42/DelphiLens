@@ -5,7 +5,8 @@ interface
 uses
   OtlComm, OtlTaskControl,
   DelphiLens.Intf,
-  DelphiLensUI.UIXStorage;
+  DelphiLensUI.UIXStorage,
+  DelphiLensUI.UIXEngine.Intf;
 
 type
   TDLUIProjectConfig = record
@@ -22,7 +23,7 @@ type
     FileName  : PChar;
     Line      : integer;
     Column    : integer;
-    constructor Create(const AFileName: string; ALine, AColumn: integer);
+    constructor Create(const location: TDLUIXLocation);
   end; { TDLUINavigationInfo }
   PDLUINavigationInfo = ^TDLUINavigationInfo;
 
@@ -49,6 +50,7 @@ implementation
 
 uses
   System.SysUtils,
+  Spring,
   OtlCommon,
   DelphiLens,
   DelphiLensUI.Main;
@@ -109,22 +111,14 @@ end; { TDelphiLensUIProject.Destroy }
 procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer;
   var navigate: boolean);
 var
-  newColumn: integer;
-  newFile  : string;
-  newLine  : integer;
+  navigateTo: Nullable<TDLUIXLocation>;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
   //TODO: *** Also worker must not be rescanning while UI is shown as FScanResult refers to worker's data
-  newFile := fileName;
-  newLine := line;
-  newColumn := column;
-  DLUIShowUI(FUIXStorage, FScanResult, newFile, newLine, newColumn);
-  if SameText(newFile, fileName) and (newLine = line) and (newColumn = column) then
-    navigate := false
-  else begin
-    navigate := true;
-    FNavigationInfo := TDLUINavigationInfo.Create(newFile, newLine, newColumn);
-  end;
+  DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, line, column), navigateTo);
+  navigate := navigateTo.HasValue;
+  if navigate then
+    FNavigationInfo := TDLUINavigationInfo.Create(navigateTo);
 end; { TDelphiLensUIProject.Activate }
 
 procedure TDelphiLensUIProject.FileModified(const fileName: string);
@@ -224,13 +218,13 @@ end; { TDelphiLensUIWorker.SetConfig }
 
 { TDLUINavigationInfo }
 
-constructor TDLUINavigationInfo.Create(const AFileName: string; ALine, AColumn: integer);
+constructor TDLUINavigationInfo.Create(const location: TDLUIXLocation);
 begin
-  FileNameStr := AFileName;
+  FileNameStr := location.UnitName;
   UniqueString(FileNameStr);
   FileName := PChar(FileNameStr);
-  Line := ALine;
-  Column := AColumn;
+  Line := location.Line;
+  Column := location.Column;
 end; { TDLUINavigationInfo.Create }
 
 end.

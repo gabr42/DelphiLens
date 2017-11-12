@@ -15,7 +15,8 @@ uses
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.Styles, Vcl.Themes,
   Spring, Spring.Collections,
   GpStuff, GpEasing,
-  DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXEngine.Actions;
+  DelphiLensUI.UIXAnalyzer.Intf,
+  DelphiLensUI.UIXEngine.Actions;
 
 type
   TVCLFloatingForm = class(TForm)
@@ -39,14 +40,15 @@ type
     CButtonSpacing       =  15;
     CFrameSpacing        =  15;
   var
-    [Managed(false)] FGUIToActionMap: IDictionary<TObject, IDLUIXAction>;
-    [Managed(false)] FActionToGUIMap: IDictionary<IDLUIXAction, TObject>;
-    [Managed(false)] FForm          : TVCLFloatingForm;
+    [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
+    [Managed(false)] FForm     : TVCLFloatingForm;
   var
     FEasing  : IEasing;
     FOnAction: TDLUIXFrameAction;
     FParent  : IDLUIXFrame;
   strict protected
+    procedure BuildButton(const action: IDLUIXAction);
+    procedure BuildList(const listNavigation: IDLUIXListNavigationAction);
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
     procedure SetOnAction(const value: TDLUIXFrameAction);
@@ -116,8 +118,7 @@ end; { TVCLFloatingForm.UpdateMask }
 constructor TDLUIXVCLFloatingFrame.Create(const parentFrame: IDLUIXFrame);
 begin
   inherited Create;
-  FGUIToActionMap := TCollections.CreateDictionary<TObject, IDLUIXAction>;
-  FActionToGUIMAP := TCollections.CreateDictionary<IDLUIXAction, TObject>;
+  FActionMap := TCollections.CreateBidiDictionary<TObject, IDLUIXAction>;
   FParent := parentFrame;
   FForm := TVCLFloatingForm.CreateNew(Application);
   FForm.BorderStyle := bsNone;
@@ -129,21 +130,11 @@ begin
   FForm.OnKeyDown := FForm.ExitOnEscape;
 end; { TDLUIXVCLFloatingFrame.Create }
 
-procedure TDLUIXVCLFloatingFrame.Close;
-begin
-  FForm.Close;
-end; { TDLUIXVCLFloatingFrame.Close }
-
-procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
+procedure TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction);
 var
   button      : TButton;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
 begin
-  if FForm.ClientHeight = 0 then
-    FForm.ClientHeight := CButtonHeight
-  else
-    FForm.ClientHeight := FForm.ClientHeight + CButtonHeight + CButtonSpacing;
-
   button := TButton.Create(FForm);
   button.Parent := FForm;
   button.Width := CButtonWidth;
@@ -156,23 +147,47 @@ begin
     button.Caption := action.Name;
   button.OnClick := ForwardAction;
 
-  FGUIToActionMap.Add(button, action);
-  FActionToGUIMap.Add(action, button);
+  FActionMap.Add(button, action);
+end; { TDLUIXVCLFloatingFrame.BuildButton }
+
+procedure TDLUIXVCLFloatingFrame.BuildList(const listNavigation:
+  IDLUIXListNavigationAction);
+begin
+  //TODO: *** START HERE
+end; { TDLUIXVCLFloatingFrame.BuildList }
+
+procedure TDLUIXVCLFloatingFrame.Close;
+begin
+  FForm.Close;
+end; { TDLUIXVCLFloatingFrame.Close }
+
+procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
+var
+  historyList: IDLUIXListNavigationAction;
+begin
+  if FForm.ClientHeight = 0 then
+    FForm.ClientHeight := CButtonHeight
+  else
+    FForm.ClientHeight := FForm.ClientHeight + CButtonHeight + CButtonSpacing;
+
+  if Supports(action, IDLUIXListNavigationAction, historyList) then
+    BuildList(historyList)
+  else
+    BuildButton(action);
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
 procedure TDLUIXVCLFloatingFrame.ForwardAction(Sender: TObject);
 begin
   if assigned(OnAction) then
-    OnAction(Self, FGUIToActionMap[Sender]);
+    OnAction(Self, FActionMap.Value[Sender]);
 end; { TDLUIXVCLFloatingFrame.ForwardAction }
 
 function TDLUIXVCLFloatingFrame.GetBounds_Screen(const action: IDLUIXAction): TRect;
 var
   control: TObject;
 begin
-  if not (FActionToGUIMap.TryGetValue(action, control)
-          and (control is TControl))
-  then
+  control := FActionMap.Key[action];
+  if not (control is TControl) then
     Result := TRect.Empty
   else begin
     Result := TControl(control).BoundsRect;

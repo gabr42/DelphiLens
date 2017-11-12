@@ -2,7 +2,25 @@ unit DelphiLensUI.UIXEngine.Intf;
 
 interface
 
+uses
+  Spring, Spring.Collections,
+  DelphiLens.UnitInfo;
+
 type
+  TDLUIXLocation = record
+    UnitName: string;
+    Line    : integer;
+    Column  : integer;
+    constructor Create(const AUnitName: string; ALine, AColumn: integer); overload;
+    constructor Create(const ALocation: TDLUIXLocation); overload;
+    constructor Create(const AUnitName: string; const ADLCoordinate: TDLCoordinate); overload;
+  end; { TDLUIXLocation }
+
+  IDLUIXLocationList = IList<TDLUIXLocation>;
+
+  TDLUIXNamedLocation = Tuple<string, TDLUIXLocation>;
+  IDLUIXNamedLocationList = IList<TDLUIXNamedLocation>;
+
   IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
     function GetName: string;
   //
@@ -30,5 +48,25 @@ type
   end; { IDLUIXEngine }
 
 implementation
+
+constructor TDLUIXLocation.Create(const AUnitName: string; ALine, AColumn: integer);
+begin
+  UnitName := AUnitName;
+  Line := ALine;
+  Column := AColumn;
+end; { TDLUIXLocation.Create }
+
+constructor TDLUIXLocation.Create(const ALocation: TDLUIXLocation);
+begin
+  Self := ALocation;
+end; { TDLUIXLocation.Create }
+
+constructor TDLUIXLocation.Create(const AUnitName: string;
+  const ADLCoordinate: TDLCoordinate);
+begin
+  UnitName := AUnitName;
+  Line := ADLCoordinate.Line;
+  Column := ADLCoordinate.Column;
+end; { TDLUIXLocation.Create }
 
 end.

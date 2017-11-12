@@ -3,11 +3,13 @@ unit DelphiLensUI.Main;
 interface
 
 uses
+  Spring,
   DelphiLens.Intf,
-  DelphiLensUI.UIXStorage;
+  DelphiLensUI.UIXStorage,
+  DelphiLensUI.UIXEngine.Intf;
 
 procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
-  var fileName: string; var line, column: integer);
+  const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
 
 implementation
 
@@ -18,7 +20,6 @@ uses
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXAnalyzer.History,
-  DelphiLensUI.UIXEngine.Intf,
   DelphiLensUI.UIXEngine.Actions,
   DelphiLensUI.UIXEngine.VCLFloating;
 
@@ -50,25 +51,28 @@ type
 { exports }
 
 procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
-  var fileName: string; var line, column: integer);
+  const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
 var
   analyzers : TDLAnalyzers;
   navigation: IDLUIXNavigationAction;
   ui        : TDLUserInterface;
 begin
+  navigateTo := nil;
+
   analyzers := TCollections.CreateList<TDLAnalyzerInfo>;
   analyzers.Add(TDLAnalyzerInfo.Create('&Navigation', CreateNavigationAnalyzer));
   analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer(uixStorage)));
 
   ui := TDLUserInterface.Create(CreateUIXEngine, analyzers);
   try
-    ui.Initialize(projectInfo, fileName, line, column);
+    ui.Initialize(projectInfo, currentLocation.UnitName, currentLocation.line, currentLocation.column);
     ui.ShowMain;
     if assigned(ui.ExecuteAction) then begin
       if Supports(ui.ExecuteAction, IDLUIXNavigationAction, navigation) then begin
-        fileName := navigation.FileName;
-        line := navigation.Line;
-        column := navigation.Column;
+        navigateTo := TDLUIXLocation.Create(navigation.Location.UnitName,
+          navigation.Location.Line, navigation.Location.Column);
+        if navigation.AddToHistory then
+          uixStorage.History.Add(navigateTo);
       end;
     end;
   finally FreeAndNil(ui); end;

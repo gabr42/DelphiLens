@@ -25,7 +25,7 @@ uses
   ToolsAPI, DCCStrs,
   UtilityFunctions,
   DSiWin32,
-  DelphiLens.Intf, DelphiLens, DelphiLens.OTAUtils,
+  DelphiLens.Intf, DelphiLens, DelphiLens.OTAUtils, DelphiLensUI.Import,
   OtlCommon, OtlComm, OtlTaskControl;
 
 const
@@ -79,6 +79,7 @@ procedure TDelphiLensProxy.Activate;
 begin
   try
     Log('Activate');
+    !
   except
     on E: Exception do
       Log('TDelphiLensProxy.Activate', E);

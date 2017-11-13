@@ -11,11 +11,11 @@ implementation
 
 uses
   Winapi.Windows,
-  System.Types, System.SysUtils, System.Classes, System.Math,
+  System.Types, System.RTTI, System.SysUtils, System.Classes, System.Math,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.Styles, Vcl.Themes,
-  Spring, Spring.Collections,
+  Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing,
-  DelphiLensUI.UIXAnalyzer.Intf,
+  DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
   DelphiLensUI.UIXEngine.Actions;
 
 type
@@ -136,6 +136,7 @@ end; { TDLUIXVCLFloatingFrame.Create }
 function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): integer;
 var
   button      : TButton;
+  isBack      : boolean;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
 begin
   button := TButton.Create(FForm);
@@ -144,8 +145,14 @@ begin
   button.Height := CButtonHeight;
   button.Left := 0;
   button.Top := FForm.ClientHeight + IFF(FForm.ClientHeight = 0, 0, CButtonSpacing);
-  if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
-    button.Caption := action.Name + ' >'
+
+  if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
+    isBack := TType.GetType((openAnalyzer.Analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
+    if isBack then
+      button.Caption := '< ' + action.Name
+    else
+      button.Caption := action.Name + ' >';
+  end
   else
     button.Caption := action.Name;
   button.OnClick := ForwardAction;
@@ -251,14 +258,24 @@ end; { TDLUIXVCLFloatingFrame.SetOnAction }
 
 procedure TDLUIXVCLFloatingFrame.Show(const parentAction: IDLUIXAction);
 var
-  rect: TRect;
+  analyzerAction: IDLUIXOpenAnalyzerAction;
+  isBack        : boolean;
+  rect          : TRect;
 begin
   if not assigned(FParent) then
     FForm.Position := poScreenCenter
   else begin
     FForm.Position := poDesigned;
     rect := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(parentAction);
-    FForm.Left := rect.Right + CFrameSpacing;
+
+    isBack := false;
+    if Supports(parentAction, IDLUIXOpenAnalyzerAction, analyzerAction) then
+      isBack := TType.GetType((analyzerAction.Analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
+
+    if isBack then
+      FForm.Left := rect.Left - CFrameSpacing - FForm.Width
+    else
+      FForm.Left := rect.Right + CFrameSpacing;
     FForm.Top := rect.Top + (rect.Height - FForm.Height) div 2;
   end;
   FForm.UpdateMask;

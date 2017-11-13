@@ -4,7 +4,7 @@ interface
 
 uses
   DelphiLensUI.UIXStorage,
-  DelphiLensUI.UIXAnalyzer.Intf;
+  DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes;
 
 function CreateHistoryAnalyzer(const uixStorage: IDLUIXStorage): IDLUIXAnalyzer;
 
@@ -16,6 +16,7 @@ uses
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
+  [TBackNavigation]
   TDLUIXHistoryAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private const
     CMaxHistoryEntries = 10;
@@ -53,7 +54,6 @@ var
 begin
   Result := TCollections.CreateList<IDLUIXNavigationAction>;
 
-  hot := 1;
   for loc in FUIXStorage.History.Reversed.Take(CMaxHistoryEntries) do begin
     //TODO: location name should include method name
     Result.Add(CreateNavigationAction(MakeLocationName(loc), loc, true) as IDLUIXNavigationAction);

@@ -11,7 +11,7 @@ implementation
 
 uses
   Winapi.Windows,
-  System.Types, System.SysUtils, System.Classes,
+  System.Types, System.SysUtils, System.Classes, System.Math,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.Styles, Vcl.Themes,
   Spring, Spring.Collections,
   GpStuff, GpEasing,
@@ -35,10 +35,13 @@ type
   strict private const
     CAlphaBlendActive    = 192;
     CAlphaBlendInactive  =  64;
-    CButtonWidth         = 201;
     CButtonHeight        =  81;
     CButtonSpacing       =  15;
+    CButtonWidth         = 201;
     CFrameSpacing        =  15;
+    CListButtonHeight    =  21;
+    CListButtonSpacing   =   3;
+    CListButtonWidth     = 233;
   var
     [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
     [Managed(false)] FForm     : TVCLFloatingForm;
@@ -47,8 +50,8 @@ type
     FOnAction: TDLUIXFrameAction;
     FParent  : IDLUIXFrame;
   strict protected
-    procedure BuildButton(const action: IDLUIXAction);
-    procedure BuildList(const listNavigation: IDLUIXListNavigationAction);
+    function  BuildButton(const action: IDLUIXAction): integer;
+    function  BuildList(const listNavigation: IDLUIXListNavigationAction): integer;
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
     procedure SetOnAction(const value: TDLUIXFrameAction);
@@ -130,7 +133,7 @@ begin
   FForm.OnKeyDown := FForm.ExitOnEscape;
 end; { TDLUIXVCLFloatingFrame.Create }
 
-procedure TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction);
+function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): integer;
 var
   button      : TButton;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
@@ -140,7 +143,7 @@ begin
   button.Width := CButtonWidth;
   button.Height := CButtonHeight;
   button.Left := 0;
-  button.Top := FForm.ClientHeight - CButtonHeight;
+  button.Top := FForm.ClientHeight + IFF(FForm.ClientHeight = 0, 0, CButtonSpacing);
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
     button.Caption := action.Name + ' >'
   else
@@ -148,12 +151,44 @@ begin
   button.OnClick := ForwardAction;
 
   FActionMap.Add(button, action);
+
+  Result := button.BoundsRect.Bottom;
 end; { TDLUIXVCLFloatingFrame.BuildButton }
 
-procedure TDLUIXVCLFloatingFrame.BuildList(const listNavigation:
-  IDLUIXListNavigationAction);
+function TDLUIXVCLFloatingFrame.BuildList(const listNavigation:
+  IDLUIXListNavigationAction): integer;
+var
+  button    : TButton;
+  hotkey    : string;
+  navigation: IDLUIXNavigationAction;
+  nextTop   : integer;
 begin
-  //TODO: *** START HERE
+  nextTop := 0;
+  Result := 0;
+  button := nil;
+
+  hotkey := '1';
+  for navigation in listNavigation.Locations do begin
+    button := TButton.Create(FForm);
+    button.Parent := FForm;
+    button.Width := CListButtonWidth;
+    button.Height := CListButtonHeight;
+    button.Left := 0;
+    button.Top := nextTop;
+    button.Caption := IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
+    button.OnClick := ForwardAction;
+
+    FActionMap.Add(button, navigation);
+
+    nextTop := button.Top + button.Height + CListButtonSpacing;
+    if hotkey = '9' then
+      hotkey := ''
+    else if hotkey <> '' then
+      hotkey := Chr(Ord(hotkey[1]) + 1);
+  end; //for namedLocation
+
+  if assigned(button) then
+    Result := button.BoundsRect.Bottom;
 end; { TDLUIXVCLFloatingFrame.BuildList }
 
 procedure TDLUIXVCLFloatingFrame.Close;
@@ -165,15 +200,10 @@ procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
 var
   historyList: IDLUIXListNavigationAction;
 begin
-  if FForm.ClientHeight = 0 then
-    FForm.ClientHeight := CButtonHeight
-  else
-    FForm.ClientHeight := FForm.ClientHeight + CButtonHeight + CButtonSpacing;
-
   if Supports(action, IDLUIXListNavigationAction, historyList) then
-    BuildList(historyList)
+    FForm.ClientHeight := Max(FForm.ClientHeight, BuildList(historyList))
   else
-    BuildButton(action);
+    FForm.ClientHeight := Max(FForm.ClientHeight, BuildButton(action));
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
 procedure TDLUIXVCLFloatingFrame.ForwardAction(Sender: TObject);

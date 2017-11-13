@@ -18,9 +18,6 @@ type
 
   IDLUIXLocationList = IList<TDLUIXLocation>;
 
-  TDLUIXNamedLocation = Tuple<string, TDLUIXLocation>;
-  IDLUIXNamedLocationList = IList<TDLUIXNamedLocation>;
-
   IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
     function GetName: string;
   //

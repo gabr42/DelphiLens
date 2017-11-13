@@ -51,12 +51,12 @@ var
   hot: integer;
   loc: TDLUIXLocation;
 begin
-  Result := TCollections.CreateList<TDLUIXNamedLocation>;
+  Result := TCollections.CreateList<IDLUIXNavigationAction>;
 
   hot := 1;
   for loc in FUIXStorage.History.Reversed.Take(CMaxHistoryEntries) do begin
     //TODO: location name should include method name
-    Result.Add(TDLUIXNamedLocation.Create(MakeLocationName(loc), loc));
+    Result.Add(CreateNavigationAction(MakeLocationName(loc), loc, true) as IDLUIXNavigationAction);
   end;
 end; { TDLUIXHistoryAnalyzer.BuildLocationList }
 

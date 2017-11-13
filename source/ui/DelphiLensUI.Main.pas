@@ -53,9 +53,9 @@ type
 procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
   const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
 var
-  analyzers : TDLAnalyzers;
-  navigation: IDLUIXNavigationAction;
-  ui        : TDLUserInterface;
+  analyzers     : TDLAnalyzers;
+  navigation    : IDLUIXNavigationAction;
+  ui            : TDLUserInterface;
 begin
   navigateTo := nil;
 
@@ -71,8 +71,10 @@ begin
       if Supports(ui.ExecuteAction, IDLUIXNavigationAction, navigation) then begin
         navigateTo := TDLUIXLocation.Create(navigation.Location.UnitName,
           navigation.Location.Line, navigation.Location.Column);
-        if navigation.AddToHistory then
-          uixStorage.History.Add(navigateTo);
+        if navigation.IsBackNavigation then
+          uixStorage.History.Remove(navigateTo)
+        else
+          uixStorage.History.Add(TDLUIXLocation.Create(currentLocation));
       end;
     end;
   finally FreeAndNil(ui); end;
@@ -115,8 +117,6 @@ begin
         if analyzer.Value.CanHandle(FAnalysisState) then
           frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
     end);
-
-  //TODO: *** Must make sure all easings are done before exiting
 end; { TDLUserInterface.ShowMain }
 
 procedure TDLUserInterface.ShowPanel(const parentFrame: IDLUIXFrame;

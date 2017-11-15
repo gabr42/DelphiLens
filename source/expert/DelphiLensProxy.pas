@@ -25,28 +25,30 @@ uses
   ToolsAPI, DCCStrs,
   UtilityFunctions,
   DSiWin32,
-  DelphiLens.Intf, DelphiLens, DelphiLens.OTAUtils, DelphiLensUI.Import,
-  OtlCommon, OtlComm, OtlTaskControl;
+  DelphiLens.OTAUtils,
+  DelphiLensUI.Import, DelphiLensUI.Error;
 
 const
   MSG_FEEDBACK = WM_USER;
 
 type
   TDelphiLensProxy = class(TInterfacedObject, IDelphiLensProxy)
-  private
-    FWorker: IOmniTaskControl;
+  strict private
     FCurrentProject: record
-      Name: string;
+      Name          : string;
       ActivePlatform: string;
-      Conditionals: string;
-      SearchPath: string;
-      LibPath: string;
+      Conditionals  : string;
+      SearchPath    : string;
+      LibPath       : string;
     end;
+    FDLUIHasProject: boolean;
+    FDLUIProjectID : integer;
+  strict protected
+    function  CheckAPI(const apiName: string; apiResult: integer): boolean;
+    procedure CloseProject;
   public
-    constructor Create;
     destructor  Destroy; override;
     procedure Activate;
-    procedure EngineFeedback(const task: IOmniTaskControl; const msg: TOmniMessage);
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
     procedure ProjectClosed;
@@ -55,63 +57,55 @@ type
     procedure SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
   end; { TDelphiLensProxy }
 
-  TDelphiLensEngine = class(TOmniWorker)
-  strict private const
-    CTimerRescan         = 1;
-    CTimerRescanDelay_ms = 3000;
-  var
-    FDelphiLens: IDelphiLens;
-    FScanResult: IDLScanResult;
-  strict protected
-    procedure ScheduleRescan;
-  public
-    procedure OpenProject(const projectInfo: TOmniValue);
-    procedure CloseProject;
-    procedure ProjectModified;
-    procedure FileModified(const fileModified: TOmniValue);
-    procedure Rescan;
-    procedure SetProjectConfig(const configInfo: TOmniValue);
-  end; { TDelphiLensEngine }
-
 { TDelphiLensProxy }
 
 procedure TDelphiLensProxy.Activate;
 begin
   try
     Log('Activate');
-    !
+    if IsDLUIAvailable then
+//      CheckAPI('DLUIActivate', DLUIActivate(
   except
     on E: Exception do
       Log('TDelphiLensProxy.Activate', E);
   end;
 end; { TDelphiLensProxy.Activate }
 
-constructor TDelphiLensProxy.Create;
-begin
-  inherited Create;
-  FWorker := CreateTask(TDelphiLensEngine.Create(), 'DelphiLens engine')
-               .OnMessage(EngineFeedback)
-               .Run;
-end; { TDelphiLensProxy.Create }
-
 destructor TDelphiLensProxy.Destroy;
 begin
-  if assigned(FWorker) then begin
-    FWorker.Terminate(5000);
-    FWorker := nil;
-  end;
+  CloseProject;
   inherited;
 end; { TDelphiLensProxy.Destroy }
 
-procedure TDelphiLensProxy.EngineFeedback(const task: IOmniTaskControl; const msg: TOmniMessage);
+function TDelphiLensProxy.CheckAPI(const apiName: string; apiResult: integer): boolean;
+var
+  error   : integer;
+  errorMsg: PChar;
 begin
-  try
-
-  except
-    on E: Exception do
-      Log('TDelphiLensProxy.EngineFeedback', E);
+  Result := (apiResult = DelphiLensUI.Error.NO_ERROR);
+  if not Result then begin
+    error := DLUIGetLastError(FDLUIProjectID, errorMsg);
+    Log('%s failed with error [%d] %s', [apiName, error, string(errorMsg)]);
   end;
-end; { TDelphiLensProxy.EngineFeedback }
+end; { TDelphiLensProxy.CheckAPI }
+
+procedure TDelphiLensProxy.CloseProject;
+begin
+  if FCurrentProject.Name = '' then
+    Exit;
+
+  FCurrentProject.Name := '';
+  FCurrentProject.ActivePlatform := '';
+  FCurrentProject.Conditionals := '';
+  FCurrentProject.SearchPath := '';
+  FCurrentProject.LibPath := '';
+
+  if not FDLUIHasProject then
+    Exit;
+
+  CheckAPI('DLUICloseProject', DLUICloseProject(FDLUIProjectID));
+  FDLUIHasProject := false;
+end; { TDelphiLensProxy.CloseProject }
 
 procedure TDelphiLensProxy.FileActivated(const fileName: string);
 begin
@@ -129,8 +123,8 @@ end; { TDelphiLensProxy.FileActivated }
 procedure TDelphiLensProxy.FileModified(const fileName: string);
 begin
   try
-    if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.FileModified, fileName);
+    if FDLUIHasProject then
+      CheckAPI('DLUIFileModified', DLUIFileModified(FDLUIProjectID, PChar(fileName)));
   except
     on E: Exception do
       Log('TDelphiLensProxy.FileModified', E);
@@ -140,16 +134,7 @@ end; { TDelphiLensProxy.FileModified }
 procedure TDelphiLensProxy.ProjectClosed;
 begin
   try
-    if FCurrentProject.Name = '' then
-      Exit;
-
-    if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.CloseProject);
-    FCurrentProject.Name := '';
-    FCurrentProject.ActivePlatform := '';
-    FCurrentProject.Conditionals := '';
-    FCurrentProject.SearchPath := '';
-    FCurrentProject.LibPath := '';
+    CloseProject;
   except
     on E: Exception do
       Log('TDelphiLensProxy.ProjectClosed', E);
@@ -159,8 +144,8 @@ end; { TDelphiLensProxy.ProjectClosed }
 procedure TDelphiLensProxy.ProjectModified;
 begin
   try
-    if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.ProjectModified);
+    if FDLUIHasProject then
+      CheckAPI('DLUIProjectModified', DLUIProjectModified(FDLUIProjectID));
   except
     on E: Exception do
       Log('TDelphiLensProxy.ProjectModified', E);
@@ -178,8 +163,12 @@ begin
     then
       Exit;
 
-    if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.OpenProject, [projName, sPlatform, searchPath, libPath]);
+    CloseProject;
+
+    FDLUIHasProject := CheckAPI('DLUIOpenProject', DLUIOpenProject(PChar(projName), FDLUIProjectID));
+    if not FDLUIHasProject then
+      Exit;
+
     FCurrentProject.Name := projName;
     FCurrentProject.ActivePlatform := sPlatform;
     FCurrentProject.Conditionals := conditionals;
@@ -192,13 +181,14 @@ begin
 end; { TDelphiLensProxy.ProjectOpened }
 
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
+var
+  path: string;
 begin
   try
-    if FCurrentProject.Name = '' then
-      Exit;
-
-    if assigned(FWorker) then
-      FWorker.Invoke(@TDelphiLensEngine.SetProjectConfig, [sPlatform, conditionals, searchPath, libPath]);
+    if FDLUIHasProject then begin
+      path := ''.Join(';', [searchPath, libPath]);
+      CheckAPI('DLUISetProjectConfig', DLUISetProjectConfig(FDLUIProjectID, PChar(sPlatform), PChar(conditionals), PChar(path)));
+    end;
   except
     on E: Exception do
       Log('TDelphiLensProxy.SetProjectConfig', E);
@@ -206,52 +196,6 @@ begin
 end; { TDelphiLensProxy.SetProjectConfig }
 
 { TDelphiLensEngine }
-
-procedure TDelphiLensEngine.CloseProject;
-begin
-  FDelphiLens := nil;
-end; { TDelphiLensEngine.CloseProject }
-
-procedure TDelphiLensEngine.FileModified(const fileModified: TOmniValue);
-begin
-  ScheduleRescan;
-end; { TDelphiLensEngine.FileModified }
-
-procedure TDelphiLensEngine.OpenProject(const projectInfo: TOmniValue);
-begin
-  FDelphiLens := CreateDelphiLens(projectInfo[0]);
-  SetProjectConfig(TOmniValue.Create([projectInfo[1].AsString, projectInfo[2].AsString, projectInfo[3].AsString]));
-end; { TDelphiLensEngine.OpenProject }
-
-procedure TDelphiLensEngine.ProjectModified;
-begin
-  ScheduleRescan;
-end; { TDelphiLensEngine.ProjectModified }
-
-procedure TDelphiLensEngine.Rescan;
-begin
-  if not assigned(FDelphiLens) then
-    Exit;
-
-  Task.ClearTimer(CTimerRescan);
-  FScanResult := FDelphiLens.Rescan;
-end; { TDelphiLensEngine.Rescan }
-
-procedure TDelphiLensEngine.ScheduleRescan;
-begin
-  if assigned(FDelphiLens) then
-    Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensEngine.Rescan);
-end; { TDelphiLensEngine.ScheduleRescan }
-
-procedure TDelphiLensEngine.SetProjectConfig(const configInfo: TOmniValue);
-begin
-  if assigned(FDelphiLens) then begin
-    { TODO : Implement: SetProjectConfig }
-//    FDelphiLens.Platform := configInfo[0];
-    FDelphiLens.ConditionalDefines := configInfo[1];
-    FDelphiLens.SearchPath := configInfo[2].AsString + ';' + configInfo[3].AsString;
-  end;
-end; { TDelphiLensEngine.SetProjectConfig }
 
 initialization
   DLProxy := TDelphiLensProxy.Create;

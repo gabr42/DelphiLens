@@ -58,21 +58,26 @@ var
   libPath: string;
   condDefs: string;
 begin
-  searchPath := GetSearchPath(FProject, True);
-  sPlatform := GetActivePlatform(FProject);
-  libPath := GetLibraryPath(sPlatform, True);
-  condDefs := GetConditionalDefines(FProject);
-  if not (SameText(searchPath, FSearchPath)
-          and SameText(sPlatform, FPlatform)
-          and SameText(condDefs, FConditionals)
-          and SameText(libPath, FLibPath)) then
-  begin
-    FSearchPath := searchPath;
-    FPlatform := sPlatform;
-    FConditionals := condDefs;
-    FLibPath := libPath;
-    if assigned(DLProxy) then
-      DLProxy.SetProjectConfig(FPlatform, FConditionals, FSearchPath, FLibPath);
+  try
+    searchPath := GetSearchPath(FProject, True);
+    sPlatform := GetActivePlatform(FProject);
+    libPath := GetLibraryPath(sPlatform, True);
+    condDefs := GetConditionalDefines(FProject);
+    if not (SameText(searchPath, FSearchPath)
+            and SameText(sPlatform, FPlatform)
+            and SameText(condDefs, FConditionals)
+            and SameText(libPath, FLibPath)) then
+    begin
+      FSearchPath := searchPath;
+      FPlatform := sPlatform;
+      FConditionals := condDefs;
+      FLibPath := libPath;
+      if assigned(DLProxy) then
+        DLProxy.SetProjectConfig(FPlatform, FConditionals, FSearchPath, FLibPath);
+    end;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.CheckPaths', E);
   end;
 end;
 
@@ -84,7 +89,7 @@ begin
   FPlatform := GetActivePlatform(project);
   FConditionals := GetConditionalDefines(project);
   FLibPath := GetLibraryPath(FPlatform, True);
-  FTimer := TTimer.Create(Application.MainForm);
+  FTimer := TTimer.Create(nil);
   FTimer.OnTimer := CheckPaths;
   FTimer.Interval := CPathCheckInterval_sec * 1000;
   FTimer.Enabled := true;

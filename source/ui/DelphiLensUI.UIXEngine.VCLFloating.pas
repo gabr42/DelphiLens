@@ -289,7 +289,7 @@ begin
   inherited;
   Application.Title := 'DelphiLens';
   Application.MainFormOnTaskBar := false;
-  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
+//  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
 end; { TDLUIXVCLFloatingEngine.Create }
 
 function TDLUIXVCLFloatingEngine.CreateFrame(const parentFrame: IDLUIXFrame): IDLUIXFrame;

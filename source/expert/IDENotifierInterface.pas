@@ -170,6 +170,8 @@ end;
 
 procedure TIDENotifierTemplate.RegProjectNotifier;
 begin
+  Exit; //TODO: This notifier is making problems when expert is runing as a package
+
   if not assigned(FProject) then
     Exit;
 

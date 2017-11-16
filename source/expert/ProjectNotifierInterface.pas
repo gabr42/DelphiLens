@@ -4,15 +4,20 @@ interface
 
 uses
   ToolsApi,
+  System.SysUtils,
   Vcl.ExtCtrls;
 
 type
-  TProjectNotifier = class(TModuleNotifierObject, IOTAModuleNotifier, IOTAProjectNotifier)
+  TProjectNotifier = class(TModuleNotifierObject, IOTAModuleNotifier,
+                                                  IOTAModuleNotifier80,
+                                                  IOTAModuleNotifier90,
+                                                  IOTAProjectNotifier)
   strict private const
     CPathCheckInterval_sec = 5;
   var
     FProject: IOTAProject;
     FSearchPath: string;
+    FCleanupProc: TProc;
     FConditionals: string;
     FPlatform: string;
     FLibPath: string;
@@ -20,7 +25,7 @@ type
   strict protected
     procedure CheckPaths(Sender: TObject);
   public
-    constructor Create(const project: IOTAProject);
+    constructor Create(const project: IOTAProject; cleanupProc: TProc);
     destructor  Destroy; override;
     procedure Destroyed;
 
@@ -28,6 +33,11 @@ type
 
     { User has renamed the module }
     procedure ModuleRenamed(const NewName: string); overload;
+
+    { IOTAModuleNotifier90 }
+
+    procedure BeforeRename(const OldFileName, NewFileName: string);
+    procedure AfterRename(const OldFileName, NewFileName: string);
 
     { IOTAProjectNotifier }
 
@@ -45,11 +55,47 @@ implementation
 
 uses
   Vcl.Forms,
-  System.SysUtils,
   UtilityFunctions,
   DelphiLens.OTAUtils, DelphiLensProxy;
 
 { TProjectNotifier }
+
+constructor TProjectNotifier.Create(const project: IOTAProject; cleanupProc: TProc);
+begin
+  inherited Create;
+  FCleanupProc := cleanupProc;
+  FProject := project;
+  FSearchPath := GetSearchPath(project, True);
+  FPlatform := GetActivePlatform(project);
+  FConditionals := GetConditionalDefines(project);
+  FLibPath := GetLibraryPath(FPlatform, True);
+  FTimer := TTimer.Create(nil);
+  FTimer.OnTimer := CheckPaths;
+  FTimer.Interval := CPathCheckInterval_sec * 1000;
+  FTimer.Enabled := true;
+end;
+
+destructor TProjectNotifier.Destroy;
+begin
+  try
+    if assigned(FTimer) then
+      Destroyed;
+  except
+    on E: Exception do
+      Log('TProjectNotifier.Destroy', E);
+  end;
+  inherited;
+end;
+
+procedure TProjectNotifier.AfterRename(const OldFileName, NewFileName: string);
+begin
+//
+end;
+
+procedure TProjectNotifier.BeforeRename(const OldFileName, NewFileName: string);
+begin
+//
+end;
 
 procedure TProjectNotifier.CheckPaths(Sender: TObject);
 var
@@ -81,34 +127,15 @@ begin
   end;
 end;
 
-constructor TProjectNotifier.Create(const project: IOTAProject);
-begin
-  inherited Create;
-  FProject := project;
-  FSearchPath := GetSearchPath(project, True);
-  FPlatform := GetActivePlatform(project);
-  FConditionals := GetConditionalDefines(project);
-  FLibPath := GetLibraryPath(FPlatform, True);
-  FTimer := TTimer.Create(nil);
-  FTimer.OnTimer := CheckPaths;
-  FTimer.Interval := CPathCheckInterval_sec * 1000;
-  FTimer.Enabled := true;
-end;
-
-destructor TProjectNotifier.Destroy;
-begin
-  try
-    FreeAndNil(FTimer);
-  except
-    on E: Exception do
-      Log('TProjectNotifier.Destroy', E);
-  end;
-  inherited;
-end;
-
 procedure TProjectNotifier.Destroyed;
 begin
   try
+    Log('Destroyed ... IDENotifier should unreg');
+    if assigned(FCleanupProc) then begin
+      FCleanupProc();
+      FCleanupProc := nil;
+    end;
+
     FreeAndNil(FTimer);
   except
     on E: Exception do

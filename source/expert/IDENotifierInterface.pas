@@ -94,12 +94,7 @@ var
   sPlatform: string;
 begin
   try
-    if NotifyCode = ofnFileClosing then begin
-      if ActiveProject = nil then
-        if assigned(DLProxy) then
-          DLProxy.ProjectClosed;
-    end
-    else if NotifyCode = ofnActiveProjectChanged then begin
+    if NotifyCode = ofnActiveProjectChanged then begin
       // get dpr/dpk name
       UnregProjectNotifier;
       FProject := ActiveProject;
@@ -170,17 +165,30 @@ end;
 
 procedure TIDENotifierTemplate.RegProjectNotifier;
 begin
-  Exit; //TODO: This notifier is making problems when expert is runing as a package
-
   if not assigned(FProject) then
     Exit;
 
   try
-    FProjectNotifierIntf := TProjectNotifier.Create(FProject);
+    FProjectNotifierIntf := TProjectNotifier.Create(FProject,
+      procedure
+      begin
+        try
+          FProjectNotifier := -1;
+          FProjectNotifierIntf := nil;
+          if assigned(DLProxy) then
+            DLProxy.ProjectClosed;
+        except
+          on E: Exception do
+            Log('TProjectNotifier CleanupProc', E);
+        end;
+      end);
     FProjectNotifier := FProject.AddNotifier(FProjectNotifierIntf);
   except
-    on E: Exception do
+    on E: Exception do begin
+      FProjectNotifier := -1;
+      FProjectNotifierIntf := nil;
       Log('TIDENotifierTemplate.RegProjectNotifier', E);
+    end;
   end;
 end;
 

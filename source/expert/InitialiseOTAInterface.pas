@@ -113,6 +113,7 @@ begin
 end;
 
 initialization
+  Log('Initializing');
 
 {$IFDEF D2005}
   BuildNumber(VersionInfo);

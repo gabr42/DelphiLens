@@ -7,6 +7,7 @@ const
   ERR_NOT_IMPLEMENTED   = 1;
   ERR_EXCEPTION         = 2;
   ERR_PROJECT_NOT_FOUND = 3;
+  ERR_INTERNAL_ERROR    = 4;
 
 implementation
 

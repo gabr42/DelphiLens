@@ -34,6 +34,7 @@ type
   //
     procedure Close;
     procedure CreateAction(const action: IDLUIXAction);
+    function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;

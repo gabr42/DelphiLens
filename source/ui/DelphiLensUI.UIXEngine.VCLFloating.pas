@@ -62,6 +62,7 @@ type
     // IDLUIXFrame
     procedure Close;
     procedure CreateAction(const action: IDLUIXAction);
+    function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
@@ -185,6 +186,8 @@ begin
     button.Caption := IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
     button.OnClick := ForwardAction;
 
+    FForm.Width := Max(FForm.Width, button.Width);
+
     FActionMap.Add(button, navigation);
 
     nextTop := button.Top + button.Height + CListButtonSpacing;
@@ -238,6 +241,11 @@ begin
   Result := FOnAction;
 end; { TDLUIXVCLFloatingFrame.GetOnAction }
 
+function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
+begin
+  Result := (FForm.ClientHeight = 0);
+end; { TDLUIXVCLFloatingFrame.IsEmpty }
+
 procedure TDLUIXVCLFloatingFrame.MarkActive(isActive: boolean);
 var
   newAlphaBlend: integer;
@@ -289,7 +297,7 @@ begin
   inherited;
   Application.Title := 'DelphiLens';
   Application.MainFormOnTaskBar := false;
-//  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
+  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
 end; { TDLUIXVCLFloatingEngine.Create }
 
 function TDLUIXVCLFloatingEngine.CreateFrame(const parentFrame: IDLUIXFrame): IDLUIXFrame;

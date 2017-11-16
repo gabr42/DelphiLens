@@ -17,6 +17,7 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   Spring.Collections,
+  GpConsole,
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXAnalyzer.History,
@@ -76,7 +77,7 @@ begin
         else
           uixStorage.History.Add(TDLUIXLocation.Create(currentLocation));
       end;
-    end;
+    end  ;
   finally FreeAndNil(ui); end;
 end; { DLUIShowUI }
 
@@ -140,16 +141,18 @@ begin
 
   frameBuilder(frame);
 
-  if assigned(parentFrame) then
-    parentFrame.MarkActive(false);
+  if not frame.IsEmpty then begin
+    if assigned(parentFrame) then
+      parentFrame.MarkActive(false);
 
-  frame.Show(parentAction);
+    frame.Show(parentAction);
 
-  if assigned(parentFrame) then begin
-    if assigned(FExecuteAction) then
-      parentFrame.Close
-    else
-      parentFrame.MarkActive(true);
+    if assigned(parentFrame) then begin
+      if assigned(FExecuteAction) then
+        parentFrame.Close
+      else
+        parentFrame.MarkActive(true);
+    end;
   end;
 
   FUIXEngine.DestroyFrame(frame);

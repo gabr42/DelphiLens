@@ -11,6 +11,7 @@ uses
 {$R *.res}
 
 exports
+  DLUIGetLastError,
   DLUIOpenProject,
   DLUICloseProject,
   DLUIProjectModified,

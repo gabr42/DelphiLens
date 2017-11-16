@@ -82,8 +82,6 @@
         <DCC_Namespace>Vcl;$(DCC_Namespace)</DCC_Namespace>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <DCC_WriteableConstants>true</DCC_WriteableConstants>
-        <Debugger_HostApplication>&quot;C:\Program Files (x86)\Embarcadero\Studio\19.0\bin\bds.exe&quot;</Debugger_HostApplication>
-        <Debugger_RunParams>-rOTA</Debugger_RunParams>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
         <DCC_LocalDebugSymbols>false</DCC_LocalDebugSymbols>

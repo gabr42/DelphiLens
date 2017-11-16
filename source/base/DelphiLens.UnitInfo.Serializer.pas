@@ -17,7 +17,7 @@ uses
 type
   TDLUnitInfoSerializer = class(TInterfacedObject, IDLUnitInfoSerializer)
   strict private const
-    CVersion = 2;
+    CVersion = 3;
   var
     FStream: TStream;
   strict protected
@@ -59,10 +59,12 @@ begin
   if not ReadLocation(unitInfo.InterfaceUsesLoc) then Exit;
   if not ReadLocation(unitInfo.ImplementationLoc) then Exit;
   if not ReadLocation(unitInfo.ImplementationUsesLoc) then Exit;
+  if not ReadLocation(unitInfo.ContainsLoc) then Exit;
   if not ReadLocation(unitInfo.InitializationLoc) then Exit;
   if not ReadLocation(unitInfo.FinalizationLoc) then Exit;
   if not ReadStrings(unitInfo.InterfaceUses) then Exit;
   if not ReadStrings(unitInfo.ImplementationUses) then Exit;
+  if not ReadStrings(unitInfo.PackageContains) then Exit;
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
 
@@ -127,10 +129,12 @@ begin
   WriteLocation(unitInfo.InterfaceUsesLoc);
   WriteLocation(unitInfo.ImplementationLoc);
   WriteLocation(unitInfo.ImplementationUsesLoc);
+  WriteLocation(unitInfo.ContainsLoc);
   WriteLocation(unitInfo.InitializationLoc);
   WriteLocation(unitInfo.FinalizationLoc);
   WriteStrings(unitInfo.InterfaceUses);
   WriteStrings(unitInfo.ImplementationUses);
+  WriteStrings(unitInfo.PackageContains);
 end; { TDLUnitInfoSerializer.Write }
 
 procedure TDLUnitInfoSerializer.WriteInteger(val: integer);

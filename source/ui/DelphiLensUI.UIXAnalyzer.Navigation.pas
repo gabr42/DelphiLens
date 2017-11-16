@@ -42,7 +42,10 @@ procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame);
 
 begin { TDLUIXNavigationAnalyzer.BuildFrame }
   if FDLUnitInfo.UnitType = utProgram then begin
-    AddNavigation('&Uses list', FDLUnitInfo.InterfaceLoc);
+    if FDLUnitInfo.ContainsLoc.IsValid then
+      AddNavigation('&Contains', FDLUnitInfo.ContainsLoc)
+    else
+      AddNavigation('&Uses list', FDLUnitInfo.InterfaceLoc);
   end
   else begin
     if FDLUnitInfo.InterfaceUsesLoc.IsValid then
@@ -59,14 +62,17 @@ end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const state: TDLAnalysisState): boolean;
 begin
+  if not assigned(state.ProjectInfo) then
+    Exit(false);
+
   Result := state.ProjectInfo.ParsedUnits.Find(state.FileName, FUnitInfo);
-  if not assigned(FTreeAnalyzer) then begin
+  if Result and (not assigned(FTreeAnalyzer)) then begin
     FTreeAnalyzer := CreateDLTreeAnalyzer;
     FTreeAnalyzer.AnalyzeTree(FUnitInfo.SyntaxTree, FDLUnitInfo);
   end;
 
   if FDLUnitInfo.UnitType = utProgram then begin
-    if not FDLUnitInfo.InterfaceUsesLoc.IsValid then
+    if not (FDLUnitInfo.InterfaceUsesLoc.IsValid or FDLUnitInfo.ContainsLoc.IsValid) then
       Result := false;
   end
   else begin

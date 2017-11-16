@@ -50,10 +50,11 @@ end; { TDLTreeAnalyzer.Create }
 
 procedure TDLTreeAnalyzer.AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
 var
-  ndImpl: TSyntaxNode;
-  ndIntf: TSyntaxNode;
-  ndUnit: TSyntaxNode;
-  ndUses: TSyntaxNode;
+  ndContains: TSyntaxNode;
+  ndImpl    : TSyntaxNode;
+  ndIntf    : TSyntaxNode;
+  ndUnit    : TSyntaxNode;
+  ndUses    : TSyntaxNode;
 begin
   unitInfo := TDLUnitInfo.Create;
   if not tree.FindFirst(ntUnit, ndUnit) then
@@ -79,6 +80,12 @@ begin
   if assigned(ndUses) then begin
     GetUnitList(ndUses, unitInfo.InterfaceUses);
     unitInfo.InterfaceUsesLoc.SetLocation(ndUses);
+  end;
+
+  ndContains := ndIntf.FindFirst(ntContains);
+  if assigned(ndContains) then begin
+    GetUnitList(ndContains, unitInfo.PackageContains);
+    unitInfo.ContainsLoc.SetLocation(ndContains);
   end;
 
   if assigned(ndImpl) then begin

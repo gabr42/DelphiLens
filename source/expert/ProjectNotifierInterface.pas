@@ -65,10 +65,7 @@ begin
   inherited Create;
   FCleanupProc := cleanupProc;
   FProject := project;
-  FSearchPath := GetSearchPath(project, True);
-  FPlatform := GetActivePlatform(project);
-  FConditionals := GetConditionalDefines(project);
-  FLibPath := GetLibraryPath(FPlatform, True);
+  CheckPaths(nil);
   FTimer := TTimer.Create(nil);
   FTimer.OnTimer := CheckPaths;
   FTimer.Interval := CPathCheckInterval_sec * 1000;

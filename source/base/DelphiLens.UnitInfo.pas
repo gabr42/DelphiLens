@@ -44,12 +44,14 @@ type
     InterfaceUsesLoc     : TDLCoordinate;
     ImplementationLoc    : TDLCoordinate;
     ImplementationUsesLoc: TDLCoordinate;
+    ContainsLoc          : TDLCoordinate;
     InitializationLoc    : TDLCoordinate;
     FinalizationLoc      : TDLCoordinate;
     InterfaceUses        : IList<string>;      //program 'uses' when UnitType = utProgram
     InterfaceTypes       : IList<TDLTypeInfo>; //program types when UnitType = utProgram
     ImplementationUses   : IList<string>;
     ImplementationTypes  : IList<TDLTypeInfo>;
+    PackageContains      : IList<string>;
     class function Create: TDLUnitInfo; static;
     function UnitType: TDLUnitType; inline;
   end; { TDLUnitInfo }
@@ -102,6 +104,7 @@ begin
   Result.InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
   Result.ImplementationUses := TCollections.CreateList<string>;
   Result.ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
+  Result.PackageContains := TCollections.CreateList<string>;
 end; { TDLUnitInfo.Create }
 
 function TDLUnitInfo.UnitType: TDLUnitType;

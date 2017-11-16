@@ -21,7 +21,7 @@ implementation
 uses
   Winapi.Windows, Winapi.Messages,
   System.Win.Registry,
-  System.SysUtils, System.Classes,
+  System.SysUtils, System.Classes, System.Math,
   ToolsAPI, DCCStrs,
   UtilityFunctions,
   DSiWin32,
@@ -47,6 +47,7 @@ type
     function  ActivateTab(const fileName: string): boolean;
     function  CheckAPI(const apiName: string; apiResult: integer): boolean;
     procedure CloseProject;
+    procedure SetCursorPosition(line, column: integer);
   public
     destructor  Destroy; override;
     procedure Activate;
@@ -66,30 +67,21 @@ var
   fileName: string;
   navToFile: PChar;
   navToLine, navToColumn: integer;
-  editPos: TOTAEditPos;
   apiRes: integer;
 begin
   try
     if not (IsDLUIAvailable and FDLUIHasProject) then
       Exit;
-
-    Log('Also has a project');
-    Log('ProjectID = %d', [FDLUIProjectID]);
-
     edit := (BorlandIDEServices as IOTAEditorServices);
     if assigned(edit) and assigned(edit.TopView) and assigned(edit.TopView.Buffer) then begin
       fileName := ExtractFileName(edit.TopView.Buffer.FileName);
+      if SameText(ExtractFileExt(fileName), '.pas') then
+        fileName := ChangeFileExt(fileName, '');
       apiRes := DLUIActivate(FDLUIProjectID,
         PChar(fileName), edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col,
         navToFile, navToLine, navToColumn);
-      if CheckAPI('DLUIActivate', apiRes)
-         and assigned(navToFile)
-         and ActivateTab(string(navToFile)) then
-      begin
-        editPos.Line := navToLine;
-        editPos.Col := navToColumn;
-        edit.TopView.CursorPos := editPos;
-      end;
+      if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTab(string(navToFile)) then
+        SetCursorPosition(navToLine, navToColumn);
     end;
   except
     on E: Exception do
@@ -129,10 +121,7 @@ var
 begin
   Result := (apiResult = DelphiLensUI.Error.NO_ERROR);
   if not Result then begin
-  Log('API failed: [%d] %s', [apiResult, apiName]);
-  Log('#2');
     error := DLUIGetLastError(FDLUIProjectID, errorMsg);
-  Log('#3');
     Log('%s failed with error [%d] %s', [apiName, error, string(errorMsg)]);
   end;
 end; { TDelphiLensProxy.CheckAPI }
@@ -229,6 +218,40 @@ begin
   end;
 end; { TDelphiLensProxy.ProjectOpened }
 
+procedure TDelphiLensProxy.SetCursorPosition(line, column: integer);
+var
+  edit: IOTAEditorServices;
+  editPos: TOTAEditPos;
+  topPos: TOTAEditPos;
+  newTop: TOTAEditPos;
+  moveTop: boolean;
+  viewSize: TSize;
+begin
+  edit := (BorlandIDEServices as IOTAEditorServices);
+  editPos.Line := line;
+  editPos.Col := column;
+  edit.TopView.CursorPos := editPos;
+
+  topPos := edit.TopView.TopPos;
+  viewSize := edit.TopView.ViewSize;
+  newTop := topPos;
+  moveTop := false;
+
+  if editPos.Line < topPos.Line then begin
+    newTop.Line := Max(1, editPos.Line - 3);
+    moveTop := true;
+  end
+  else if editPos.Line >= (topPos.Line + viewSize.cy) then begin
+    newTop.Line := Max(1, editPos.Line - viewSize.cy div 2);
+    moveTop := true;
+  end;
+
+  //TODO: also move in X
+
+  if moveTop then
+    edit.TopView.TopPos := newTop;
+end;
+
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
 var
   path: string;
@@ -236,7 +259,8 @@ begin
   try
     if FDLUIHasProject then begin
       path := ''.Join(';', [searchPath, libPath]);
-      CheckAPI('DLUISetProjectConfig', DLUISetProjectConfig(FDLUIProjectID, PChar(sPlatform), PChar(conditionals), PChar(path)));
+      if CheckAPI('DLUISetProjectConfig', DLUISetProjectConfig(FDLUIProjectID, PChar(sPlatform), PChar(conditionals), PChar(path))) then
+        CheckAPI('DLUIRescan', DLUIRescanProject(FDLUIProjectID));
     end;
   except
     on E: Exception do

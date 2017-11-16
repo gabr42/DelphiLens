@@ -30,7 +30,6 @@ implementation
 uses
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
-  GpConsole,
   OtlSync, OtlCommon,
   DelphiLensUI.Worker;
 
@@ -72,31 +71,24 @@ begin
   finally GDLWorkerLock.Release; end;
 end; { GetProject }
 
-function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
+function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;
 var
   errorInfo: TErrorInfo;
-  chkpt: string;
 begin
-  Console.Writeln(['DLUGetLastError ', projectID]);
-  Console.Writeln(['>', string(errorMsg), '<']);
-  chkpt := '#1';
   try
     GDLErrorLock.Acquire;
     try
-      chkpt := chkpt + ' #2';
       if not GDLEngineErrors.TryGetValue(projectID, errorInfo) then
         Result := NO_ERROR
       else begin
-      chkpt := chkpt + ' #3';
         errorMsg := PChar(errorInfo.Value);
         Result := errorInfo.Key;
-      chkpt := chkpt + ' #4';
       end;
     finally GDLErrorLock.Release; end;
   except
     on E: Exception do begin
       // Throwing memory away, but this should not happen anyway
-      errorMsg := StrNew(PChar('Exception in DLUIGetLastError: ' + E.Message + ' ' + chkpt));
+      errorMsg := StrNew(PChar('Exception in DLUIGetLastError: ' + E.Message + ' '));
       Result := ERR_INTERNAL_ERROR;
     end;
   end;
@@ -208,36 +200,27 @@ end; { DLUISetProjectConfig }
 function DLUIActivate(projectID: integer; fileName: PChar; line, column: integer;
   var navigateToFile: PChar; var navigateToLine, navigateToColumn: integer): integer;
 var
-  chkpt: string;
   project : TDelphiLensUIProject;
   navigate: boolean;
 begin
-chkpt := '#1';
   Result := ClearError(projectID);
   try
-chkpt := chkpt + ' #2';
     if not GetProject(projectID, project) then begin
-chkpt := chkpt + ' #3';
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID]);
-chkpt := chkpt + ' #4';
     end
     else begin
-chkpt := chkpt + ' #5';
       project.Activate(fileName, line, column, navigate);
-chkpt := chkpt + ' #6';
       if not navigate then
         navigateToFile := nil
       else begin
-chkpt := chkpt + ' #7';
         navigateToFile := project.GetNavigationInfo.FileName;
         navigateToLine := project.GetNavigationInfo.Line;
         navigateToColumn := project.GetNavigationInfo.Column;
-chkpt := chkpt + ' #8s';
       end;
     end;
   except
     on E: Exception do
-      Result := SetError(projectID, ERR_EXCEPTION, E.Message + ' ' + chkpt);
+      Result := SetError(projectID, ERR_EXCEPTION, E.Message );
   end;
 end; { DLUIActivate }
 

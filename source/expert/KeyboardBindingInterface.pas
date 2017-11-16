@@ -125,7 +125,6 @@ procedure TKeybindingTemplate.UnregisterHK;
 begin
   if not FHotKeyRegistered then
     Exit;
-
   UnregisterHotKey(Fwindow, 1);
   FHotKeyRegistered := false;
 end;

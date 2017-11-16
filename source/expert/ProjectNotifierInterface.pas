@@ -130,7 +130,6 @@ end;
 procedure TProjectNotifier.Destroyed;
 begin
   try
-    Log('Destroyed ... IDENotifier should unreg');
     if assigned(FCleanupProc) then begin
       FCleanupProc();
       FCleanupProc := nil;

@@ -18,9 +18,11 @@ type
     FProject: IOTAProject;
     FProjectNotifier: integer;
     FProjectNotifierIntf: IOTAProjectNotifier;
+    procedure ActiveProjectChanged;
     procedure RegProjectNotifier;
     procedure UnregProjectNotifier;
   public
+    destructor Destroy; override;
     procedure AfterConstruction; override;
     // IOTANotifier
     procedure AfterSave;
@@ -89,34 +91,10 @@ end;
 procedure TIDENotifierTemplate.FileNotification
   (NotifyCode: TOTAFileNotification; const FileName: string;
   var Cancel: Boolean);
-var
-  edit: IOTAEditor;
-  sPlatform: string;
 begin
   try
-    if NotifyCode = ofnActiveProjectChanged then begin
-      // get dpr/dpk name
-      UnregProjectNotifier;
-      FProject := ActiveProject;
-      if assigned(FProject) then begin
-        FModule := ProjectModule(FProject);
-        if assigned(FModule) then begin
-          if FModule.ModuleFileCount > 0 then begin
-            edit := FModule.ModuleFileEditors[0];
-            if assigned(edit) then
-              if assigned(DLProxy) then begin
-                sPlatform := GetActivePlatform(FProject);
-                DLProxy.ProjectOpened(edit.FileName,
-                  sPlatform,
-                  GetConditionalDefines(FProject),
-                  GetSearchPath(FProject, True),
-                  GetLibraryPath(sPlatform, True));
-              end;
-          end;
-        end;
-        RegProjectNotifier;
-      end;
-    end;
+    if NotifyCode = ofnActiveProjectChanged then
+      ActiveProjectChanged;
   except
     on E: Exception do
       Log('TIDENotifierTemplate.FileNotification', E);
@@ -132,14 +110,39 @@ begin
 end;
 {$ENDIF}
 
+procedure TIDENotifierTemplate.ActiveProjectChanged;
+var
+  edit: IOTAEditor;
+  sPlatform: string;
+begin
+  UnregProjectNotifier;
+  FProject := ActiveProject;
+  if assigned(FProject) then begin
+    FModule := ProjectModule(FProject);
+    if assigned(FModule) then begin
+      if FModule.ModuleFileCount > 0 then begin
+        edit := FModule.ModuleFileEditors[0];
+        if assigned(edit) then
+          if assigned(DLProxy) then begin
+            sPlatform := GetActivePlatform(FProject);
+            DLProxy.ProjectOpened(edit.FileName,
+              sPlatform,
+              GetConditionalDefines(FProject),
+              GetSearchPath(FProject, True),
+              GetLibraryPath(sPlatform, True));
+          end;
+      end;
+    end;
+    RegProjectNotifier;
+  end;
+end;
+
 procedure TIDENotifierTemplate.AfterConstruction;
 begin
   inherited;
   try
     FProjectNotifier := -1;
-    FProject := ActiveProject;
-    if assigned(FProject) then
-      RegProjectNotifier;
+    ActiveProjectChanged;
   except
     on E: Exception do
       Log('TIDENotifierTemplate.AfterConstruction', E);
@@ -152,6 +155,12 @@ end;
 
 procedure TIDENotifierTemplate.BeforeSave;
 begin
+end;
+
+destructor TIDENotifierTemplate.Destroy;
+begin
+  UnregProjectNotifier;
+  inherited;
 end;
 
 procedure TIDENotifierTemplate.Destroyed;

@@ -113,8 +113,6 @@ begin
 end;
 
 initialization
-  Log('Initializing');
-
 {$IFDEF D2005}
   BuildNumber(VersionInfo);
 // Add Splash Screen
@@ -127,7 +125,6 @@ with VersionInfo do
 {$ENDIF}
 
 finalization
-
 // Remove Wizard Interface
 if iWizardIndex > iWizardFailState then
   (BorlandIDEServices as IOTAWizardServices).RemoveWizard(iWizardIndex);
@@ -149,5 +146,4 @@ if iIDENotfierIndex > iWizardFailState then
 if iEditorIndex <> iWizardFailState then
   (BorlandIDEServices as IOTAEditorServices).RemoveNotifier(iEditorIndex);
 {$ENDIF}
-
 end.

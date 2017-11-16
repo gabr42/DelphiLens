@@ -70,12 +70,7 @@ var
   apiRes: integer;
 begin
   try
-    if not IsDLUIAvailable then begin
-      Log('%s.dll not found!', [DelphiLensUIDLL]);
-      Exit;
-    end;
-
-    if not FDLUIHasProject then
+    if not (IsDLUIAvailable and FDLUIHasProject) then
       Exit;
 
     Log('Also has a project');
@@ -252,6 +247,8 @@ end; { TDelphiLensProxy.SetProjectConfig }
 { TDelphiLensEngine }
 
 initialization
+  if not IsDLUIAvailable then
+    Log('%s.dll not found!', [DelphiLensUIDLL]);
   DLProxy := TDelphiLensProxy.Create;
 finalization
   DLProxy := nil;

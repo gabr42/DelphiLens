@@ -69,6 +69,7 @@ var
   navToLine, navToColumn: integer;
   apiRes: integer;
 begin
+  Log('Activate, DLL = %d', [Ord(IsDLUIAvailable)]);
   try
     if not (IsDLUIAvailable and FDLUIHasProject) then
       Exit;
@@ -248,8 +249,10 @@ begin
 
   //TODO: also move in X
 
-  if moveTop then
+  if moveTop then begin
     edit.TopView.TopPos := newTop;
+    edit.TopView.Paint;
+  end;
 end;
 
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);

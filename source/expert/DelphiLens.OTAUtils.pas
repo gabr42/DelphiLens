@@ -16,9 +16,13 @@ function GetSearchPath(const project: IOTAProject; MapEnvVariables: boolean): st
 
 function ReplaceEnvVariables(const s: string): string;
 
-procedure Log(const s: string); overload;
-procedure Log(const s: string; const params: array of const); overload;
-procedure Log(const method: string; E: Exception); overload;
+type
+  TLogClass = (lcError, lcActiveProject, lcActivation);
+
+procedure LogMessage(const s: string);
+procedure Log(logClass: TLogClass; const s: string); overload;
+procedure Log(logClass: TLogClass; const s: string; const params: array of const); overload;
+procedure Log(logClass: TLogClass; const method: string; E: Exception); overload;
 
 implementation
 
@@ -29,6 +33,13 @@ uses
   DCCStrs,
   DSiWin32,
   UtilityFunctions;
+
+type
+  TLogClasses = set of TLogClass;
+  PLogClasses = ^TLogClasses;
+
+var
+  GLogClasses: TLogClasses;
 
 function GetProjectConfigurations(const project: IOTAProject;
   var configs: IOTAProjectOptionsConfigurations): boolean;    //inline
@@ -133,19 +144,41 @@ begin
   until false;
 end;
 
-procedure Log(const s: string);
+procedure LogMessage(const s: string);
 begin
   OutputMessage(s, 'DelphiLens');
 end;
 
-procedure Log(const s: string; const params: array of const);
+procedure Log(logClass: TLogClass; const s: string);
 begin
-  Log(Format(s, params));
+  if logClass in GLogClasses then
+    LogMessage(s);
 end;
 
-procedure Log(const method: string; E: Exception);
+procedure Log(logClass: TLogClass; const s: string; const params: array of const);
 begin
-  Log(Format('%s in %s, %s', [E.ClassName, method, E.Message]));
+  Log(logClass, Format(s, params));
 end;
 
+procedure Log(logClass: TLogClass; const method: string; E: Exception);
+begin
+  Log(logClass, Format('%s in %s, %s', [E.ClassName, method, E.Message]));
+end;
+
+var
+  logLevel: string;
+  logLevelInt: integer;
+
+initialization
+  GLogClasses := [lcError];
+  logLevel := GetEnvironmentVariable('DL_LOGGING');
+  if not TryStrToInt(logLevel, logLevelInt) then begin
+    LogMessage('Invalid DL_LOGGING setting: ' + logLevel + '. Expecting a number.');
+  end
+  else if (logLevelInt < 0) or (logLevelInt > 255) then
+    LogMessage('Invalid DL_LOGGING setting: ' + logLevel + '. Number must be between 0 and 255.')
+  else begin
+    GLogClasses := PLogClasses(@logLevelInt)^;
+    LogMessage(Format('Logging level set to %d', [logLevelInt]));
+  end;
 end.

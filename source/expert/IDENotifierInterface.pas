@@ -97,7 +97,7 @@ begin
       ActiveProjectChanged;
   except
     on E: Exception do
-      Log('TIDENotifierTemplate.FileNotification', E);
+      Log(lcError, 'TIDENotifierTemplate.FileNotification', E);
   end;
 end;
 
@@ -115,22 +115,30 @@ var
   edit: IOTAEditor;
   sPlatform: string;
 begin
+  Log(lcActiveProject, 'Active project changed');
   UnregProjectNotifier;
   FProject := ActiveProject;
-  if assigned(FProject) then begin
+  if not assigned(FProject) then
+    Log(lcActiveProject, '... no active project')
+  else begin
     FModule := ProjectModule(FProject);
-    if assigned(FModule) then begin
-      if FModule.ModuleFileCount > 0 then begin
+    if not assigned(FModule) then
+      Log(lcActiveProject, '... no project module')
+    else begin
+      if FModule.ModuleFileCount <= 0 then
+        Log(lcActiveProject, '... no files in module')
+      else begin
         edit := FModule.ModuleFileEditors[0];
-        if assigned(edit) then
-          if assigned(DLProxy) then begin
-            sPlatform := GetActivePlatform(FProject);
-            DLProxy.ProjectOpened(edit.FileName,
-              sPlatform,
-              GetConditionalDefines(FProject),
-              GetSearchPath(FProject, True),
-              GetLibraryPath(sPlatform, True));
-          end;
+        if not assigned(edit) then
+          Log(lcActiveProject, '... no editors in module')
+        else if assigned(DLProxy) then begin
+          sPlatform := GetActivePlatform(FProject);
+          DLProxy.ProjectOpened(edit.FileName,
+            sPlatform,
+            GetConditionalDefines(FProject),
+            GetSearchPath(FProject, True),
+            GetLibraryPath(sPlatform, True));
+        end;
       end;
     end;
     RegProjectNotifier;
@@ -145,7 +153,7 @@ begin
     ActiveProjectChanged;
   except
     on E: Exception do
-      Log('TIDENotifierTemplate.AfterConstruction', E);
+      Log(lcError, 'TIDENotifierTemplate.AfterConstruction', E);
   end;
 end;
 
@@ -178,17 +186,19 @@ begin
     Exit;
 
   try
+    Log(lcActiveProject, 'Registering project notifier');
     FProjectNotifierIntf := TProjectNotifier.Create(FProject,
       procedure
       begin
         try
+          Log(lcActiveProject, 'Removing project notifier');
           FProjectNotifier := -1;
           FProjectNotifierIntf := nil;
           if assigned(DLProxy) then
             DLProxy.ProjectClosed;
         except
           on E: Exception do
-            Log('TProjectNotifier CleanupProc', E);
+            Log(lcError, 'TProjectNotifier CleanupProc', E);
         end;
       end);
     FProjectNotifier := FProject.AddNotifier(FProjectNotifierIntf);
@@ -196,7 +206,7 @@ begin
     on E: Exception do begin
       FProjectNotifier := -1;
       FProjectNotifierIntf := nil;
-      Log('TIDENotifierTemplate.RegProjectNotifier', E);
+      Log(lcError, 'TIDENotifierTemplate.RegProjectNotifier', E);
     end;
   end;
 end;
@@ -205,13 +215,14 @@ procedure TIDENotifierTemplate.UnregProjectNotifier;
 begin
   try
     if FProjectNotifier >= 0 then begin
+      Log(lcActiveProject, 'Removing');
       FProject.RemoveNotifier(FProjectNotifier);
       FProjectNotifierIntf := nil;
       FProjectNotifier := -1;
     end;
   except
     on E: Exception do
-      Log('TIDENotifierTemplate.UnregProjectNotifier', E);
+      Log(lcError, 'TIDENotifierTemplate.UnregProjectNotifier', E);
   end;
 end;
 

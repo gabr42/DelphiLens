@@ -94,7 +94,7 @@ begin
   {$ENDIF}
   except
     on E: Exception do
-      Log('InitialiseWizard', E);
+      Log(lcError, 'InitialiseWizard', E);
   end;
 end;
 

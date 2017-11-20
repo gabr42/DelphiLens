@@ -1,6 +1,6 @@
 library DelphiLensUI;
 
-{$R *.dres}
+
 
 uses
   Winapi.Windows,

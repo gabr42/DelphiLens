@@ -5,6 +5,11 @@ interface
 uses
   DelphiLensUI.UIXEngine.Intf;
 
+//TODO: Treat backspace as hotkey for "History"
+//TODO: Don't add to history if current location = new location
+//TODO: Lists should change width according to the item
+//TODO: Nicer buttons ...
+
 function CreateUIXEngine: IDLUIXEngine;
 
 implementation
@@ -12,7 +17,7 @@ implementation
 uses
   Winapi.Windows,
   System.Types, System.RTTI, System.SysUtils, System.Classes, System.Math,
-  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.Styles, Vcl.Themes,
+  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
@@ -33,15 +38,15 @@ type
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
                                                            IDLUIXVCLFloatingFrame)
   strict private const
-    CAlphaBlendActive    = 192;
+    CAlphaBlendActive    = 224;
     CAlphaBlendInactive  =  64;
     CButtonHeight        =  81;
     CButtonSpacing       =  15;
     CButtonWidth         = 201;
     CFrameSpacing        =  15;
-    CListButtonHeight    =  21;
+    CListButtonHeight    =  25;
     CListButtonSpacing   =   3;
-    CListButtonWidth     = 233;
+    CListButtonWidth     = 254;
   var
     [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
     [Managed(false)] FForm     : TVCLFloatingForm;
@@ -297,7 +302,6 @@ begin
   inherited;
   Application.Title := 'DelphiLens';
   Application.MainFormOnTaskBar := false;
-//  TStyleManager.TrySetStyle('Cobalt XEMedia', false);
 end; { TDLUIXVCLFloatingEngine.Create }
 
 function TDLUIXVCLFloatingEngine.CreateFrame(const parentFrame: IDLUIXFrame): IDLUIXFrame;

@@ -76,7 +76,7 @@ begin
       DLProxy.FileActivated(EditView.Buffer.FileName);
   except
     on E: Exception do
-      Log('TEditorNotifier.EditorViewActivated', E);
+      Log(lcError, 'TEditorNotifier.EditorViewActivated', E);
   end;
 end;
 
@@ -88,7 +88,7 @@ begin
       DLProxy.FileModified(EditView.Buffer.FileName);
   except
     on E: Exception do
-      Log('TEditorNotifier.EditorViewModified', E);
+      Log(lcError, 'TEditorNotifier.EditorViewModified', E);
   end;
 end;
 

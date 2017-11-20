@@ -50,7 +50,7 @@ begin
     RegisterHK;
   except
     on E: Exception do
-      Log('TKeybindingTemplate.AppActivated', E);
+      Log(lcError, 'TKeybindingTemplate.AppActivated', E);
   end;
 end;
 
@@ -60,7 +60,7 @@ begin
     UnregisterHK;
   except
     on E: Exception do
-      Log('TKeybindingTemplate.AppDeactivated', E);
+      Log(lcError, 'TKeybindingTemplate.AppDeactivated', E);
   end;
 end;
 
@@ -78,7 +78,7 @@ begin
     FAppEvents.OnDeactivate := AppDeactivated;
   except
     on E: Exception do
-      Log('TKeybindingTemplate.Create', E);
+      Log(lcError, 'TKeybindingTemplate.Create', E);
   end;
 end;
 
@@ -91,7 +91,7 @@ begin
     inherited;
   except
     on E: Exception do
-      Log('TKeybindingTemplate.Destroy', E);
+      Log(lcError, 'TKeybindingTemplate.Destroy', E);
   end;
 end;
 
@@ -115,16 +115,18 @@ begin
   if FHotKeyRegistered then
     Exit;
 
+  Log(lcActivation, 'Registering hotkey Alt+Win+Space');
   if RegisterHotKey(FWindow, 1, MOD_WIN + MOD_ALT, VK_SPACE) then
     FHotKeyRegistered := true
   else
-    Log('Failed to register hotkey: ' + SysErrorMessage(GetLastError));
+    Log(lcError, 'Failed to register hotkey: ' + SysErrorMessage(GetLastError));
 end;
 
 procedure TKeybindingTemplate.UnregisterHK;
 begin
   if not FHotKeyRegistered then
     Exit;
+  Log(lcActivation, 'Unregistering hotkey Alt+Win+Space');
   UnregisterHotKey(Fwindow, 1);
   FHotKeyRegistered := false;
 end;
@@ -134,8 +136,11 @@ begin
   try
     if Message.Msg = WM_HOTKEY then begin
        if Message.WParam = 1 then begin
+         Log(lcActivation, 'Hotkey message received');
          if assigned(DLProxy) then
-           DLProxy.Activate;
+           DLProxy.Activate
+         else
+           Log(lcActivation, '... no DLProxy');
          Message.Result := 0;
        end;
     end
@@ -143,7 +148,7 @@ begin
       DefWindowProc(FWindow, Message.Msg, Message.wParam, Message.lParam);
   except
     on E: Exception do
-      Log('TKeybindingTemplate.WndProc', E);
+      Log(lcError, 'TKeybindingTemplate.WndProc', E);
   end;
 end;
 

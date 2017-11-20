@@ -79,7 +79,7 @@ begin
       Destroyed;
   except
     on E: Exception do
-      Log('TProjectNotifier.Destroy', E);
+      Log(lcError, 'TProjectNotifier.Destroy', E);
   end;
   inherited;
 end;
@@ -120,7 +120,7 @@ begin
     end;
   except
     on E: Exception do
-      Log('TProjectNotifier.CheckPaths', E);
+      Log(lcError, 'TProjectNotifier.CheckPaths', E);
   end;
 end;
 
@@ -135,7 +135,7 @@ begin
     FreeAndNil(FTimer);
   except
     on E: Exception do
-      Log('TProjectNotifier.Destroyed', E);
+      Log(lcError, 'TProjectNotifier.Destroyed', E);
   end;
 end;
 
@@ -146,7 +146,7 @@ begin
       DLProxy.ProjectModified;
   except
     on E: Exception do
-      Log('TProjectNotifier.ModuleAdded', E);
+      Log(lcError, 'TProjectNotifier.ModuleAdded', E);
   end;
 end;
 
@@ -157,7 +157,7 @@ begin
       DLProxy.ProjectModified;
   except
     on E: Exception do
-      Log('TProjectNotifier.ModuleRemoved', E);
+      Log(lcError, 'TProjectNotifier.ModuleRemoved', E);
   end;
 end;
 
@@ -168,7 +168,7 @@ begin
       DLProxy.ProjectModified;
   except
     on E: Exception do
-      Log('TProjectNotifier.ModuleRenamed', E);
+      Log(lcError, 'TProjectNotifier.ModuleRenamed', E);
   end;
 end;
 
@@ -180,7 +180,7 @@ begin
       DLProxy.ProjectModified;
   except
     on E: Exception do
-      Log('TProjectNotifier.ModuleRenamed', E);
+      Log(lcError, 'TProjectNotifier.ModuleRenamed', E);
   end;
 end;
 

@@ -25,10 +25,14 @@ uses
 
 type
   TVCLFloatingForm = class(TForm)
+  strict private
+    FOnBackSpace: TProc;
   protected
-    procedure ExitOnEscape(Sender: TObject; var Key: Word; Shift: TShiftState);
+    procedure HandleKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
+    constructor CreateNew(AOwner: TComponent; Dummy: Integer = 0); override;
     procedure UpdateMask;
+    property OnBackSpace: TProc read FOnBackSpace write FOnBackSpace;
   end; { TVCLFloatingForm }
 
   IDLUIXVCLFloatingFrame = interface ['{43127F61-07EE-466F-BAB2-E39B811AFB2F}']
@@ -51,14 +55,16 @@ type
     [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
     [Managed(false)] FForm     : TVCLFloatingForm;
   var
-    FEasing  : IEasing;
-    FOnAction: TDLUIXFrameAction;
-    FParent  : IDLUIXFrame;
+    FEasing       : IEasing;
+    FHistoryButton: TButton;
+    FOnAction     : TDLUIXFrameAction;
+    FParent       : IDLUIXFrame;
   strict protected
     function  BuildButton(const action: IDLUIXAction): integer;
     function  BuildList(const listNavigation: IDLUIXListNavigationAction): integer;
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
+    function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure SetOnAction(const value: TDLUIXFrameAction);
   public
     constructor Create(const parentFrame: IDLUIXFrame);
@@ -89,12 +95,21 @@ end; { CreateUIXEngine }
 
 { TVCLFloatingForm }
 
-procedure TVCLFloatingForm.ExitOnEscape(Sender: TObject; var Key: Word; Shift:
-  TShiftState);
+constructor TVCLFloatingForm.CreateNew(AOwner: TComponent; Dummy: Integer = 0);
+begin
+  inherited;
+  OnKeyDown := HandleKeyDown;
+end;
+
+procedure TVCLFloatingForm.HandleKeyDown(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
 begin
   if Key = VK_ESCAPE then
-    Close;
-end; { TVCLFloatingForm.ExitOnEscape }
+    Close
+  else if Key = VK_BACK then
+    if assigned(OnBackSpace) then
+      OnBackSpace();
+end; { TVCLFloatingForm.HandleKeyDown }
 
 procedure TVCLFloatingForm.UpdateMask;
 var
@@ -136,13 +151,17 @@ begin
   FForm.AlphaBlend := true;
   FForm.KeyPreview := true;
   FForm.AlphaBlendValue := CAlphaBlendActive;
-  FForm.OnKeyDown := FForm.ExitOnEscape;
+  FForm.OnBackSpace :=
+    procedure
+    begin
+      if assigned(FHistoryButton) then
+        FHistoryButton.OnClick(FHistoryButton);
+    end;
 end; { TDLUIXVCLFloatingFrame.Create }
 
 function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): integer;
 var
   button      : TButton;
-  isBack      : boolean;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
 begin
   button := TButton.Create(FForm);
@@ -153,11 +172,12 @@ begin
   button.Top := FForm.ClientHeight + IFF(FForm.ClientHeight = 0, 0, CButtonSpacing);
 
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
-    isBack := TType.GetType((openAnalyzer.Analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
-    if isBack then
-      button.Caption := '< ' + action.Name
-    else
-      button.Caption := action.Name + ' >';
+    if not IsHistoryAnalyzer(openAnalyzer.Analyzer) then
+      button.Caption := action.Name + ' >'
+    else begin
+      button.Caption := '< ' + action.Name;
+      FHistoryButton := button;
+    end;
   end
   else
     button.Caption := action.Name;
@@ -250,6 +270,12 @@ function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
 begin
   Result := (FForm.ClientHeight = 0);
 end; { TDLUIXVCLFloatingFrame.IsEmpty }
+
+function TDLUIXVCLFloatingFrame.IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer):
+  boolean;
+begin
+  Result := TType.GetType((analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
+end; { TDLUIXVCLFloatingFrame.IsHistoryAnalyzer }
 
 procedure TDLUIXVCLFloatingFrame.MarkActive(isActive: boolean);
 var

@@ -3,7 +3,7 @@ unit DelphiLensUI.Worker;
 interface
 
 uses
-  OtlComm, OtlTaskControl,
+  OtlSync, OtlComm, OtlTaskControl,
   DelphiLens.Intf,
   DelphiLensUI.UIXStorage,
   DelphiLensUI.UIXEngine.Intf;
@@ -30,6 +30,7 @@ type
   TDelphiLensUIProject = class
   strict private
     FNavigationInfo: TDLUINavigationInfo;
+    FScanLock      : IOmniCriticalSection;
     FScanResult    : IDLScanResult;
     FUIXStorage    : IDLUIXStorage;
     FWorker        : IOmniTaskControl;
@@ -49,7 +50,9 @@ type
 implementation
 
 uses
+  System.UITypes,
   System.SysUtils,
+  Vcl.Forms,
   Spring,
   OtlCommon,
   DelphiLens,
@@ -63,10 +66,11 @@ type
   var
     FDelphiLens: IDelphiLens;
     FOwner     : TDelphiLensUIProject;
+    FScanLock  : IOmniCriticalSection;
   strict protected
     procedure ScheduleRescan;
   protected
-    function Initialize: boolean; override;
+    function  Initialize: boolean; override;
   public
     procedure Open(const projectName: TOmniValue);
     procedure Close;
@@ -91,8 +95,10 @@ end; { TDLUIProjectConfig.Create }
 constructor TDelphiLensUIProject.Create(const projectName: string);
 begin
   inherited Create;
+  FScanLock := CreateOmniCriticalSection;
   FWorker := CreateTask(TDelphiLensUIWorker.Create(), 'DelphiLens engine for ' + projectName)
                .SetParameter('owner', Self)
+               .SetParameter('lock', FScanLock)
                .Unobserved
                .Run;
   FWorker.Invoke(@TDelphiLensUIWorker.Open, projectName);
@@ -112,14 +118,22 @@ procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: in
   var navigate: boolean);
 var
   navigateTo: Nullable<TDLUIXLocation>;
+  oldCursor : TCursor;
   unitName  : string;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
-  //TODO: *** Also worker must not be rescanning while UI is shown as FScanResult refers to worker's data
   unitName := ExtractFileName(fileName);
   if SameText(ExtractFileExt(unitName), '.pas') then
     unitName := ChangeFileExt(unitName, '');
-  DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, unitName, line, column), navigateTo);
+
+  oldCursor := Screen.Cursor;
+  Screen.Cursor := crHourGlass;
+  FScanLock.Acquire;
+  try
+    Screen.Cursor := oldCursor;
+    DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, unitName, line, column), navigateTo);
+  finally FScanLock.Release; end;
+
   navigate := navigateTo.HasValue;
   if navigate then
     FNavigationInfo := TDLUINavigationInfo.Create(navigateTo);
@@ -170,8 +184,10 @@ end; { TDelphiLensUIWorker.FileModified }
 function TDelphiLensUIWorker.Initialize: boolean;
 begin
   Result := inherited Initialize;
-  if Result then
+  if Result then begin
     FOwner := Task.Param['owner'];
+    FScanLock := Task.Param['lock'].AsInterface as IOmniCriticalSection;
+  end;
 end; { TDelphiLensUIWorker.Initialize }
 
 procedure TDelphiLensUIWorker.Open(const projectName: TOmniValue);
@@ -192,7 +208,11 @@ begin
     Exit;
 
   Task.ClearTimer(CTimerRescan);
-  scanResult := FDelphiLens.Rescan;
+
+  FScanLock.Acquire;
+  try
+    scanResult := FDelphiLens.Rescan;
+  finally FScanLock.Release; end;
 
   Task.Invoke(
     procedure

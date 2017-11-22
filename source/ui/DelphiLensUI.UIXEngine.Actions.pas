@@ -30,10 +30,20 @@ type
     property Locations: IDLUIXNamedLocationList read GetLocations;
   end; { IDLUIXListNavigationAction }
 
+  IDLUIXFilteredListAction = interface(IDLUIXAction) ['{A74C5DBB-F0FA-4560-BAF1-41AB5E4E109F}']
+    function  GetList: IList<string>;
+    function  GetSelected: string;
+  //
+    property List: IList<string> read GetList;
+    property Selected: string read GetSelected;
+  end; { IDLUIXFilteredListAction }
+
 function  CreateOpenAnalyzerAction(const name: string; const analyzer: IDLUIXAnalyzer): IDLUIXAction;
 function  CreateNavigationAction(const name: string; const location: TDLUIXLocation;
   isBackNavigation: boolean): IDLUIXAction;
 function  CreateListNavigationAction(const name: string; const locations: IDLUIXNamedLocationList): IDLUIXAction;
+function  CreateFilteredListAction(const name: string; const list: IList<string>;
+  const selected: string): IDLUIXAction;
 
 implementation
 
@@ -82,6 +92,19 @@ type
     property Locations: IDLUIXNamedLocationList read GetLocations;
   end; { TDLUIXListNavigationAction }
 
+  TDLUIXFilteredListAction = class(TDLUIXAction, IDLUIXFilteredListAction)
+  strict private
+    FList    : IList<string>;
+    FSelected: string;
+  strict protected
+    function  GetList: IList<string>;
+    function  GetSelected: string;
+  public
+    constructor Create(const name: string; const list: IList<string>;
+      const selected: string);
+    property List: IList<string> read GetList;
+  end; { TDLUIXFilteredListAction }
+
 { exports }
 
 function CreateOpenAnalyzerAction(const name: string; const analyzer: IDLUIXAnalyzer): IDLUIXAction;
@@ -100,6 +123,12 @@ function CreateListNavigationAction(const name: string;
 begin
   Result := TDLUIXListNavigationAction.Create(name, locations);
 end; { CreateListNavigationAction }
+
+function CreateFilteredListAction(const name: string;
+  const list: IList<string>; const selected: string): IDLUIXAction;
+begin
+  Result := TDLUIXFilteredListAction.Create(name, list, selected);
+end; { CreateFilteredListAction }
 
 { TDLUIXAction }
 
@@ -161,5 +190,25 @@ function TDLUIXListNavigationAction.GetLocations: IDLUIXNamedLocationList;
 begin
   Result := FLocations;
 end; { TDLUIXListNavigationAction.GetLocations }
+
+{ TDLUIXFilteredListAction }
+
+constructor TDLUIXFilteredListAction.Create(const name: string;
+  const list: IList<string>; const selected: string);
+begin
+  inherited Create(name);
+  FList := list;
+  FSelected := selected;
+end; { TDLUIXFilteredListAction.Create }
+
+function TDLUIXFilteredListAction.GetList: IList<string>;
+begin
+  Result := FList;
+end; { TDLUIXFilteredListAction.GetList }
+
+function TDLUIXFilteredListAction.GetSelected: string;
+begin
+  Result := FSelected;
+end; { TDLUIXFilteredListAction.GetSelected }
 
 end.

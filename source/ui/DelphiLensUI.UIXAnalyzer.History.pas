@@ -49,7 +49,6 @@ end; { TDLUIXHistoryAnalyzer.BuildFrame }
 
 function TDLUIXHistoryAnalyzer.BuildLocationList: IDLUIXNamedLocationList;
 var
-  hot: integer;
   loc: TDLUIXLocation;
 begin
   Result := TCollections.CreateList<IDLUIXNavigationAction>;

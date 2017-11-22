@@ -16,6 +16,8 @@ function GetSearchPath(const project: IOTAProject; MapEnvVariables: boolean): st
 
 function ReplaceEnvVariables(const s: string): string;
 
+function ActivateTab(const fileName: string): boolean;
+
 type
   TLogClass = (lcError, lcActiveProject, lcActivation);
 
@@ -143,6 +145,39 @@ begin
     Insert(envVar, Result, pEnv);
   until false;
 end;
+
+function ActivateTab(const fileName: string): boolean;
+var
+  actSvc    : IOTAActionServices;
+  editBuffer: IOTAEditBuffer;
+  editIter  : IOTAEditBufferIterator;
+  editSvc   : IOTAEditorServices;
+  i         : integer;
+begin
+  Result := false;
+
+  editSvc := (BorlandIDEServices as IOTAEditorServices);
+  if assigned(editSvc) and editSvc.GetEditBufferIterator(editIter) then begin
+    for i := 0 to editIter.Count - 1 do begin
+      editBuffer := editIter.EditBuffers[i];
+      if (editBuffer.GetSubViewCount > 0)
+         and SameText(fileName, editBuffer.GetSubViewIdentifier(0))
+      then begin
+        editIter.EditBuffers[i].Show;
+        Result := true;
+        break; //for i
+      end;
+    end;
+  end;
+
+  if not Result then begin
+    actSvc := (BorlandIDEServices as IOTAActionServices);
+    Result := assigned(actSvc) and actSvc.OpenFile(fileName);
+  end;
+
+  if Result and (editSvc.TopBuffer.GetSubViewCount > 0) then
+    editSvc.TopBuffer.SwitchToView(0);
+end; { ActivateTag }
 
 procedure LogMessage(const s: string);
 begin

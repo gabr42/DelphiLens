@@ -8,12 +8,13 @@ uses
 
 type
   TDLUIXLocation = record
+    FileName: string;
     UnitName: string;
     Line    : integer;
     Column  : integer;
-    constructor Create(const AUnitName: string; ALine, AColumn: integer); overload;
+    constructor Create(const AFileName, AUnitName: string; ALine, AColumn: integer); overload;
     constructor Create(const ALocation: TDLUIXLocation); overload;
-    constructor Create(const AUnitName: string; const ADLCoordinate: TDLCoordinate); overload;
+    constructor Create(const AFileName, AUnitName: string; const ADLCoordinate: TDLCoordinate); overload;
   end; { TDLUIXLocation }
 
   IDLUIXLocationList = IList<TDLUIXLocation>;
@@ -47,8 +48,10 @@ type
 
 implementation
 
-constructor TDLUIXLocation.Create(const AUnitName: string; ALine, AColumn: integer);
+constructor TDLUIXLocation.Create(const AFileName, AUnitName: string;
+  ALine, AColumn: integer);
 begin
+  FileName := AFileName;
   UnitName := AUnitName;
   Line := ALine;
   Column := AColumn;
@@ -59,9 +62,10 @@ begin
   Self := ALocation;
 end; { TDLUIXLocation.Create }
 
-constructor TDLUIXLocation.Create(const AUnitName: string;
+constructor TDLUIXLocation.Create(const AFileName, AUnitName: string;
   const ADLCoordinate: TDLCoordinate);
 begin
+  FileName := AFileName;
   UnitName := AUnitName;
   Line := ADLCoordinate.Line;
   Column := ADLCoordinate.Column;

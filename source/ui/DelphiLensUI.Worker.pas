@@ -112,10 +112,14 @@ procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: in
   var navigate: boolean);
 var
   navigateTo: Nullable<TDLUIXLocation>;
+  unitName  : string;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
   //TODO: *** Also worker must not be rescanning while UI is shown as FScanResult refers to worker's data
-  DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, line, column), navigateTo);
+  unitName := ExtractFileName(fileName);
+  if SameText(ExtractFileExt(unitName), '.pas') then
+    unitName := ChangeFileExt(unitName, '');
+  DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, unitName, line, column), navigateTo);
   navigate := navigateTo.HasValue;
   if navigate then
     FNavigationInfo := TDLUINavigationInfo.Create(navigateTo);
@@ -220,7 +224,7 @@ end; { TDelphiLensUIWorker.SetConfig }
 
 constructor TDLUINavigationInfo.Create(const location: TDLUIXLocation);
 begin
-  FileNameStr := location.UnitName;
+  FileNameStr := location.FileName;
   UniqueString(FileNameStr);
   FileName := PChar(FileNameStr);
   Line := location.Line;

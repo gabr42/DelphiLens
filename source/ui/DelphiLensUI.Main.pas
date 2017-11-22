@@ -70,7 +70,8 @@ begin
     ui.ShowMain;
     if assigned(ui.ExecuteAction) then begin
       if Supports(ui.ExecuteAction, IDLUIXNavigationAction, navigation) then begin
-        navigateTo := TDLUIXLocation.Create(navigation.Location.UnitName,
+        navigateTo := TDLUIXLocation.Create(navigation.Location.FileName,
+          navigation.Location.UnitName,
           navigation.Location.Line, navigation.Location.Column);
         if navigation.IsBackNavigation then
           uixStorage.History.Remove(navigateTo)

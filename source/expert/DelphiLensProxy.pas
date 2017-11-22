@@ -44,7 +44,6 @@ type
     FDLUIHasProject: boolean;
     FDLUIProjectID : integer;
   strict protected
-    function  ActivateTab(const fileName: string): boolean;
     function  CheckAPI(const apiName: string; apiResult: integer): boolean;
     procedure CloseProject;
     procedure SetCursorPosition(line, column: integer);
@@ -64,7 +63,7 @@ type
 procedure TDelphiLensProxy.Activate;
 var
   edit: IOTAEditorServices;
-  fileName: string;
+  filePath: string;
   navToFile: PChar;
   navToLine, navToColumn: integer;
   apiRes: integer;
@@ -83,14 +82,14 @@ begin
     else if not assigned(edit.TopView.Buffer) then
       Log(lcActivation, '... no top view buffer')
     else begin
-      fileName := ExtractFileName(edit.TopView.Buffer.FileName);
-      if SameText(ExtractFileExt(fileName), '.pas') then
-        fileName := ChangeFileExt(fileName, '');
+      filePath := edit.TopView.Buffer.GetSubViewIdentifier(0);
       Log(lcActivation, 'Activate in %s @ %d,%d',
-        [fileName, edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col]);
+        [filePath, edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col]);
+
       apiRes := DLUIActivate(FDLUIProjectID,
-        PChar(fileName), edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col,
+        PChar(filePath), edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col,
         navToFile, navToLine, navToColumn);
+
       if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTab(string(navToFile)) then
       begin
         Log(lcActivation, '... navigate to %s @ %d,%d',
@@ -109,14 +108,6 @@ begin
   CloseProject;
   inherited;
 end; { TDelphiLensProxy.Destroy }
-
-function TDelphiLensProxy.ActivateTab(const fileName: string): boolean;
-var
-  actSvc: IOTAActionServices;
-begin
-  actSvc := (BorlandIDEServices as IOTAActionServices);
-  Result := assigned(actSvc) and actSvc.OpenFile(fileName);
-end; { TDelphiLensProxy.ActivateTag }
 
 function TDelphiLensProxy.CheckAPI(const apiName: string; apiResult: integer): boolean;
 var
@@ -230,36 +221,12 @@ procedure TDelphiLensProxy.SetCursorPosition(line, column: integer);
 var
   edit: IOTAEditorServices;
   editPos: TOTAEditPos;
-  topPos: TOTAEditPos;
-  newTop: TOTAEditPos;
-  moveTop: boolean;
-  viewSize: TSize;
 begin
   edit := (BorlandIDEServices as IOTAEditorServices);
   editPos.Line := line;
   editPos.Col := column;
   edit.TopView.CursorPos := editPos;
-
-  topPos := edit.TopView.TopPos;
-  viewSize := edit.TopView.ViewSize;
-  newTop := topPos;
-  moveTop := false;
-
-  if editPos.Line < topPos.Line then begin
-    newTop.Line := Max(1, editPos.Line - 3);
-    moveTop := true;
-  end
-  else if editPos.Line >= (topPos.Line + viewSize.cy) then begin
-    newTop.Line := Max(1, editPos.Line - viewSize.cy div 2);
-    moveTop := true;
-  end;
-
-  //TODO: also move in X
-
-  if moveTop then begin
-    edit.TopView.TopPos := newTop;
-    edit.TopView.Paint;
-  end;
+  edit.TopView.MoveViewToCursor;
 end;
 
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);

@@ -45,6 +45,9 @@ type
     constructor Create(const uixEngine: IDLUIXEngine; const analyzers: TDLAnalyzers);
     procedure Initialize(const projectInfo: IDLScanResult; const fileName: string;
       const line, column: integer);
+    procedure ProcessExecuteAction(const uixStorage: IDLUIXStorage;
+        const currentLocation: TDLUIXLocation;
+      var navigateTo: Nullable<TDLUIXLocation>);
     procedure ShowMain;
     property ExecuteAction: IDLUIXAction read FExecuteAction;
   end; { TDLUserInterface }
@@ -54,9 +57,8 @@ type
 procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
   const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
 var
-  analyzers     : TDLAnalyzers;
-  navigation    : IDLUIXNavigationAction;
-  ui            : TDLUserInterface;
+  analyzers: TDLAnalyzers;
+  ui       : TDLUserInterface;
 begin
   navigateTo := nil;
 
@@ -68,17 +70,7 @@ begin
   try
     ui.Initialize(projectInfo, currentLocation.UnitName, currentLocation.line, currentLocation.column);
     ui.ShowMain;
-    if assigned(ui.ExecuteAction) then begin
-      if Supports(ui.ExecuteAction, IDLUIXNavigationAction, navigation) then begin
-        navigateTo := TDLUIXLocation.Create(navigation.Location.FileName,
-          navigation.Location.UnitName,
-          navigation.Location.Line, navigation.Location.Column);
-        if navigation.IsBackNavigation then
-          uixStorage.History.Remove(navigateTo)
-        else
-          uixStorage.History.Add(TDLUIXLocation.Create(currentLocation));
-      end;
-    end  ;
+    ui.ProcessExecuteAction(uixStorage, currentLocation, navigateTo);
   finally FreeAndNil(ui); end;
 end; { DLUIShowUI }
 
@@ -97,6 +89,25 @@ procedure TDLUserInterface.Initialize(const projectInfo: IDLScanResult;
 begin
   FAnalysisState := TDLAnalysisState.Create(projectInfo, fileName, line, column);
 end; { TDLUserInterface.Initialize }
+
+procedure TDLUserInterface.ProcessExecuteAction(
+  const uixStorage: IDLUIXStorage; const currentLocation: TDLUIXLocation;
+  var navigateTo: Nullable<TDLUIXLocation>);
+var
+  navigation: IDLUIXNavigationAction;
+begin
+  if assigned(ExecuteAction) then begin
+    if Supports(ExecuteAction, IDLUIXNavigationAction, navigation) then begin
+      navigateTo := TDLUIXLocation.Create(navigation.Location.FileName,
+        navigation.Location.UnitName,
+        navigation.Location.Line, navigation.Location.Column);
+      if navigation.IsBackNavigation then
+        uixStorage.History.Remove(navigateTo)
+      else
+        uixStorage.History.Add(TDLUIXLocation.Create(currentLocation));
+    end;
+  end;
+end; { TDLUserInterface.ProcessExecuteAction }
 
 procedure TDLUserInterface.ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
   const parentAction: IDLUIXAction; const analyzer: IDLUIXAnalyzer);

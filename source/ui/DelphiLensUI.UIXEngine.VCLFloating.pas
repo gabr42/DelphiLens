@@ -42,28 +42,36 @@ type
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
                                                            IDLUIXVCLFloatingFrame)
   strict private const
-    CAlphaBlendActive    = 224;
-    CAlphaBlendInactive  =  64;
-    CButtonHeight        =  81;
-    CButtonSpacing       =  15;
-    CButtonWidth         = 201;
-    CFrameSpacing        =  15;
-    CListButtonHeight    =  25;
-    CListButtonSpacing   =   3;
-    CListButtonWidth     = 254;
+    CAlphaBlendActive     = 255;
+    CAlphaBlendInactive   =  64;
+    CButtonHeight         =  81;
+    CButtonSpacing        =  15;
+    CButtonWidth          = 201;
+    CFrameSpacing         =  15;
+    CInactiveFrameOverlap = 21;
+    CListButtonHeight     =  25;
+    CListButtonSpacing    =   3;
+    CListButtonWidth      = 254;
   var
     [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
     [Managed(false)] FForm     : TVCLFloatingForm;
   var
     FEasing       : IEasing;
+    FEasingPos    : IEasing;
     FHistoryButton: TButton;
     FOnAction     : TDLUIXFrameAction;
+    FOriginalLeft : Nullable<integer>;
     FParent       : IDLUIXFrame;
+    FTargetLeft   : Nullable<integer>;
   strict protected
     function  BuildButton(const action: IDLUIXAction): integer;
     function  BuildList(const listNavigation: IDLUIXListNavigationAction): integer;
+    procedure EaseAlphaBlend(start, stop: integer);
+    procedure EaseLeft(start, stop: integer);
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
+    function  GetParent: IDLUIXFrame;
+    function  GetParentRect(const action: IDLUIXAction = nil): TRect;
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure SetOnAction(const value: TDLUIXFrameAction);
   public
@@ -77,6 +85,7 @@ type
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
+    property Parent: IDLUIXFrame read GetParent;
   end; { TDLUIXVCLFloatingFrame }
 
   TDLUIXVCLFloatingEngine = class(TInterfacedObject, IDLUIXEngine)
@@ -241,6 +250,27 @@ begin
     FForm.ClientHeight := Max(FForm.ClientHeight, BuildButton(action));
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
+procedure TDLUIXVCLFloatingFrame.EaseAlphaBlend(start, stop: integer);
+begin
+  FEasing := Easing.InOutCubic(start, stop, 500, 10,
+    procedure (value: integer)
+    begin
+      if not (csDestroying in FForm.ComponentState) then
+        FForm.AlphaBlendValue := value;
+    end);
+end; { TDLUIXVCLFloatingFrame.EaseAlphaBlend }
+
+procedure TDLUIXVCLFloatingFrame.EaseLeft(start, stop: integer);
+begin
+  FTargetLeft := stop;
+  FEasingPos := Easing.InOutCubic(start, stop, 500, 10,
+    procedure (value: integer)
+    begin
+      if not (csDestroying in FForm.ComponentState) then
+        FForm.Left := value;
+    end);
+end; { TDLUIXVCLFloatingFrame.EaseLeft }
+
 procedure TDLUIXVCLFloatingFrame.ForwardAction(Sender: TObject);
 begin
   if assigned(OnAction) then
@@ -251,20 +281,35 @@ function TDLUIXVCLFloatingFrame.GetBounds_Screen(const action: IDLUIXAction): TR
 var
   control: TObject;
 begin
+  if action = nil then
+    Exit(FForm.BoundsRect);
+
   control := FActionMap.Key[action];
   if not (control is TControl) then
-    Result := TRect.Empty
-  else begin
-    Result := TControl(control).BoundsRect;
-    Result.TopLeft := FForm.ClientToScreen(Result.TopLeft);
-    Result.BottomRight := FForm.ClientToScreen(Result.BottomRight);
-  end;
+    Exit(TRect.Empty);
+
+  Result := TControl(control).BoundsRect;
+  Result.TopLeft := FForm.ClientToScreen(Result.TopLeft);
+  Result.BottomRight := FForm.ClientToScreen(Result.BottomRight);
+
+  if FTargetLeft.HasValue then
+    Result.Offset(FTargetLeft.Value - Result.Left, 0);
 end; { TDLUIXVCLFloatingFrame.GetBounds_Screen }
 
 function TDLUIXVCLFloatingFrame.GetOnAction: TDLUIXFrameAction;
 begin
   Result := FOnAction;
 end; { TDLUIXVCLFloatingFrame.GetOnAction }
+
+function TDLUIXVCLFloatingFrame.GetParent: IDLUIXFrame;
+begin
+  Result := FParent;
+end; { TDLUIXVCLFloatingFrame.GetParent }
+
+function TDLUIXVCLFloatingFrame.GetParentRect(const action: IDLUIXAction): TRect;
+begin
+  Result := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(action);
+end; { TDLUIXVCLFloatingFrame.GetParentRect }
 
 function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
 begin
@@ -278,16 +323,19 @@ begin
 end; { TDLUIXVCLFloatingFrame.IsHistoryAnalyzer }
 
 procedure TDLUIXVCLFloatingFrame.MarkActive(isActive: boolean);
-var
-  newAlphaBlend: integer;
 begin
-  newAlphaBlend := IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive);
-  FEasing := Easing.InOutCubic(FForm.AlphaBlendValue, newAlphaBlend, 500, 10,
-    procedure (value: integer)
-    begin
-      if not (csDestroying in FForm.ComponentState) then
-        FForm.AlphaBlendValue := value;
-    end);
+  EaseAlphaBlend(FForm.AlphaBlendValue, IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive));
+
+  if assigned(FParent) then begin
+    if not isActive then begin
+      FOriginalLeft := FForm.Left;
+      EaseLeft(FForm.Left, GetParentRect.Left + CInactiveFrameOverlap);
+    end
+    else if FOriginalLeft.HasValue then begin
+      EaseLeft(FForm.Left, FOriginalLeft);
+      FOriginalLeft := nil;
+    end;
+  end;
 end; { TDLUIXVCLFloatingFrame.MarkActive }
 
 procedure TDLUIXVCLFloatingFrame.SetOnAction(const value: TDLUIXFrameAction);
@@ -306,7 +354,6 @@ begin
   else begin
     FForm.Position := poDesigned;
     rect := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(parentAction);
-
     isBack := false;
     if Supports(parentAction, IDLUIXOpenAnalyzerAction, analyzerAction) then
       isBack := TType.GetType((analyzerAction.Analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;

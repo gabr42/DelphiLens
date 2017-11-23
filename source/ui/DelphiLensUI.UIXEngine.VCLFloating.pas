@@ -17,7 +17,7 @@ implementation
 uses
   Winapi.Windows,
   System.Types, System.RTTI, System.SysUtils, System.Classes, System.Math,
-  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms,
+  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.WinXCtrls,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
@@ -42,30 +42,39 @@ type
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
                                                            IDLUIXVCLFloatingFrame)
   strict private const
-    CAlphaBlendActive     = 255;
-    CAlphaBlendInactive   =  64;
-    CButtonHeight         =  81;
-    CButtonSpacing        =  15;
-    CButtonWidth          = 201;
-    CFrameSpacing         =  15;
-    CInactiveFrameOverlap = 21;
-    CListButtonHeight     =  25;
-    CListButtonSpacing    =   3;
-    CListButtonWidth      = 254;
+    CAlphaBlendActive         = 255;
+    CAlphaBlendInactive       =  64;
+    CButtonHeight             =  81;
+    CButtonSpacing            =  15;
+    CButtonWidth              = 201;
+    CColumnSpacing            =  15;
+    CFilteredListWidth        = 201;
+    CFilteredListHeight       = 313;
+    CFrameSpacing             =  21;
+    CInactiveFrameOverlap     =  21;
+    CListButtonHeight         =  25;
+    CListButtonSpacing        =   3;
+    CListButtonWidth          = 254;
+    CSearchBoxHeight          =  21;
+    CSearchToListBoxSeparator =   1;
   var
     [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
     [Managed(false)] FForm     : TVCLFloatingForm;
   var
-    FEasing       : IEasing;
-    FEasingPos    : IEasing;
-    FHistoryButton: TButton;
-    FOnAction     : TDLUIXFrameAction;
-    FOriginalLeft : Nullable<integer>;
-    FParent       : IDLUIXFrame;
-    FTargetLeft   : Nullable<integer>;
+    FColumnTop     : integer;
+    FColumnLeft    : integer;
+    FEasing        : IEasing;
+    FEasingPos     : IEasing;
+    FForceNewColumn: boolean;
+    FHistoryButton : TButton;
+    FOnAction      : TDLUIXFrameAction;
+    FOriginalLeft  : Nullable<integer>;
+    FParent        : IDLUIXFrame;
+    FTargetLeft    : Nullable<integer>;
   strict protected
-    function  BuildButton(const action: IDLUIXAction): integer;
-    function  BuildList(const listNavigation: IDLUIXListNavigationAction): integer;
+    function  BuildButton(const action: IDLUIXAction): TRect;
+    function  BuildFilteredList(const filteredList: IDLUIXFilteredListAction): TRect;
+    function  BuildList(const listNavigation: IDLUIXListNavigationAction): TRect;
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
     procedure ForwardAction(Sender: TObject);
@@ -73,7 +82,10 @@ type
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
+    procedure NewColumn;
+    procedure PrepareNewColumn;
     procedure SetOnAction(const value: TDLUIXFrameAction);
+    procedure UpdateClientSize(const rect: TRect);
   public
     constructor Create(const parentFrame: IDLUIXFrame);
     // IDLUIXVCLFloatingFrame
@@ -155,7 +167,7 @@ begin
   FParent := parentFrame;
   FForm := TVCLFloatingForm.CreateNew(Application);
   FForm.BorderStyle := bsNone;
-  FForm.ClientWidth := CButtonWidth;
+  FForm.ClientWidth := 0;
   FForm.ClientHeight := 0;
   FForm.AlphaBlend := true;
   FForm.KeyPreview := true;
@@ -168,7 +180,7 @@ begin
     end;
 end; { TDLUIXVCLFloatingFrame.Create }
 
-function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): integer;
+function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): TRect;
 var
   button      : TButton;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
@@ -177,8 +189,8 @@ begin
   button.Parent := FForm;
   button.Width := CButtonWidth;
   button.Height := CButtonHeight;
-  button.Left := 0;
-  button.Top := FForm.ClientHeight + IFF(FForm.ClientHeight = 0, 0, CButtonSpacing);
+  button.Left := FColumnLeft;
+  button.Top := FColumnTop + IFF(FColumnTop = 0, 0, CButtonSpacing);
 
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
     if not IsHistoryAnalyzer(openAnalyzer.Analyzer) then
@@ -194,19 +206,44 @@ begin
 
   FActionMap.Add(button, action);
 
-  Result := button.BoundsRect.Bottom;
+  Result := button.BoundsRect;
 end; { TDLUIXVCLFloatingFrame.BuildButton }
 
+function TDLUIXVCLFloatingFrame.BuildFilteredList(const filteredList:
+  IDLUIXFilteredListAction): TRect;
+var
+  listBox  : TListBox;
+  searchBox: TSearchBox;
+  s        : string;
+begin
+  searchBox := TSearchBox.Create(FForm);
+  searchBox.Parent := FForm;
+  searchBox.Width := CFilteredListWidth;
+  searchBox.Height := CSearchBoxHeight;
+  searchBox.Left := FColumnLeft;
+  searchBox.Top := FColumnTop + 1;
+  listBox := TListBox.Create(FForm);
+  listBox.Parent := FForm;
+  listBox.Width := searchBox.Width;
+  listBox.Height := CFilteredListHeight;
+  listBox.Left := FColumnLeft;
+  listBox.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
+  listBox.Items.AddStrings(filteredList.List.ToArray);
+  Result.TopLeft := searchBox.BoundsRect.TopLeft;
+  Result.BottomRight := listBox.BoundsRect.BottomRight;
+  NewColumn;
+end; { TDLUIXVCLFloatingFrame.BuildFilteredList }
+
 function TDLUIXVCLFloatingFrame.BuildList(const listNavigation:
-  IDLUIXListNavigationAction): integer;
+  IDLUIXListNavigationAction): TRect;
 var
   button    : TButton;
   hotkey    : string;
   navigation: IDLUIXNavigationAction;
   nextTop   : integer;
 begin
-  nextTop := 0;
-  Result := 0;
+  Result.TopLeft := Point(FColumnLeft, FColumnTop);
+  nextTop := FColumnTop;
   button := nil;
 
   hotkey := '1';
@@ -215,12 +252,10 @@ begin
     button.Parent := FForm;
     button.Width := CListButtonWidth;
     button.Height := CListButtonHeight;
-    button.Left := 0;
+    button.Left := FColumnLeft;
     button.Top := nextTop;
     button.Caption := IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
     button.OnClick := ForwardAction;
-
-    FForm.Width := Max(FForm.Width, button.Width);
 
     FActionMap.Add(button, navigation);
 
@@ -232,7 +267,9 @@ begin
   end; //for namedLocation
 
   if assigned(button) then
-    Result := button.BoundsRect.Bottom;
+    Result.BottomRight := button.BoundsRect.BottomRight
+  else
+    Result := TRect.Empty;
 end; { TDLUIXVCLFloatingFrame.BuildList }
 
 procedure TDLUIXVCLFloatingFrame.Close;
@@ -242,12 +279,16 @@ end; { TDLUIXVCLFloatingFrame.Close }
 
 procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
 var
+  filterList : IDLUIXFilteredListAction;
   historyList: IDLUIXListNavigationAction;
 begin
+  PrepareNewColumn;
   if Supports(action, IDLUIXListNavigationAction, historyList) then
-    FForm.ClientHeight := Max(FForm.ClientHeight, BuildList(historyList))
+    UpdateClientSize(BuildList(historyList))
+  else if Supports(action, IDLUIXFilteredListAction, filterList) then
+    UpdateClientSize(BuildFilteredList(filterList))
   else
-    FForm.ClientHeight := Max(FForm.ClientHeight, BuildButton(action));
+    UpdateClientSize(BuildButton(action));
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
 procedure TDLUIXVCLFloatingFrame.EaseAlphaBlend(start, stop: integer);
@@ -338,6 +379,21 @@ begin
   end;
 end; { TDLUIXVCLFloatingFrame.MarkActive }
 
+procedure TDLUIXVCLFloatingFrame.NewColumn;
+begin
+  FForceNewColumn := true;
+end; { TDLUIXVCLFloatingFrame.NewColumn }
+
+procedure TDLUIXVCLFloatingFrame.PrepareNewColumn;
+begin
+  if not FForceNewColumn then
+    Exit;
+
+  FColumnLeft := FForm.ClientWidth + CColumnSpacing;
+  FColumnTop := 0;
+  FForceNewColumn := false;
+end; { TDLUIXVCLFloatingFrame.PrepareNewColumn }
+
 procedure TDLUIXVCLFloatingFrame.SetOnAction(const value: TDLUIXFrameAction);
 begin
   FOnAction := value;
@@ -367,6 +423,13 @@ begin
   FForm.UpdateMask;
   FForm.ShowModal;
 end; { TDLUIXVCLFloatingFrame.Show }
+
+procedure TDLUIXVCLFloatingFrame.UpdateClientSize(const rect: TRect);
+begin
+  FForm.ClientWidth  := Max(FForm.ClientWidth,  rect.Right);
+  FForm.ClientHeight := Max(FForm.ClientHeight, rect.Bottom);
+  FColumnTop := Max(FColumnTop, rect.Bottom);
+end; { TDLUIXVCLFloatingFrame.UpdateClientSize }
 
 { TDLUIXVCLFloatingEngine }
 

@@ -31,6 +31,7 @@ type
 
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']
     function  GetOnAction: TDLUIXFrameAction;
+    function  GetParent: IDLUIXFrame;
     procedure SetOnAction(const value: TDLUIXFrameAction);
   //
     procedure Close;
@@ -39,6 +40,7 @@ type
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
+    property Parent: IDLUIXFrame read GetParent;
   end; { IDLUIXFrame }
 
   IDLUIXEngine = interface ['{E263D5F4-6050-46C0-9802-5AAA8D664747}']

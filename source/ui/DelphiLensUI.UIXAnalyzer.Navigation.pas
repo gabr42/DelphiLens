@@ -22,7 +22,7 @@ type
     FTreeAnalyzer: IDLTreeAnalyzer;
     FUnitInfo    : TProjectIndexer.TUnitInfo;
   public
-    procedure BuildFrame(const frame: IDLUIXFrame);
+    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
     function  CanHandle(const state: TDLAnalysisState): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
@@ -33,7 +33,8 @@ begin
   Result := TDLUIXNavigationAnalyzer.Create;
 end; { CreateNavigationAnalyzer }
 
-procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame);
+procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame;
+  const state: TDLAnalysisState);
 
   procedure AddNavigation(const name: string; const location: TDLCoordinate);
   begin

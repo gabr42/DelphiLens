@@ -115,7 +115,7 @@ begin
   ShowPanel(parentFrame, parentAction,
     procedure (const frame: IDLUIXFrame)
     begin
-      analyzer.BuildFrame(frame);
+      analyzer.BuildFrame(frame, FAnalysisState);
     end);
 end; { TDLUserInterface.ShowAnalyzerPanel }
 

@@ -18,11 +18,10 @@ uses
 type
   TDLUIXUnitBrowser = class(TManagedInterfacedObject, IDLUIXAnalyzer)
   strict private
-    FUnitNames  : IList<string>;
-    FProjectInfo: IDLScanResult;
+    FUnitNames: IList<string>;
   public
     constructor Create;
-    procedure BuildFrame(const frame: IDLUIXFrame);
+    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
     function  CanHandle(const state: TDLAnalysisState): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
@@ -41,16 +40,17 @@ begin
   FUnitNames := TCollections.CreateList<string>;
 end;
 
-procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame);
+procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
+  const state: TDLAnalysisState);
 var
   unitInfo: TProjectIndexer.TUnitInfo;
 begin
   FUnitNames.Clear;
-  for unitInfo in FProjectInfo.ParsedUnits do
+  for unitInfo in state.ProjectInfo.ParsedUnits do
     FUnitNames.Add(unitInfo.Name);
   FUnitNames.Sort;
 
-  frame.CreateAction(CreateFilteredListAction('', FUnitNames, ''));
+  frame.CreateAction(CreateFilteredListAction('', FUnitNames, state.FileName));
   frame.CreateAction(CreateOpenAnalyzerAction('Used &in', CreateUnitBrowser));
   frame.CreateAction(CreateOpenAnalyzerAction('Used &by', CreateUnitBrowser));
   frame.CreateAction(CreateNavigationAction('&Open', Default(TDLUIXLocation), false));
@@ -59,8 +59,6 @@ end; { TDLUIXUnitBrowser.BuildFrame }
 function TDLUIXUnitBrowser.CanHandle(const state: TDLAnalysisState): boolean;
 begin
   Result := (state.ProjectInfo.ParsedUnits.Count > 0);
-  if Result then
-    FProjectInfo := state.ProjectInfo;
 end; { TDLUIXUnitBrowser.CanHandle }
 
 end.

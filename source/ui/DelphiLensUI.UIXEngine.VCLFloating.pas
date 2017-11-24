@@ -16,8 +16,8 @@ implementation
 
 uses
   Winapi.Windows,
-  System.Types, System.RTTI, System.SysUtils, System.Classes, System.Math,
-  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.WinXCtrls,
+  System.Types, System.RTTI, System.SysUtils, System.StrUtils, System.Classes, System.Math,
+  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
@@ -77,10 +77,14 @@ type
     function  BuildList(const listNavigation: IDLUIXListNavigationAction): TRect;
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
+    procedure FilterListBox(Sender: TObject);
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
+    procedure HandleSearchBoxKeyDown(Sender: TObject; var key: word;
+      shift: TShiftState);
+    procedure HandleSearchBoxTimer(Sender: TObject);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure NewColumn;
     procedure PrepareNewColumn;
@@ -212,9 +216,9 @@ end; { TDLUIXVCLFloatingFrame.BuildButton }
 function TDLUIXVCLFloatingFrame.BuildFilteredList(const filteredList:
   IDLUIXFilteredListAction): TRect;
 var
-  listBox  : TListBox;
-  searchBox: TSearchBox;
-  s        : string;
+  listBox    : TListBox;
+  searchBox  : TSearchBox;
+  searchTimer: TTimer;
 begin
   searchBox := TSearchBox.Create(FForm);
   searchBox.Parent := FForm;
@@ -222,13 +226,29 @@ begin
   searchBox.Height := CSearchBoxHeight;
   searchBox.Left := FColumnLeft;
   searchBox.Top := FColumnTop + 1;
+  searchBox.OnKeyDown := HandleSearchBoxKeyDown;
+  searchBox.OnInvokeSearch := FilterListBox;
+
+  searchTimer := TTimer.Create(FForm);
+  searchTimer.Enabled := false;
+  searchTimer.Interval := 250;
+  searchTimer.OnTimer := HandleSearchBoxTimer;
+  searchTimer.Tag := NativeInt(searchBox);
+
   listBox := TListBox.Create(FForm);
   listBox.Parent := FForm;
   listBox.Width := searchBox.Width;
   listBox.Height := CFilteredListHeight;
   listBox.Left := FColumnLeft;
   listBox.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
-  listBox.Items.AddStrings(filteredList.List.ToArray);
+  listBox.Tag := NativeInt(searchTimer);
+
+  searchBox.Tag := NativeInt(listBox);
+
+  FActionMap.Add(searchBox, filteredList);
+
+  FilterListBox(searchBox);
+
   Result.TopLeft := searchBox.BoundsRect.TopLeft;
   Result.BottomRight := listBox.BoundsRect.BottomRight;
   NewColumn;
@@ -312,6 +332,38 @@ begin
     end);
 end; { TDLUIXVCLFloatingFrame.EaseLeft }
 
+procedure TDLUIXVCLFloatingFrame.FilterListBox(Sender: TObject);
+var
+  filteredList : IDLUIXFilteredListAction;
+  listBox      : TListBox;
+  matchesSearch: TPredicate<string>;
+  searchBox    : TSearchBox;
+  searchFilter : string;
+begin
+  filteredList := FActionMap.Value[Sender] as IDLUIXFilteredListAction;
+  searchBox := Sender as TSearchBox;
+  searchFilter := searchBox.Text;
+  listBox := TObject(searchBox.Tag) as TListBox;
+
+  listBox.Items.BeginUpdate;
+  try
+    listBox.Items.Clear;
+
+    if searchFilter = '' then
+      listBox.Items.AddStrings(filteredList.List.ToArray)
+    else begin
+      matchesSearch :=
+        function (const s: string): boolean
+        begin
+          Result := ContainsText(s, searchFilter);
+        end;
+      listBox.Items.AddStrings(filteredList.List.Where(matchesSearch).ToArray);
+    end;
+
+    listBox.ItemIndex := listBox.Items.IndexOf(filteredList.Selected);
+  finally listBox.Items.EndUpdate; end;
+end; { TDLUIXVCLFloatingFrame.FilterListBox }
+
 procedure TDLUIXVCLFloatingFrame.ForwardAction(Sender: TObject);
 begin
   if assigned(OnAction) then
@@ -351,6 +403,43 @@ function TDLUIXVCLFloatingFrame.GetParentRect(const action: IDLUIXAction): TRect
 begin
   Result := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(action);
 end; { TDLUIXVCLFloatingFrame.GetParentRect }
+
+procedure TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown(Sender: TObject;
+  var key: word; shift: TShiftState);
+var
+  listBox: TListBox;
+  timer  : TTimer;
+begin
+  if key = VK_UP then begin
+    listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
+    if listBox.ItemIndex > 0 then
+      listBox.ItemIndex := listBox.ItemIndex - 1;
+    key := 0;
+  end
+  else if key = VK_DOWN then begin
+    listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
+    if listBox.ItemIndex < (listBox.Items.Count - 1) then
+      listBox.ItemIndex := listBox.ItemIndex + 1;
+    key := 0;
+  end
+  else if key = VK_RETURN then begin
+    listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
+    if listBox.ItemIndex >= 0 then
+      ; //TODO: Trigger [Default] action (Open)
+    key := 0;
+  end
+  else begin
+    timer := (TObject((TObject((Sender as TSearchBox).Tag) as TListBox).Tag) as TTimer);
+    timer.Enabled := false;
+    timer.Enabled := true;
+  end;
+end; { TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown }
+
+procedure TDLUIXVCLFloatingFrame.HandleSearchBoxTimer(Sender: TObject);
+begin
+  (Sender as TTimer).Enabled := false;
+  FilterListBox(TObject(TTimer(Sender).Tag) as TSearchBox);
+end; { TDLUIXVCLFloatingFrame.HandleSearchBoxTimer }
 
 function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
 begin
@@ -417,7 +506,7 @@ begin
     if isBack then
       FForm.Left := rect.Left - CFrameSpacing - FForm.Width
     else
-      FForm.Left := rect.Right + CFrameSpacing;
+      FForm.Left := rect.Left + CFrameSpacing;
     FForm.Top := rect.Top + (rect.Height - FForm.Height) div 2;
   end;
   FForm.UpdateMask;

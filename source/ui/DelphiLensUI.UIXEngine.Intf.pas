@@ -25,6 +25,8 @@ type
     property Name: string read GetName;
   end; { IDLUIXAction }
 
+  TDLUIXActions = TArray<IDLUIXAction>;
+
   IDLUIXFrame = interface;
 
   TDLUIXFrameAction = reference to procedure (const frame: IDLUIXFrame; const action: IDLUIXAction);

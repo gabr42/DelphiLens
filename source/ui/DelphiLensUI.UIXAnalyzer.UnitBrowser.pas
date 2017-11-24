@@ -43,17 +43,29 @@ end;
 procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
   const state: TDLAnalysisState);
 var
-  unitInfo: TProjectIndexer.TUnitInfo;
+  filteredList  : IDLUIXFilteredListAction;
+  navigateToUnit: IDLUIXAction;
+  openUsed      : IDLUIXAction;
+  openUsers     : IDLUIXAction;
+  unitInfo      : TProjectIndexer.TUnitInfo;
 begin
   FUnitNames.Clear;
   for unitInfo in state.ProjectInfo.ParsedUnits do
     FUnitNames.Add(unitInfo.Name);
   FUnitNames.Sort;
 
-  frame.CreateAction(CreateFilteredListAction('', FUnitNames, state.FileName));
-  frame.CreateAction(CreateOpenAnalyzerAction('Used &in', CreateUnitBrowser));
-  frame.CreateAction(CreateOpenAnalyzerAction('Used &by', CreateUnitBrowser));
-  frame.CreateAction(CreateNavigationAction('&Open', Default(TDLUIXLocation), false));
+  filteredList := CreateFilteredListAction('', FUnitNames, state.FileName) as IDLUIXFilteredListAction;
+  openUsers := CreateOpenUnitBrowserAction('Used &in', CreateUnitBrowser, '', ubtUsedIn);
+  openUsed := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
+  navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
+
+  filteredList.ManagedActions := [openUsers, openUsed, navigateToUnit];
+  filteredList.DefaultAction := navigateToUnit;
+
+  frame.CreateAction(filteredList);
+  frame.CreateAction(openUsers);
+  frame.CreateAction(openUsed);
+  frame.CreateAction(navigateToUnit);
 end; { TDLUIXUnitBrowser.BuildFrame }
 
 function TDLUIXUnitBrowser.CanHandle(const state: TDLAnalysisState): boolean;

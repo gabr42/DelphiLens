@@ -285,6 +285,7 @@ begin
   QueueOnShow(
     procedure
     begin
+      SetLocationAndOpen(listBox, false);
       EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
     end);
 end; { TDLUIXVCLFloatingFrame.BuildFilteredList }

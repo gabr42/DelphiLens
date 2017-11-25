@@ -18,6 +18,7 @@ uses
   System.Generics.Collections,
   Spring.Collections,
   GpConsole,
+  DelphiLens.DelphiASTHelpers,
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXAnalyzer.UnitBrowser,
@@ -47,7 +48,7 @@ type
     procedure Initialize(const projectInfo: IDLScanResult; const fileName: string;
       const line, column: integer);
     procedure ProcessExecuteAction(const uixStorage: IDLUIXStorage;
-        const currentLocation: TDLUIXLocation;
+      const currentLocation: TDLUIXLocation;
       var navigateTo: Nullable<TDLUIXLocation>);
     procedure ShowMain;
     property ExecuteAction: IDLUIXAction read FExecuteAction;
@@ -96,11 +97,15 @@ procedure TDLUserInterface.ProcessExecuteAction(
   const uixStorage: IDLUIXStorage; const currentLocation: TDLUIXLocation;
   var navigateTo: Nullable<TDLUIXLocation>);
 var
+  fileName  : string;
   navigation: IDLUIXNavigationAction;
 begin
   if assigned(ExecuteAction) then begin
     if Supports(ExecuteAction, IDLUIXNavigationAction, navigation) then begin
-      navigateTo := TDLUIXLocation.Create(navigation.Location.FileName,
+      fileName := navigation.Location.FileName;
+      if fileName = '' then
+        fileName := FAnalysisState.ProjectInfo.ParsedUnits.FindOrDefault(navigation.Location.UnitName).Path;
+      navigateTo := TDLUIXLocation.Create(fileName,
         navigation.Location.UnitName,
         navigation.Location.Line, navigation.Location.Column);
       if navigation.IsBackNavigation then

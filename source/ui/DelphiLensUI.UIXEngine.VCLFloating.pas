@@ -20,6 +20,7 @@ uses
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing,
+  DelphiLens.UnitInfo,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
   DelphiLensUI.UIXEngine.Actions;
 
@@ -82,11 +83,15 @@ type
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
+    procedure HandleListBoxClick(Sender: TObject);
+    procedure HandleListBoxKeyDown(Sender: TObject; var key: word;
+      shift: TShiftState);
     procedure HandleSearchBoxKeyDown(Sender: TObject; var key: word;
       shift: TShiftState);
     procedure HandleSearchBoxTimer(Sender: TObject);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure NewColumn;
+    procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
     procedure PrepareNewColumn;
     procedure SetOnAction(const value: TDLUIXFrameAction);
     procedure UpdateClientSize(const rect: TRect);
@@ -233,7 +238,6 @@ begin
   searchTimer.Enabled := false;
   searchTimer.Interval := 250;
   searchTimer.OnTimer := HandleSearchBoxTimer;
-  searchTimer.Tag := NativeInt(searchBox);
 
   listBox := TListBox.Create(FForm);
   listBox.Parent := FForm;
@@ -241,13 +245,17 @@ begin
   listBox.Height := CFilteredListHeight;
   listBox.Left := FColumnLeft;
   listBox.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
-  listBox.Tag := NativeInt(searchTimer);
+  listBox.OnClick := HandleListBoxClick;
+  listBox.OnKeyDown := HandleListBoxKeyDown;
 
   searchBox.Tag := NativeInt(listBox);
+  listBox.Tag := NativeInt(searchTimer);
+  searchTimer.Tag := NativeInt(searchBox);
 
   FActionMap.Add(searchBox, filteredList);
 
   FilterListBox(searchBox);
+  listBox.ItemIndex := listBox.Items.IndexOf(filteredList.Selected);
 
   Result.TopLeft := searchBox.BoundsRect.TopLeft;
   Result.BottomRight := listBox.BoundsRect.BottomRight;
@@ -339,6 +347,7 @@ var
   matchesSearch: TPredicate<string>;
   searchBox    : TSearchBox;
   searchFilter : string;
+  selected     : string;
 begin
   filteredList := FActionMap.Value[Sender] as IDLUIXFilteredListAction;
   searchBox := Sender as TSearchBox;
@@ -347,6 +356,11 @@ begin
 
   listBox.Items.BeginUpdate;
   try
+    if listBox.ItemIndex < 0 then
+      selected := ''
+    else
+      selected := listBox.Items[listBox.ItemIndex];
+
     listBox.Items.Clear;
 
     if searchFilter = '' then
@@ -360,7 +374,12 @@ begin
       listBox.Items.AddStrings(filteredList.List.Where(matchesSearch).ToArray);
     end;
 
-    listBox.ItemIndex := listBox.Items.IndexOf(filteredList.Selected);
+    if selected <> '' then
+      listBox.ItemIndex := listBox.Items.IndexOf(selected);
+    if (listBox.ItemIndex < 0) and (listBox.Items.Count > 0) then
+      listBox.ItemIndex := 0;
+
+    listBox.OnClick(listBox);
   finally listBox.Items.EndUpdate; end;
 end; { TDLUIXVCLFloatingFrame.FilterListBox }
 
@@ -404,6 +423,20 @@ begin
   Result := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(action);
 end; { TDLUIXVCLFloatingFrame.GetParentRect }
 
+procedure TDLUIXVCLFloatingFrame.HandleListBoxClick(Sender: TObject);
+begin
+  SetLocationAndOpen(Sender as TListBox, false);
+end; { TDLUIXVCLFloatingFrame.HandleListBoxClick }
+
+procedure TDLUIXVCLFloatingFrame.HandleListBoxKeyDown(Sender: TObject;
+  var key: word; shift: TShiftState);
+begin
+  if key = VK_RETURN then begin
+    SetLocationAndOpen(Sender as TListBox, true);
+    key := 0;
+  end;
+end; { TDLUIXVCLFloatingFrame.HandleListBoxKeyDown }
+
 procedure TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown(Sender: TObject;
   var key: word; shift: TShiftState);
 var
@@ -423,9 +456,7 @@ begin
     key := 0;
   end
   else if key = VK_RETURN then begin
-    listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
-    if listBox.ItemIndex >= 0 then
-      ; //TODO: Trigger [Default] action (Open)
+    SetLocationAndOpen(TObject((Sender as TSearchBox).Tag) as TListBox, true);
     key := 0;
   end
   else begin
@@ -482,6 +513,31 @@ begin
   FColumnTop := 0;
   FForceNewColumn := false;
 end; { TDLUIXVCLFloatingFrame.PrepareNewColumn }
+
+procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
+var
+  filterAction    : IDLUIXFilteredListAction;
+  navigationAction: IDLUIXNavigationAction;
+  searchBox       : TSearchBox;
+  unitName        : string;
+begin
+  searchBox := (TObject((TObject(listBox.Tag) as TTimer).Tag) as TSearchBox);
+  filterAction := FActionMap[searchBox] as IDLUIXFilteredListAction;
+  if not (assigned(filterAction.DefaultAction)
+          and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction))
+  then
+    Exit;
+
+  if listBox.ItemIndex < 0 then
+    unitName := ''
+  else
+    unitName := listBox.Items[listBox.ItemIndex];
+
+  navigationAction.Location := TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid);
+
+  if doOpen then
+    OnAction(Self, navigationAction);
+end; { TDLUIXVCLFloatingFrame.SetLocationAndOpen }
 
 procedure TDLUIXVCLFloatingFrame.SetOnAction(const value: TDLUIXFrameAction);
 begin

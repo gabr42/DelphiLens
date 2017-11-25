@@ -91,11 +91,11 @@ begin
         navToFile, navToLine, navToColumn);
 
       if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTab(string(navToFile)) then
-      begin
-        Log(lcActivation, '... navigate to %s @ %d,%d',
-          [string(navToFile), navToLine, navToColumn]);
-        SetCursorPosition(navToLine, navToColumn);
-      end;
+        if (navToLine > 0) and (navToColumn > 0) then begin
+          Log(lcActivation, '... navigate to %s @ %d,%d',
+            [string(navToFile), navToLine, navToColumn]);
+          SetCursorPosition(navToLine, navToColumn);
+        end;
     end;
   except
     on E: Exception do

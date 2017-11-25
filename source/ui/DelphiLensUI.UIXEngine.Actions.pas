@@ -14,7 +14,7 @@ type
     property Analyzer: IDLUIXAnalyzer read GetAnalyzer;
   end; { IDLUIXOpenAnalyzerAction }
 
-  TDLUIXUnitBrowserType = (ubtNormal, ubtUsedIn, ubtUsedBy);
+  TDLUIXUnitBrowserType = (ubtNormal, ubtUses, ubtUsedBy);
   IDLUIXOpenUnitBrowserAction = interface(IDLUIXOpenAnalyzerAction) ['{0741FE6A-E194-4A67-A3BE-4E57AE8B141A}']
     function  GetFilterType: TDLUIXUnitBrowserType;
     function  GetInitialUnit: string;

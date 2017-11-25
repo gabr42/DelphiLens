@@ -45,8 +45,8 @@ procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
 var
   filteredList  : IDLUIXFilteredListAction;
   navigateToUnit: IDLUIXAction;
-  openUsed      : IDLUIXAction;
-  openUsers     : IDLUIXAction;
+  openUsedIn    : IDLUIXAction;
+  openUses      : IDLUIXAction;
   unitInfo      : TProjectIndexer.TUnitInfo;
 begin
   FUnitNames.Clear;
@@ -55,16 +55,16 @@ begin
   FUnitNames.Sort;
 
   filteredList := CreateFilteredListAction('', FUnitNames, state.FileName) as IDLUIXFilteredListAction;
-  openUsers := CreateOpenUnitBrowserAction('Used &in', CreateUnitBrowser, '', ubtUsedIn);
-  openUsed := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
+  openUses := CreateOpenUnitBrowserAction('&Uses', CreateUnitBrowser, '', ubtUses);
+  openUsedIn := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
 
-  filteredList.ManagedActions := [{openUsers, openUsed, }navigateToUnit];
+  filteredList.ManagedActions := [{openUses, openUsed, }navigateToUnit];
   filteredList.DefaultAction := navigateToUnit;
 
   frame.CreateAction(filteredList);
-  frame.CreateAction(openUsers, [faoDisabled]);
-  frame.CreateAction(openUsed, [faoDisabled]);
+  frame.CreateAction(openUses, [faoDisabled]);
+  frame.CreateAction(openUsedIn, [faoDisabled]);
   frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXUnitBrowser.BuildFrame }
 

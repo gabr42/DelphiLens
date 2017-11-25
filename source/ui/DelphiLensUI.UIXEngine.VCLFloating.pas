@@ -488,14 +488,18 @@ var
 begin
   if key = VK_UP then begin
     listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
-    if listBox.ItemIndex > 0 then
+    if listBox.ItemIndex > 0 then begin
       listBox.ItemIndex := listBox.ItemIndex - 1;
+      listBox.OnClick(listBox);
+    end;
     key := 0;
   end
   else if key = VK_DOWN then begin
     listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
-    if listBox.ItemIndex < (listBox.Items.Count - 1) then
+    if listBox.ItemIndex < (listBox.Items.Count - 1) then begin
       listBox.ItemIndex := listBox.ItemIndex + 1;
+      listBox.OnClick(listBox);
+    end;
     key := 0;
   end
   else if key = VK_RETURN then begin

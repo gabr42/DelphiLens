@@ -46,7 +46,8 @@ type
 
   TParsedUnitsHelper = class helper for TProjectIndexer.TParsedUnits
   public
-    function Find(const unitName: string; var unitInfo: TProjectIndexer.TUnitInfo): boolean;
+    function  Find(const unitName: string; var unitInfo: TProjectIndexer.TUnitInfo): boolean;
+    function  FindOrDefault(const unitName: string): TProjectIndexer.TUnitInfo;
   end; { TParsedUnitsHelper }
 
 implementation
@@ -203,5 +204,11 @@ begin
       Exit(true);
     end;
 end; { TParsedUnitsHelper.Find }
+
+function TParsedUnitsHelper.FindOrDefault(const unitName: string): TProjectIndexer.TUnitInfo;
+begin
+  if not Find(unitName, Result) then
+    Result := Default(TProjectIndexer.TUnitInfo);
+end; { TParsedUnitsHelper.FindOrDefault }
 
 end.

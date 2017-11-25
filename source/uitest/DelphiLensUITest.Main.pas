@@ -48,7 +48,7 @@ type
     procedure CopyUnitNames(const units: TParsedUnits);
     procedure CreateUnitNamesList;
     procedure LoadSettings;
-    procedure NavigateTo(navToFile: string; navToLine, navToColumn: integer);
+    procedure NavigateTo(navToUnit: string; navToLine, navToColumn: integer);
     procedure ReportUIError(const functionName: string);
     procedure OpenUIProject;
     procedure SaveSettings;
@@ -102,17 +102,24 @@ var
   navToColumn: integer;
   navToFile  : PChar;
   navToLine  : integer;
+  navToUnit  : string;
 begin
   if lbFiles.ItemIndex < 0 then
-    Exit;
+    navToUnit := ''
+  else
+    navToUnit := lbFiles.Items[lbFiles.ItemIndex];
 
-  if DLUIActivate(FUIProject, PChar(lbFiles.Items[lbFiles.ItemIndex]),
+  if DLUIActivate(FUIProject, PChar(navToUnit),
        outSource.CaretPos.Y + 1, outSource.CaretPos.X + 1,
        navToFile, navToLine, navToColumn) <> 0
   then
     ReportUIError('DLUIActivate')
-  else if assigned(navToFile) then
-    NavigateTo(navToFile, navToLine, navToColumn);
+  else if navToFile <> '' then begin
+    navToUnit := ExtractFileName(navToFile);
+    if SameText(ExtractFileExt(navToUnit), '.pas') then
+      navToUnit := ChangeFileExt(navToUnit, '');
+    NavigateTo(navToUnit, navToLine, navToColumn);
+  end;
 end;
 
 procedure TfrmDLUITestMain.CloseUIProject;
@@ -177,18 +184,20 @@ begin
   FLoading := false;
 end;
 
-procedure TfrmDLUITestMain.NavigateTo(navToFile: string; navToLine, navToColumn: integer);
+procedure TfrmDLUITestMain.NavigateTo(navToUnit: string; navToLine, navToColumn: integer);
 var
   idxFile: integer;
 begin
-  idxFile := lbFiles.Items.IndexOf(navToFile);
+  idxFile := lbFiles.Items.IndexOf(navToUnit);
   if idxFile >= 0 then begin
     if idxFile <> lbFiles.ItemIndex then begin
       lbFiles.ItemIndex := idxFile;
       lbFiles.OnClick(lbFiles);
     end;
-    outSource.CaretPos := Point(navToColumn - 1, navToLine - 1);
-    outSource.Perform(EM_LINESCROLL, 0, navToLine - 1 - outSource.Perform(EM_GETFIRSTVISIBLELINE, 0, 0));
+    if (navToColumn > 0) and (navToLine > 0) then begin
+      outSource.CaretPos := Point(navToColumn - 1, navToLine - 1);
+      outSource.Perform(EM_LINESCROLL, 0, navToLine - 1 - outSource.Perform(EM_GETFIRSTVISIBLELINE, 0, 0));
+    end;
     ActiveControl := outSource;
   end;
 end; { TfrmDLUITestMain.NavigateTo }

@@ -31,13 +31,16 @@ type
 
   TDLUIXFrameAction = reference to procedure (const frame: IDLUIXFrame; const action: IDLUIXAction);
 
+  TDLUIXFrameActionOption = (faoDefault, faoDisabled);
+  TDLUIXFrameActionOptions = set of TDLUIXFrameActionOption;
+
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     procedure SetOnAction(const value: TDLUIXFrameAction);
   //
     procedure Close;
-    procedure CreateAction(const action: IDLUIXAction);
+    procedure CreateAction(const action: IDLUIXAction; options: TDLUIXFrameActionOptions = []);
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);

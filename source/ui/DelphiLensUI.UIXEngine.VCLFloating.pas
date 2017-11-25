@@ -69,15 +69,20 @@ type
     FForceNewColumn: boolean;
     FHistoryButton : TButton;
     FOnAction      : TDLUIXFrameAction;
+    FOnShowProc    : IQueue<TProc>;
     FOriginalLeft  : Nullable<integer>;
     FParent        : IDLUIXFrame;
     FTargetLeft    : Nullable<integer>;
   strict protected
-    function  BuildButton(const action: IDLUIXAction): TRect;
-    function  BuildFilteredList(const filteredList: IDLUIXFilteredListAction): TRect;
-    function  BuildList(const listNavigation: IDLUIXListNavigationAction): TRect;
+    procedure ApplyOptions(control: TControl; options: TDLUIXFrameActionOptions);
+    function  BuildButton(const action: IDLUIXAction; options: TDLUIXFrameActionOptions): TRect;
+    function  BuildFilteredList(const filteredList: IDLUIXFilteredListAction;
+      options: TDLUIXFrameActionOptions): TRect;
+    function  BuildList(const listNavigation: IDLUIXListNavigationAction;
+      options: TDLUIXFrameActionOptions): TRect;
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
+    procedure EnableActions(actions: TDLUIXActions; enabled: boolean);
     procedure FilterListBox(Sender: TObject);
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
@@ -91,8 +96,9 @@ type
     procedure HandleSearchBoxTimer(Sender: TObject);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure NewColumn;
-    procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
     procedure PrepareNewColumn;
+    procedure QueueOnShow(proc: TProc);
+    procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
     procedure SetOnAction(const value: TDLUIXFrameAction);
     procedure UpdateClientSize(const rect: TRect);
   public
@@ -101,7 +107,8 @@ type
     function  GetBounds_Screen(const action: IDLUIXAction): TRect;
     // IDLUIXFrame
     procedure Close;
-    procedure CreateAction(const action: IDLUIXAction);
+    procedure CreateAction(const action: IDLUIXAction;
+      options: TDLUIXFrameActionOptions = []);
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(const parentAction: IDLUIXAction);
@@ -173,6 +180,7 @@ constructor TDLUIXVCLFloatingFrame.Create(const parentFrame: IDLUIXFrame);
 begin
   inherited Create;
   FActionMap := TCollections.CreateBidiDictionary<TObject, IDLUIXAction>;
+  FOnShowProc := TCollections.CreateQueue<TProc>;
   FParent := parentFrame;
   FForm := TVCLFloatingForm.CreateNew(Application);
   FForm.BorderStyle := bsNone;
@@ -189,7 +197,16 @@ begin
     end;
 end; { TDLUIXVCLFloatingFrame.Create }
 
-function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction): TRect;
+procedure TDLUIXVCLFloatingFrame.ApplyOptions(control: TControl;
+  options: TDLUIXFrameActionOptions);
+begin
+  control.Enabled := not (faoDisabled in options);
+  if (control is TButton) and (faoDefault in options) then
+    TButton(control).Default := true;
+end; { TDLUIXVCLFloatingFrame.ApplyOptions }
+
+function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction;
+  options: TDLUIXFrameActionOptions): TRect;
 var
   button      : TButton;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
@@ -213,13 +230,15 @@ begin
     button.Caption := action.Name;
   button.OnClick := ForwardAction;
 
+  ApplyOptions(button, options);
   FActionMap.Add(button, action);
 
   Result := button.BoundsRect;
 end; { TDLUIXVCLFloatingFrame.BuildButton }
 
-function TDLUIXVCLFloatingFrame.BuildFilteredList(const filteredList:
-  IDLUIXFilteredListAction): TRect;
+function TDLUIXVCLFloatingFrame.BuildFilteredList(
+  const filteredList: IDLUIXFilteredListAction;
+  options: TDLUIXFrameActionOptions): TRect;
 var
   listBox    : TListBox;
   searchBox  : TSearchBox;
@@ -233,11 +252,7 @@ begin
   searchBox.Top := FColumnTop + 1;
   searchBox.OnKeyDown := HandleSearchBoxKeyDown;
   searchBox.OnInvokeSearch := FilterListBox;
-
-  searchTimer := TTimer.Create(FForm);
-  searchTimer.Enabled := false;
-  searchTimer.Interval := 250;
-  searchTimer.OnTimer := HandleSearchBoxTimer;
+  ApplyOptions(searchBox, options);
 
   listBox := TListBox.Create(FForm);
   listBox.Parent := FForm;
@@ -247,6 +262,12 @@ begin
   listBox.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
   listBox.OnClick := HandleListBoxClick;
   listBox.OnKeyDown := HandleListBoxKeyDown;
+  ApplyOptions(listBox, options);
+
+  searchTimer := TTimer.Create(FForm);
+  searchTimer.Enabled := false;
+  searchTimer.Interval := 250;
+  searchTimer.OnTimer := HandleSearchBoxTimer;
 
   searchBox.Tag := NativeInt(listBox);
   listBox.Tag := NativeInt(searchTimer);
@@ -260,10 +281,17 @@ begin
   Result.TopLeft := searchBox.BoundsRect.TopLeft;
   Result.BottomRight := listBox.BoundsRect.BottomRight;
   NewColumn;
+
+  QueueOnShow(
+    procedure
+    begin
+      EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
+    end);
 end; { TDLUIXVCLFloatingFrame.BuildFilteredList }
 
-function TDLUIXVCLFloatingFrame.BuildList(const listNavigation:
-  IDLUIXListNavigationAction): TRect;
+function TDLUIXVCLFloatingFrame.BuildList(
+  const listNavigation: IDLUIXListNavigationAction;
+  options: TDLUIXFrameActionOptions): TRect;
 var
   button    : TButton;
   hotkey    : string;
@@ -284,6 +312,7 @@ begin
     button.Top := nextTop;
     button.Caption := IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
     button.OnClick := ForwardAction;
+    ApplyOptions(button, options);
 
     FActionMap.Add(button, navigation);
 
@@ -305,18 +334,19 @@ begin
   FForm.Close;
 end; { TDLUIXVCLFloatingFrame.Close }
 
-procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction);
+procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction;
+  options: TDLUIXFrameActionOptions);
 var
   filterList : IDLUIXFilteredListAction;
   historyList: IDLUIXListNavigationAction;
 begin
   PrepareNewColumn;
   if Supports(action, IDLUIXListNavigationAction, historyList) then
-    UpdateClientSize(BuildList(historyList))
+    UpdateClientSize(BuildList(historyList, options))
   else if Supports(action, IDLUIXFilteredListAction, filterList) then
-    UpdateClientSize(BuildFilteredList(filterList))
+    UpdateClientSize(BuildFilteredList(filterList, options))
   else
-    UpdateClientSize(BuildButton(action));
+    UpdateClientSize(BuildButton(action, options));
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
 procedure TDLUIXVCLFloatingFrame.EaseAlphaBlend(start, stop: integer);
@@ -339,6 +369,17 @@ begin
         FForm.Left := value;
     end);
 end; { TDLUIXVCLFloatingFrame.EaseLeft }
+
+procedure TDLUIXVCLFloatingFrame.EnableActions(actions: TDLUIXActions;
+  enabled: boolean);
+var
+  action : IDLUIXAction;
+  control: TObject;
+begin
+  for action in actions do
+    if FActionMap.TryGetKey(action, control) then
+      (control as TControl).Enabled := enabled;
+end; { TDLUIXVCLFloatingFrame.EnableActions }
 
 procedure TDLUIXVCLFloatingFrame.FilterListBox(Sender: TObject);
 var
@@ -378,6 +419,8 @@ begin
       listBox.ItemIndex := listBox.Items.IndexOf(selected);
     if (listBox.ItemIndex < 0) and (listBox.Items.Count > 0) then
       listBox.ItemIndex := 0;
+
+    EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
 
     listBox.OnClick(listBox);
   finally listBox.Items.EndUpdate; end;
@@ -514,6 +557,11 @@ begin
   FForceNewColumn := false;
 end; { TDLUIXVCLFloatingFrame.PrepareNewColumn }
 
+procedure TDLUIXVCLFloatingFrame.QueueOnShow(proc: TProc);
+begin
+  FOnShowProc.Enqueue(proc);
+end; { TDLUIXVCLFloatingFrame.QueueOnShow }
+
 procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
 var
   filterAction    : IDLUIXFilteredListAction;
@@ -522,7 +570,7 @@ var
   unitName        : string;
 begin
   searchBox := (TObject((TObject(listBox.Tag) as TTimer).Tag) as TSearchBox);
-  filterAction := FActionMap[searchBox] as IDLUIXFilteredListAction;
+  filterAction := FActionMap.Value[searchBox] as IDLUIXFilteredListAction;
   if not (assigned(filterAction.DefaultAction)
           and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction))
   then
@@ -548,6 +596,7 @@ procedure TDLUIXVCLFloatingFrame.Show(const parentAction: IDLUIXAction);
 var
   analyzerAction: IDLUIXOpenAnalyzerAction;
   isBack        : boolean;
+  proc          : TProc;
   rect          : TRect;
 begin
   if not assigned(FParent) then
@@ -565,6 +614,8 @@ begin
       FForm.Left := rect.Left + CFrameSpacing;
     FForm.Top := rect.Top + (rect.Height - FForm.Height) div 2;
   end;
+  for proc in FOnShowProc do
+    proc();
   FForm.UpdateMask;
   FForm.ShowModal;
 end; { TDLUIXVCLFloatingFrame.Show }

@@ -59,13 +59,13 @@ begin
   openUsed := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
 
-  filteredList.ManagedActions := [openUsers, openUsed, navigateToUnit];
+  filteredList.ManagedActions := [{openUsers, openUsed, }navigateToUnit];
   filteredList.DefaultAction := navigateToUnit;
 
   frame.CreateAction(filteredList);
-  frame.CreateAction(openUsers);
-  frame.CreateAction(openUsed);
-  frame.CreateAction(navigateToUnit);
+  frame.CreateAction(openUsers, [faoDisabled]);
+  frame.CreateAction(openUsed, [faoDisabled]);
+  frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXUnitBrowser.BuildFrame }
 
 function TDLUIXUnitBrowser.CanHandle(const state: TDLAnalysisState): boolean;

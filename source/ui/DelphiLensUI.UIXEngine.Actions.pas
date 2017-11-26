@@ -18,9 +18,10 @@ type
   IDLUIXOpenUnitBrowserAction = interface(IDLUIXOpenAnalyzerAction) ['{0741FE6A-E194-4A67-A3BE-4E57AE8B141A}']
     function  GetFilterType: TDLUIXUnitBrowserType;
     function  GetInitialUnit: string;
+    procedure SetInitialUnit(const value: string);
   //
     property FilterType: TDLUIXUnitBrowserType read GetFilterType;
-    property InitialUnit: string read GetInitialUnit;
+    property InitialUnit: string read GetInitialUnit write SetInitialUnit;
   end; { IDLUIXOpenUnitBrowserAction }
 
   IDLUIXNavigationAction = interface(IDLUIXAction) ['{4370BAEB-860F-42C0-8831-F361289A7AF3}']
@@ -91,13 +92,14 @@ type
     FFilterType : TDLUIXUnitBrowserType;
     FInitialUnit: string;
   strict protected
+    procedure SetInitialUnit(const value: string);
     function  GetFilterType: TDLUIXUnitBrowserType;
     function  GetInitialUnit: string;
   public
     constructor Create(const name: string; const analyzer: IDLUIXAnalyzer;
       const initialUnit: string; const filterType: TDLUIXUnitBrowserType);
     property FilterType: TDLUIXUnitBrowserType read GetFilterType;
-    property InitialUnit: string read GetInitialUnit;
+    property InitialUnit: string read GetInitialUnit write SetInitialUnit;
   end; { TDLUIXOpenUnitBrowserAction }
 
   TDLUIXNavigationAction = class(TDLUIXAction, IDLUIXNavigationAction)
@@ -224,6 +226,11 @@ function TDLUIXOpenUnitBrowserAction.GetInitialUnit: string;
 begin
   Result := FInitialUnit;
 end; { TDLUIXOpenUnitBrowserAction.GetInitialUnit }
+
+procedure TDLUIXOpenUnitBrowserAction.SetInitialUnit(const value: string);
+begin
+  FInitialUnit := value;
+end; { TDLUIXOpenUnitBrowserAction.SetInitialUnit }
 
 { TDLUIXNavigationAction }
 

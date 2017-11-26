@@ -27,7 +27,8 @@ type
     function  MakeLocationName(const location: TDLUIXLocation): string;
   public
     constructor Create(const AUIXStorage: IDLUIXStorage);
-    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
+    procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
+      const state: TDLAnalysisState);
     function  CanHandle(const state: TDLAnalysisState): boolean;
   end; { TDLUIXHistoryAnalyzer }
 
@@ -42,8 +43,8 @@ begin
   FUIXStorage := AUIXStorage;
 end; { TDLUIXHistoryAnalyzer.Create }
 
-procedure TDLUIXHistoryAnalyzer.BuildFrame(const frame: IDLUIXFrame;
-  const state: TDLAnalysisState);
+procedure TDLUIXHistoryAnalyzer.BuildFrame(const action: IDLUIXAction;
+  const frame: IDLUIXFrame; const state: TDLAnalysisState);
 begin
   frame.CreateAction(CreateListNavigationAction('', BuildLocationList));
 end; { TDLUIXHistoryAnalyzer.BuildFrame }

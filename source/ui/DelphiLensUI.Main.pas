@@ -40,7 +40,7 @@ type
     FUIXEngine    : IDLUIXEngine;
   strict protected
     procedure ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
-      const parentAction: IDLUIXAction; const analyzer: IDLUIXAnalyzer);
+      const parentAction: IDLUIXAction; const action: IDLUIXOpenAnalyzerAction);
     procedure ShowPanel(const parentFrame: IDLUIXFrame; const parentAction: IDLUIXAction;
       const frameBuilder: TUIXFrameBuilder);
   public
@@ -117,12 +117,12 @@ begin
 end; { TDLUserInterface.ProcessExecuteAction }
 
 procedure TDLUserInterface.ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
-  const parentAction: IDLUIXAction; const analyzer: IDLUIXAnalyzer);
+  const parentAction: IDLUIXAction; const action: IDLUIXOpenAnalyzerAction);
 begin
   ShowPanel(parentFrame, parentAction,
     procedure (const frame: IDLUIXFrame)
     begin
-      analyzer.BuildFrame(frame, FAnalysisState);
+      action.Analyzer.BuildFrame(action, frame, FAnalysisState);
     end);
 end; { TDLUserInterface.ShowAnalyzerPanel }
 
@@ -151,7 +151,7 @@ begin
     procedure (const frame: IDLUIXFrame; const action: IDLUIXAction)
     begin
       if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
-        ShowAnalyzerPanel(frame, action, openAnalyzer.Analyzer)
+        ShowAnalyzerPanel(frame, action, openAnalyzer)
       else if Supports(action, IDLUIXNavigationAction, navigation) then begin
         FExecuteAction := action;
         frame.Close;

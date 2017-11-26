@@ -19,7 +19,8 @@ type
   end; { TDLAnalysisState }
 
   IDLUIXAnalyzer = interface ['{CB412130-697D-4486-B2B6-153E5BDF4E4A}']
-    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
+    procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
+      const state: TDLAnalysisState);
     function  CanHandle(const state: TDLAnalysisState): boolean;
   end; { IDLUIXAnalyzer }
 

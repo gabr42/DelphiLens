@@ -421,6 +421,7 @@ begin
     if (listBox.ItemIndex < 0) and (listBox.Items.Count > 0) then
       listBox.ItemIndex := 0;
 
+    //TODO: UIX behaviour, not UI behaviour; only enable Used in/Used by actions if we have syntax info for selected unit
     EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
 
     listBox.OnClick(listBox);
@@ -569,27 +570,35 @@ end; { TDLUIXVCLFloatingFrame.QueueOnShow }
 
 procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
 var
-  filterAction    : IDLUIXFilteredListAction;
-  navigationAction: IDLUIXNavigationAction;
-  searchBox       : TSearchBox;
-  unitName        : string;
+  action           : IDLUIXAction;
+  filterAction     : IDLUIXFilteredListAction;
+  navigationAction : IDLUIXNavigationAction;
+  searchBox        : TSearchBox;
+  unitBrowserAction: IDLUIXOpenUnitBrowserAction;
+  unitName         : string;
 begin
-  searchBox := (TObject((TObject(listBox.Tag) as TTimer).Tag) as TSearchBox);
-  filterAction := FActionMap.Value[searchBox] as IDLUIXFilteredListAction;
-  if not (assigned(filterAction.DefaultAction)
-          and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction))
-  then
-    Exit;
+  //TODO: ** This does not belong into UI implementation; it is a global UIX behaviour
 
   if listBox.ItemIndex < 0 then
     unitName := ''
   else
     unitName := listBox.Items[listBox.ItemIndex];
 
-  navigationAction.Location := TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid);
+  searchBox := (TObject((TObject(listBox.Tag) as TTimer).Tag) as TSearchBox);
+  filterAction := FActionMap.Value[searchBox] as IDLUIXFilteredListAction;
 
-  if doOpen then
-    OnAction(Self, navigationAction);
+  for action in filterAction.ManagedActions do
+    if Supports(action, IDLUIXOpenUnitBrowserAction, unitBrowserAction) then
+      unitBrowserAction.InitialUnit := unitName;
+
+  if assigned(filterAction.DefaultAction)
+     and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction)
+  then begin
+    navigationAction.Location := TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid);
+
+    if doOpen then
+      OnAction(Self, navigationAction);
+  end;
 end; { TDLUIXVCLFloatingFrame.SetLocationAndOpen }
 
 procedure TDLUIXVCLFloatingFrame.SetOnAction(const value: TDLUIXFrameAction);

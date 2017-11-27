@@ -12,16 +12,15 @@ implementation
 uses
   DelphiAST.ProjectIndexer,
   DelphiLens.DelphiASTHelpers,
-  DelphiLens.UnitInfo, DelphiLens.TreeAnalyzer.Intf, DelphiLens.TreeAnalyzer,
+  DelphiLens.UnitInfo,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
   TDLUIXNavigationAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private
-    FDLUnitInfo  : TDLUnitInfo;
-    FTreeAnalyzer: IDLTreeAnalyzer;
-    FUnitInfo    : TProjectIndexer.TUnitInfo;
+    FDLUnitInfo: TDLUnitInfo;
+    FUnitInfo  : TProjectIndexer.TUnitInfo;
   public
     procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
@@ -67,11 +66,8 @@ begin
   if not assigned(context.Project) then
     Exit(false);
 
-  Result := context.Project.ParsedUnits.Find(context.Source.FileName, FUnitInfo);
-  if Result and (not assigned(FTreeAnalyzer)) then begin
-    FTreeAnalyzer := CreateDLTreeAnalyzer;
-    FTreeAnalyzer.AnalyzeTree(FUnitInfo.SyntaxTree, FDLUnitInfo);
-  end;
+  Result := context.Project.ParsedUnits.Find(context.Source.FileName, FUnitInfo)
+        and context.Project.Analysis.Find(context.Source.FileName, FDLUnitInfo);
 
   if FDLUnitInfo.UnitType = utProgram then begin
     if not (FDLUnitInfo.InterfaceUsesLoc.IsValid or FDLUnitInfo.ContainsLoc.IsValid) then

@@ -6,7 +6,8 @@ uses
   Winapi.Windows,
   System.SysUtils,
   System.Classes,
-  DelphiLensUI.DLLExports;
+  DelphiLensUI.DLLExports,
+  DelphiLensUI.WorkerContext in 'DelphiLensUI.WorkerContext.pas';
 
 {$R *.res}
 

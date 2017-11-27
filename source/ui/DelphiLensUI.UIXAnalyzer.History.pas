@@ -6,13 +6,14 @@ uses
   DelphiLensUI.UIXStorage,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes;
 
-function CreateHistoryAnalyzer(const uixStorage: IDLUIXStorage): IDLUIXAnalyzer;
+function CreateHistoryAnalyzer: IDLUIXAnalyzer;
 
 implementation
 
 uses
   System.SysUtils,
   Spring.Collections,
+  DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
@@ -20,49 +21,44 @@ type
   TDLUIXHistoryAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private const
     CMaxHistoryEntries = 10;
-  var
-    FUIXStorage: IDLUIXStorage;
   strict protected
-    function  BuildLocationList: IDLUIXNamedLocationList;
+    function  BuildLocationList(const context: IDLUIWorkerContext): IDLUIXNamedLocationList;
     function  MakeLocationName(const location: TDLUIXLocation): string;
   public
-    constructor Create(const AUIXStorage: IDLUIXStorage);
-    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
-    function  CanHandle(const state: TDLAnalysisState): boolean;
+    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXHistoryAnalyzer }
 
-function CreateHistoryAnalyzer(const uixStorage: IDLUIXStorage): IDLUIXAnalyzer;
+{ exports }
+
+function CreateHistoryAnalyzer: IDLUIXAnalyzer;
 begin
-  Result := TDLUIXHistoryAnalyzer.Create(uixStorage);
+  Result := TDLUIXHistoryAnalyzer.Create;
 end; { CreateHistoryAnalyzer }
 
-constructor TDLUIXHistoryAnalyzer.Create(const AUIXStorage: IDLUIXStorage);
-begin
-  inherited Create;
-  FUIXStorage := AUIXStorage;
-end; { TDLUIXHistoryAnalyzer.Create }
+{ TDLUIXHistoryAnalyzer }
 
 procedure TDLUIXHistoryAnalyzer.BuildFrame(const frame: IDLUIXFrame;
-  const state: TDLAnalysisState);
+  const context: IDLUIWorkerContext);
 begin
-  frame.CreateAction(CreateListNavigationAction('', BuildLocationList));
+  frame.CreateAction(CreateListNavigationAction('', BuildLocationList(context)));
 end; { TDLUIXHistoryAnalyzer.BuildFrame }
 
-function TDLUIXHistoryAnalyzer.BuildLocationList: IDLUIXNamedLocationList;
+function TDLUIXHistoryAnalyzer.BuildLocationList(const context: IDLUIWorkerContext): IDLUIXNamedLocationList;
 var
   loc: TDLUIXLocation;
 begin
   Result := TCollections.CreateList<IDLUIXNavigationAction>;
 
-  for loc in FUIXStorage.History.Reversed.Take(CMaxHistoryEntries) do begin
+  for loc in context.Storage.History.Reversed.Take(CMaxHistoryEntries) do begin
     //TODO: location name should include method name
     Result.Add(CreateNavigationAction(MakeLocationName(loc), loc, true) as IDLUIXNavigationAction);
   end;
 end; { TDLUIXHistoryAnalyzer.BuildLocationList }
 
-function TDLUIXHistoryAnalyzer.CanHandle(const state: TDLAnalysisState): boolean;
+function TDLUIXHistoryAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
-  Result := not FUIXStorage.History.IsEmpty;
+  Result := not context.Storage.History.IsEmpty;
 end; { TDLUIXHistoryAnalyzer.CanHandle }
 
 function TDLUIXHistoryAnalyzer.MakeLocationName(const location: TDLUIXLocation): string;

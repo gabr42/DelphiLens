@@ -6,10 +6,9 @@ uses
   Spring,
   DelphiLens.Intf,
   DelphiLensUI.UIXStorage,
-  DelphiLensUI.UIXEngine.Intf;
+  DelphiLensUI.UIXEngine.Intf, DelphiLensUI.WorkerContext;
 
-procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
-  const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
+procedure DLUIShowUI(const workerContext: IDLUIWorkerContext);
 
 implementation
 
@@ -34,8 +33,8 @@ type
   strict private type
     TUIXFrameBuilder = reference to procedure (const frame: IDLUIXFrame);
   var
-    FAnalysisState: TDLAnalysisState;
     FExecuteAction: IDLUIXAction;
+    FUIContext    : IDLUIWorkerContext;
     FUIXAnalyzers : TDLAnalyzers;
     FUIXEngine    : IDLUIXEngine;
   strict protected
@@ -44,58 +43,44 @@ type
     procedure ShowPanel(const parentFrame: IDLUIXFrame; const parentAction: IDLUIXAction;
       const frameBuilder: TUIXFrameBuilder);
   public
-    constructor Create(const uixEngine: IDLUIXEngine; const analyzers: TDLAnalyzers);
-    procedure Initialize(const projectInfo: IDLScanResult; const fileName: string;
-      const line, column: integer);
-    procedure ProcessExecuteAction(const uixStorage: IDLUIXStorage;
-      const currentLocation: TDLUIXLocation;
-      var navigateTo: Nullable<TDLUIXLocation>);
+    constructor Create(const uixEngine: IDLUIXEngine; const analyzers: TDLAnalyzers;
+      const workerContext: IDLUIWorkerContext);
+    procedure ProcessExecuteAction;
     procedure ShowMain;
     property ExecuteAction: IDLUIXAction read FExecuteAction;
   end; { TDLUserInterface }
 
 { exports }
 
-procedure DLUIShowUI(const uixStorage: IDLUIXStorage; const projectInfo: IDLScanResult;
-  const currentLocation: TDLUIXLocation; var navigateTo: Nullable<TDLUIXLocation>);
+procedure DLUIShowUI(const workerContext: IDLUIWorkerContext);
 var
   analyzers: TDLAnalyzers;
   ui       : TDLUserInterface;
 begin
-  navigateTo := nil;
-
   analyzers := TCollections.CreateList<TDLAnalyzerInfo>;
   analyzers.Add(TDLAnalyzerInfo.Create('&Navigation', CreateNavigationAnalyzer));
   analyzers.Add(TDLAnalyzerInfo.Create('&Units', CreateUnitBrowser));
-  analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer(uixStorage)));
+  analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer));
 
-  ui := TDLUserInterface.Create(CreateUIXEngine, analyzers);
+  ui := TDLUserInterface.Create(CreateUIXEngine, analyzers, workerContext);
   try
-    ui.Initialize(projectInfo, currentLocation.UnitName, currentLocation.line, currentLocation.column);
     ui.ShowMain;
-    ui.ProcessExecuteAction(uixStorage, currentLocation, navigateTo);
+    ui.ProcessExecuteAction;
   finally FreeAndNil(ui); end;
 end; { DLUIShowUI }
 
 { TDLUserInterface }
 
-constructor TDLUserInterface.Create(const uixEngine: IDLUIXEngine;
-  const analyzers: TDLAnalyzers);
+constructor TDLUserInterface.Create(const uixEngine: IDLUIXEngine; const analyzers:
+  TDLAnalyzers; const workerContext: IDLUIWorkerContext);
 begin
   inherited Create;
   FUIXEngine := uixEngine;
   FUIXAnalyzers := analyzers;
+  FUIContext := workerContext;
 end; { TDLUserInterface.Create }
 
-procedure TDLUserInterface.Initialize(const projectInfo: IDLScanResult;
-  const fileName: string; const line, column: integer);
-begin
-  FAnalysisState := TDLAnalysisState.Create(projectInfo, fileName, line, column);
-end; { TDLUserInterface.Initialize }
-
-procedure TDLUserInterface.ProcessExecuteAction(
-  const uixStorage: IDLUIXStorage; const currentLocation: TDLUIXLocation;
-  var navigateTo: Nullable<TDLUIXLocation>);
+procedure TDLUserInterface.ProcessExecuteAction;
 var
   fileName  : string;
   navigation: IDLUIXNavigationAction;
@@ -104,14 +89,14 @@ begin
     if Supports(ExecuteAction, IDLUIXNavigationAction, navigation) then begin
       fileName := navigation.Location.FileName;
       if fileName = '' then
-        fileName := FAnalysisState.ProjectInfo.ParsedUnits.FindOrDefault(navigation.Location.UnitName).Path;
-      navigateTo := TDLUIXLocation.Create(fileName,
+        fileName := FUIContext.Project.ParsedUnits.FindOrDefault(navigation.Location.UnitName).Path;
+      FUIContext.Target := TDLUIXLocation.Create(fileName,
         navigation.Location.UnitName,
         navigation.Location.Line, navigation.Location.Column);
       if navigation.IsBackNavigation then
-        uixStorage.History.Remove(navigateTo)
+        FUIContext.Storage.History.Remove(FUIContext.Target)
       else
-        uixStorage.History.Add(TDLUIXLocation.Create(currentLocation));
+        FUIContext.Storage.History.Add(TDLUIXLocation.Create(FUIContext.Source));
     end;
   end;
 end; { TDLUserInterface.ProcessExecuteAction }
@@ -122,7 +107,7 @@ begin
   ShowPanel(parentFrame, parentAction,
     procedure (const frame: IDLUIXFrame)
     begin
-      analyzer.BuildFrame(frame, FAnalysisState);
+      analyzer.BuildFrame(frame, FUIContext);
     end);
 end; { TDLUserInterface.ShowAnalyzerPanel }
 
@@ -134,7 +119,7 @@ begin
       analyzer: TDLAnalyzerInfo;
     begin
       for analyzer in FUIXAnalyzers do
-        if analyzer.Value.CanHandle(FAnalysisState) then
+        if analyzer.Value.CanHandle(FUIContext) then
           frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
     end);
 end; { TDLUserInterface.ShowMain }

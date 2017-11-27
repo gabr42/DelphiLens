@@ -13,6 +13,7 @@ uses
   Spring, Spring.Collections,
   DelphiAST.ProjectIndexer,
   DelphiLens.Intf,
+  DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
@@ -21,8 +22,8 @@ type
     FUnitNames: IList<string>;
   public
     constructor Create;
-    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
-    function  CanHandle(const state: TDLAnalysisState): boolean;
+    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
 { exports }
@@ -41,7 +42,7 @@ begin
 end;
 
 procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
-  const state: TDLAnalysisState);
+  const context: IDLUIWorkerContext);
 var
   filteredList  : IDLUIXFilteredListAction;
   navigateToUnit: IDLUIXAction;
@@ -50,11 +51,11 @@ var
   unitInfo      : TProjectIndexer.TUnitInfo;
 begin
   FUnitNames.Clear;
-  for unitInfo in state.ProjectInfo.ParsedUnits do
+  for unitInfo in context.Project.ParsedUnits do
     FUnitNames.Add(unitInfo.Name);
   FUnitNames.Sort;
 
-  filteredList := CreateFilteredListAction('', FUnitNames, state.FileName) as IDLUIXFilteredListAction;
+  filteredList := CreateFilteredListAction('', FUnitNames, context.Source.FileName) as IDLUIXFilteredListAction;
   openUses := CreateOpenUnitBrowserAction('&Uses', CreateUnitBrowser, '', ubtUses);
   openUsedIn := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
@@ -68,9 +69,9 @@ begin
   frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXUnitBrowser.BuildFrame }
 
-function TDLUIXUnitBrowser.CanHandle(const state: TDLAnalysisState): boolean;
+function TDLUIXUnitBrowser.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
-  Result := (state.ProjectInfo.ParsedUnits.Count > 0);
+  Result := (context.Project.ParsedUnits.Count > 0);
 end; { TDLUIXUnitBrowser.CanHandle }
 
 end.

@@ -13,6 +13,7 @@ uses
   DelphiAST.ProjectIndexer,
   DelphiLens.DelphiASTHelpers,
   DelphiLens.UnitInfo, DelphiLens.TreeAnalyzer.Intf, DelphiLens.TreeAnalyzer,
+  DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
@@ -22,8 +23,8 @@ type
     FTreeAnalyzer: IDLTreeAnalyzer;
     FUnitInfo    : TProjectIndexer.TUnitInfo;
   public
-    procedure BuildFrame(const frame: IDLUIXFrame; const state: TDLAnalysisState);
-    function  CanHandle(const state: TDLAnalysisState): boolean;
+    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
 { exports }
@@ -34,7 +35,7 @@ begin
 end; { CreateNavigationAnalyzer }
 
 procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame;
-  const state: TDLAnalysisState);
+  const context: IDLUIWorkerContext);
 
   procedure AddNavigation(const name: string; const location: TDLCoordinate);
   begin
@@ -61,12 +62,12 @@ begin { TDLUIXNavigationAnalyzer.BuildFrame }
   end;
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
-function TDLUIXNavigationAnalyzer.CanHandle(const state: TDLAnalysisState): boolean;
+function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
-  if not assigned(state.ProjectInfo) then
+  if not assigned(context.Project) then
     Exit(false);
 
-  Result := state.ProjectInfo.ParsedUnits.Find(state.FileName, FUnitInfo);
+  Result := context.Project.ParsedUnits.Find(context.Source.FileName, FUnitInfo);
   if Result and (not assigned(FTreeAnalyzer)) then begin
     FTreeAnalyzer := CreateDLTreeAnalyzer;
     FTreeAnalyzer.AnalyzeTree(FUnitInfo.SyntaxTree, FDLUnitInfo);

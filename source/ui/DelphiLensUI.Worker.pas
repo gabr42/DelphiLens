@@ -56,7 +56,7 @@ uses
   Spring,
   OtlCommon,
   DelphiLens,
-  DelphiLensUI.Main;
+  DelphiLensUI.Main, DelphiLensUI.WorkerContext;
 
 type
   TDelphiLensUIWorker = class(TOmniWorker)
@@ -117,7 +117,7 @@ end; { TDelphiLensUIProject.Destroy }
 procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer;
   var navigate: boolean);
 var
-  navigateTo: Nullable<TDLUIXLocation>;
+  context   : IDLUIWorkerContext;
   oldCursor : TCursor;
   unitName  : string;
 begin
@@ -126,17 +126,20 @@ begin
   if SameText(ExtractFileExt(unitName), '.pas') then
     unitName := ChangeFileExt(unitName, '');
 
+  context := CreateWorkerContext(FUIXStorage, FScanResult,
+    TDLUIXLocation.Create(fileName, unitName, line, column));
+
   oldCursor := Screen.Cursor;
   Screen.Cursor := crHourGlass;
   FScanLock.Acquire;
   try
     Screen.Cursor := oldCursor;
-    DLUIShowUI(FUIXStorage, FScanResult, TDLUIXLocation.Create(fileName, unitName, line, column), navigateTo);
+    DLUIShowUI(context);
   finally FScanLock.Release; end;
 
-  navigate := navigateTo.HasValue;
+  navigate := context.Target.HasValue;
   if navigate then
-    FNavigationInfo := TDLUINavigationInfo.Create(navigateTo);
+    FNavigationInfo := TDLUINavigationInfo.Create(context.Target);
 end; { TDelphiLensUIProject.Activate }
 
 procedure TDelphiLensUIProject.FileModified(const fileName: string);

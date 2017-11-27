@@ -207,6 +207,7 @@ begin
   if FUIProject <> 0 then
     ShowMessage('UI project is already open!')
   else begin
+MoveFile(PChar(ChangeFileExt(inpProject.Text, '.dlens')), PChar(ChangeFileExt(inpProject.Text, '.dlens2')));
     if DLUIOpenProject(PChar(inpProject.Text), FUIProject) <> 0 then begin
       ReportUIError('DLUIOpenProject');
       FUIProject := 0;

@@ -38,7 +38,7 @@ type
 
   TDLUnitType = (utProgram, utUnit);
 
-  TDLUnitInfo = record
+  TDLUnitInfo = record //TODO: ILists should be only created when needed
     Name                 : string;
     InterfaceLoc         : TDLCoordinate;
     InterfaceUsesLoc     : TDLCoordinate;

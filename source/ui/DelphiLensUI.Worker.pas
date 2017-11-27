@@ -117,27 +117,30 @@ end; { TDelphiLensUIProject.Destroy }
 procedure TDelphiLensUIProject.Activate(const fileName: string; line, column: integer;
   var navigate: boolean);
 var
-  context   : IDLUIWorkerContext;
-  oldCursor : TCursor;
-  unitName  : string;
+  context  : IDLUIWorkerContext;
+  oldCursor: TCursor;
+  unitName : string;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
   unitName := ExtractFileName(fileName);
   if SameText(ExtractFileExt(unitName), '.pas') then
     unitName := ChangeFileExt(unitName, '');
 
-  context := CreateWorkerContext(FUIXStorage, FScanResult,
-    TDLUIXLocation.Create(fileName, unitName, line, column));
-
   oldCursor := Screen.Cursor;
   Screen.Cursor := crHourGlass;
+
   FScanLock.Acquire;
   try
+    Application.ProcessMessages;
+    //TODO: Show nicer "Please wait" window with TActivityIndicator
     Screen.Cursor := oldCursor;
+
+    context := CreateWorkerContext(FUIXStorage, FScanResult,
+      TDLUIXLocation.Create(fileName, unitName, line, column));
     DLUIShowUI(context);
   finally FScanLock.Release; end;
 
-  navigate := context.Target.HasValue;
+  navigate := assigned(context) and context.Target.HasValue;
   if navigate then
     FNavigationInfo := TDLUINavigationInfo.Create(context.Target);
 end; { TDelphiLensUIProject.Activate }

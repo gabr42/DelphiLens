@@ -24,17 +24,17 @@ type
   var
     FUnitNames: TUnitNames;
   strict protected
-    procedure PrepareAllUnits(const projectInfo: IDLScanResult;
-      const initialUnit: string; const units: TUnitNames);
-    procedure PrepareParentUnits(const projectInfo: IDLScanResult;
-      const initialUnit: string; const units: TUnitNames);
+    procedure MakeUnique(const units: TUnitNames);
+    procedure PrepareAllUnits(const projectInfo: IDLScanResult; const initialUnit: string;
+      const units: ICollection<string>);
+    procedure PrepareParentUnits(const projectInfo: IDLScanResult; const initialUnit: string;
+      const units: ICollection<string>);
     procedure PrepareUnitNames(const projectInfo: IDLScanResult;
       filterType: TDLUIXUnitBrowserType; const initialUnit: string;
       const units: TUnitNames);
-    procedure PrepareUsedUnits(const projectInfo: IDLScanResult;
-      const initialUnit: string; const units: TUnitNames);
+    procedure PrepareUsedUnits(const projectInfo: IDLScanResult; const initialUnit: string;
+      const units: ICollection<string>);
   public
-    constructor Create;
     procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
       const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
@@ -49,33 +49,45 @@ end; { CreateUnitBrowser }
 
 { TDLUIXUnitBrowser }
 
-procedure TDLUIXUnitBrowser.PrepareAllUnits(const projectInfo: IDLScanResult; const initialUnit: string; const units: TUnitNames);
+procedure TDLUIXUnitBrowser.PrepareAllUnits(const projectInfo: IDLScanResult;
+  const initialUnit: string; const units: ICollection<string>);
 var
   dlUnitInfo: TDLUnitInfo;
 begin
   for dlUnitInfo in projectInfo.Analysis do
     units.Add(dlUnitInfo.Name);
-  units.Sort;
 end; { TDLUIXUnitBrowser.PrepareAllUnits }
 
 procedure TDLUIXUnitBrowser.PrepareParentUnits(const projectInfo: IDLScanResult;
-  const initialUnit: string; const units: TUnitNames);
+  const initialUnit: string; const units: ICollection<string>);
+var
+  dlUnitInfo: TDLUnitInfo;
 begin
-  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUIXUnitBrowser.PrepareParentUnits
+  for dlUnitInfo in projectInfo.Analysis do
+    if dlUnitInfo.ImplementationUses.Contains(initialUnit)
+       or dlUnitInfo.InterfaceUses.Contains(initialUnit)
+       or dlUnitInfo.PackageContains.Contains(initialUnit)
+    then
+      units.Add(dlUnitInfo.Name);
 end; { TDLUIXUnitBrowser.PrepareParentUnits }
 
 procedure TDLUIXUnitBrowser.PrepareUnitNames(const projectInfo: IDLScanResult;
   filterType: TDLUIXUnitBrowserType; const initialUnit: string; const units: TUnitNames);
+var
+  unsortedUnits: ISet<string>;
 begin
+  unsortedUnits := TCollections.CreateSet<string>;
   case filterType of
-    ubtNormal: PrepareAllUnits(projectInfo, initialUnit, units);
-    ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, units);
-    ubtUsedBy: PrepareParentUnits(projectInfo, initialUnit, units);
+    ubtNormal: PrepareAllUnits(projectInfo, initialUnit, unsortedUnits);
+    ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, unsortedUnits);
+    ubtUsedBy: PrepareParentUnits(projectInfo, initialUnit, unsortedUnits);
   end;
+  units.AddRange(unsortedUnits);
+  units.Sort;
 end; { TDLUIXUnitBrowser.PrepareUnitNames }
 
 procedure TDLUIXUnitBrowser.PrepareUsedUnits(const projectInfo: IDLScanResult;
-  const initialUnit: string; const units: TUnitNames);
+  const initialUnit: string; const units: ICollection<string>);
 var
   dlUnitInfo: TDLUnitInfo;
 begin
@@ -85,7 +97,6 @@ begin
   units.AddRange(dlUnitInfo.InterfaceUses);
   units.AddRange(dlUnitInfo.ImplementationUses);
   units.AddRange(dlUnitInfo.PackageContains);
-  units.Sort;
 end; { TDLUIXUnitBrowser.PrepareUsedUnits }
 
 procedure TDLUIXUnitBrowser.BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
@@ -116,23 +127,27 @@ begin
   openUsedBy := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
 
-  filteredList.ManagedActions := [openUses, {openUsedIn, }navigateToUnit];
+  filteredList.ManagedActions := [openUses, openUsedBy, navigateToUnit];
   filteredList.DefaultAction := navigateToUnit;
 
   frame.CreateAction(filteredList);
   frame.CreateAction(openUses);
-  frame.CreateAction(openUsedBy, [faoDisabled]);
+  frame.CreateAction(openUsedBy);
   frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXUnitBrowser.BuildFrame }
 
 function TDLUIXUnitBrowser.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
   Result := (context.Project.ParsedUnits.Count > 0);
-end; constructor TDLUIXUnitBrowser.Create;
+end; { TDLUIXUnitBrowser.CanHandle }
+
+procedure TDLUIXUnitBrowser.MakeUnique(const units: TUnitNames);
+var
+  i: integer;
 begin
-
-end;
-
-{ TDLUIXUnitBrowser.CanHandle }
+  for i := units.Count - 1 downto 1 do
+    if SameText(units[i], units[i-1]) then
+      units.Delete(i);
+end; { TDLUIXUnitBrowser.MakeUnique }
 
 end.

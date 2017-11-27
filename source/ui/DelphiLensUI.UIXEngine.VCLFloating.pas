@@ -469,7 +469,15 @@ begin
 end; { TDLUIXVCLFloatingFrame.GetParentRect }
 
 procedure TDLUIXVCLFloatingFrame.HandleListBoxClick(Sender: TObject);
+var
+  filteredList: IDLUIXFilteredListAction;
+  listBox     : TListBox;
+  searchBox   : TSearchBox;
 begin
+  listBox := (Sender as TListBox);
+  searchBox := TObject((TObject(listBox.Tag) as TTimer).Tag) as TSearchBox;
+  filteredList := (FActionMap.Value[searchBox] as IDLUIXFilteredListAction);
+  EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
   SetLocationAndOpen(Sender as TListBox, false);
 end; { TDLUIXVCLFloatingFrame.HandleListBoxClick }
 

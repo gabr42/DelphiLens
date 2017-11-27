@@ -25,7 +25,8 @@ type
     function  BuildLocationList(const context: IDLUIWorkerContext): IDLUIXNamedLocationList;
     function  MakeLocationName(const location: TDLUIXLocation): string;
   public
-    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
+      const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXHistoryAnalyzer }
 
@@ -38,7 +39,7 @@ end; { CreateHistoryAnalyzer }
 
 { TDLUIXHistoryAnalyzer }
 
-procedure TDLUIXHistoryAnalyzer.BuildFrame(const frame: IDLUIXFrame;
+procedure TDLUIXHistoryAnalyzer.BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
   const context: IDLUIWorkerContext);
 begin
   frame.CreateAction(CreateListNavigationAction('', BuildLocationList(context)));

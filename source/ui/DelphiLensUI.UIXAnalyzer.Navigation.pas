@@ -22,7 +22,8 @@ type
     FDLUnitInfo: TDLUnitInfo;
     FUnitInfo  : TProjectIndexer.TUnitInfo;
   public
-    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
+      const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
@@ -33,8 +34,8 @@ begin
   Result := TDLUIXNavigationAnalyzer.Create;
 end; { CreateNavigationAnalyzer }
 
-procedure TDLUIXNavigationAnalyzer.BuildFrame(const frame: IDLUIXFrame;
-  const context: IDLUIWorkerContext);
+procedure TDLUIXNavigationAnalyzer.BuildFrame(const action: IDLUIXAction;
+  const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
 
   procedure AddNavigation(const name: string; const location: TDLCoordinate);
   begin

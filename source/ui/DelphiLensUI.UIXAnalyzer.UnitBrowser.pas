@@ -13,7 +13,7 @@ uses
   System.SysUtils,
   Spring, Spring.Collections,
   DelphiAST.ProjectIndexer,
-  DelphiLens.Intf,
+  DelphiLens.Intf, DelphiLens.UnitInfo,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
@@ -35,7 +35,8 @@ type
       const initialUnit: string; const units: TUnitNames);
   public
     constructor Create;
-    procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
+    procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
+      const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
   end; { TDLUIXNavigationAnalyzer }
 
@@ -50,24 +51,65 @@ end; { CreateUnitBrowser }
 
 procedure TDLUIXUnitBrowser.PrepareAllUnits(const projectInfo: IDLScanResult; const initialUnit: string; const units: TUnitNames);
 var
-  unitInfo: TProjectIndexer.TUnitInfo;
+  dlUnitInfo: TDLUnitInfo;
 begin
-  for unitInfo in projectInfo.ParsedUnits do
-    units.Add(unitInfo.Name);
+  for dlUnitInfo in projectInfo.Analysis do
+    units.Add(dlUnitInfo.Name);
   units.Sort;
 end; { TDLUIXUnitBrowser.PrepareAllUnits }
 
-procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
+procedure TDLUIXUnitBrowser.PrepareParentUnits(const projectInfo: IDLScanResult;
+  const initialUnit: string; const units: TUnitNames);
+begin
+  // TODO 1 -oPrimoz Gabrijelcic : implement: TDLUIXUnitBrowser.PrepareParentUnits
+end; { TDLUIXUnitBrowser.PrepareParentUnits }
+
+procedure TDLUIXUnitBrowser.PrepareUnitNames(const projectInfo: IDLScanResult;
+  filterType: TDLUIXUnitBrowserType; const initialUnit: string; const units: TUnitNames);
+begin
+  case filterType of
+    ubtNormal: PrepareAllUnits(projectInfo, initialUnit, units);
+    ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, units);
+    ubtUsedBy: PrepareParentUnits(projectInfo, initialUnit, units);
+  end;
+end; { TDLUIXUnitBrowser.PrepareUnitNames }
+
+procedure TDLUIXUnitBrowser.PrepareUsedUnits(const projectInfo: IDLScanResult;
+  const initialUnit: string; const units: TUnitNames);
+var
+  dlUnitInfo: TDLUnitInfo;
+begin
+  if not projectInfo.Analysis.Find(initialUnit, dlUnitInfo) then
+    Exit;
+
+  units.AddRange(dlUnitInfo.InterfaceUses);
+  units.AddRange(dlUnitInfo.ImplementationUses);
+  units.AddRange(dlUnitInfo.PackageContains);
+  units.Sort;
+end; { TDLUIXUnitBrowser.PrepareUsedUnits }
+
+procedure TDLUIXUnitBrowser.BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
   const context: IDLUIWorkerContext);
 var
-  dlUnitInfo  : TDLUnitInfo;
-  unitInfo    : TProjectIndexer.TUnitInfo;
-  treeAnalyzer: IDLTreeAnalyzer;
+  filteredList   : IDLUIXFilteredListAction;
+  filterType     : TDLUIXUnitBrowserType;
+  initialUnit    : string;
+  navigateToUnit : IDLUIXAction;
+  openUnitBrowser: IDLUIXOpenUnitBrowserAction;
+  openUsedBy     : IDLUIXAction;
+  openUses       : IDLUIXAction;
 begin
-  FUnitNames.Clear;
-  for unitInfo in context.Project.ParsedUnits do
-    FUnitNames.Add(unitInfo.Name);
-  FUnitNames.Sort;
+  if Supports(action, IDLUIXOpenUnitBrowserAction, openUnitBrowser) then begin
+    filterType := openUnitBrowser.FilterType;
+    initialUnit := openUnitBrowser.InitialUnit;
+  end
+  else begin
+    filterType := ubtNormal;
+    initialUnit := '';
+  end;
+
+  FUnitNames := TCollections.CreateList<string>;
+  PrepareUnitNames(context.Project, filterType, initialUnit, FUnitNames);
 
   filteredList := CreateFilteredListAction('', FUnitNames, context.Source.FileName) as IDLUIXFilteredListAction;
   openUses := CreateOpenUnitBrowserAction('&Uses', CreateUnitBrowser, '', ubtUses);
@@ -86,6 +128,11 @@ end; { TDLUIXUnitBrowser.BuildFrame }
 function TDLUIXUnitBrowser.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
   Result := (context.Project.ParsedUnits.Count > 0);
-end; { TDLUIXUnitBrowser.CanHandle }
+end; constructor TDLUIXUnitBrowser.Create;
+begin
+
+end;
+
+{ TDLUIXUnitBrowser.CanHandle }
 
 end.

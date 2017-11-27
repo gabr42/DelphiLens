@@ -10,6 +10,7 @@ function CreateUnitBrowser: IDLUIXAnalyzer;
 implementation
 
 uses
+  System.SysUtils,
   Spring, Spring.Collections,
   DelphiAST.ProjectIndexer,
   DelphiLens.Intf,
@@ -18,8 +19,20 @@ uses
 
 type
   TDLUIXUnitBrowser = class(TManagedInterfacedObject, IDLUIXAnalyzer)
-  strict private
-    FUnitNames: IList<string>;
+  strict private type
+    TUnitNames = IList<string>;
+  var
+    FUnitNames: TUnitNames;
+  strict protected
+    procedure PrepareAllUnits(const projectInfo: IDLScanResult;
+      const initialUnit: string; const units: TUnitNames);
+    procedure PrepareParentUnits(const projectInfo: IDLScanResult;
+      const initialUnit: string; const units: TUnitNames);
+    procedure PrepareUnitNames(const projectInfo: IDLScanResult;
+      filterType: TDLUIXUnitBrowserType; const initialUnit: string;
+      const units: TUnitNames);
+    procedure PrepareUsedUnits(const projectInfo: IDLScanResult;
+      const initialUnit: string; const units: TUnitNames);
   public
     constructor Create;
     procedure BuildFrame(const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
@@ -35,20 +48,21 @@ end; { CreateUnitBrowser }
 
 { TDLUIXUnitBrowser }
 
-constructor TDLUIXUnitBrowser.Create;
+procedure TDLUIXUnitBrowser.PrepareAllUnits(const projectInfo: IDLScanResult; const initialUnit: string; const units: TUnitNames);
+var
+  unitInfo: TProjectIndexer.TUnitInfo;
 begin
-  inherited;
-  FUnitNames := TCollections.CreateList<string>;
-end;
+  for unitInfo in projectInfo.ParsedUnits do
+    units.Add(unitInfo.Name);
+  units.Sort;
+end; { TDLUIXUnitBrowser.PrepareAllUnits }
 
 procedure TDLUIXUnitBrowser.BuildFrame(const frame: IDLUIXFrame;
   const context: IDLUIWorkerContext);
 var
-  filteredList  : IDLUIXFilteredListAction;
-  navigateToUnit: IDLUIXAction;
-  openUsedIn    : IDLUIXAction;
-  openUses      : IDLUIXAction;
-  unitInfo      : TProjectIndexer.TUnitInfo;
+  dlUnitInfo  : TDLUnitInfo;
+  unitInfo    : TProjectIndexer.TUnitInfo;
+  treeAnalyzer: IDLTreeAnalyzer;
 begin
   FUnitNames.Clear;
   for unitInfo in context.Project.ParsedUnits do
@@ -57,15 +71,15 @@ begin
 
   filteredList := CreateFilteredListAction('', FUnitNames, context.Source.FileName) as IDLUIXFilteredListAction;
   openUses := CreateOpenUnitBrowserAction('&Uses', CreateUnitBrowser, '', ubtUses);
-  openUsedIn := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
+  openUsedBy := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
 
-  filteredList.ManagedActions := [{openUses, openUsed, }navigateToUnit];
+  filteredList.ManagedActions := [openUses, {openUsedIn, }navigateToUnit];
   filteredList.DefaultAction := navigateToUnit;
 
   frame.CreateAction(filteredList);
-  frame.CreateAction(openUses, [faoDisabled]);
-  frame.CreateAction(openUsedIn, [faoDisabled]);
+  frame.CreateAction(openUses);
+  frame.CreateAction(openUsedBy, [faoDisabled]);
   frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXUnitBrowser.BuildFrame }
 

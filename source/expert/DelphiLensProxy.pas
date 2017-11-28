@@ -227,6 +227,7 @@ begin
   editPos.Col := column;
   edit.TopView.CursorPos := editPos;
   edit.TopView.MoveViewToCursor;
+  edit.TopView.Paint;
 end;
 
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);

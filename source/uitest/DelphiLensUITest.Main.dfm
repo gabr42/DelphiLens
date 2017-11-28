@@ -130,11 +130,15 @@ object frmDLUITestMain: TfrmDLUITestMain
         FileMask = '*.pas'
       end
       item
+        DisplayName = 'DelphiLens cache'
+        FileMask = '*.dlens'
+      end
+      item
         DisplayName = 'Any file'
         FileMask = '*.*'
       end>
     Options = []
-    Left = 688
-    Top = 104
+    Left = 680
+    Top = 160
   end
 end

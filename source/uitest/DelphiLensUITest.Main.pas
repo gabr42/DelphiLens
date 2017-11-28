@@ -41,6 +41,7 @@ type
     TShowing = (shAnalysis, shParsedUnits, shIncludeFiles, shNotFound, shProblems);
   var
     FLoading  : boolean;
+    FOpenCache: boolean;
     FUIProject: integer;
     FUnits    : IDictionary<string,string>;
   strict protected
@@ -93,6 +94,14 @@ procedure TfrmDLUITestMain.btnSelectClick(Sender: TObject);
 begin
   if dlgOpenProject.Execute then begin
     inpProject.Text := dlgOpenProject.FileName;
+
+    FOpenCache := DSiFileExtensionIs(dlgOpenProject.FileName, '.dlens');
+    if FOpenCache then begin
+      inpProject.Text := ChangeFileExt(inpProject.Text, '.dpk');
+      if not FileExists(inpProject.Text) then
+        inpProject.Text := ChangeFileExt(inpProject.Text, '.dpr');
+    end;
+
     CloseUIProject;
   end;
 end;
@@ -157,6 +166,10 @@ var
   delphiLens: IDelphiLens;
 begin
   delphiLens := CreateDelphiLens(inpProject.Text);
+
+  if FOpenCache then
+    inpDefines.Text := delphiLens.ConditionalDefines;
+
   delphiLens.SearchPath := inpSearchPath.Text;
   delphiLens.ConditionalDefines := inpDefines.Text;
   with AutoRestoreCursor(crHourGlass) do
@@ -207,7 +220,6 @@ begin
   if FUIProject <> 0 then
     ShowMessage('UI project is already open!')
   else begin
-MoveFile(PChar(ChangeFileExt(inpProject.Text, '.dlens')), PChar(ChangeFileExt(inpProject.Text, '.dlens2')));
     if DLUIOpenProject(PChar(inpProject.Text), FUIProject) <> 0 then begin
       ReportUIError('DLUIOpenProject');
       FUIProject := 0;

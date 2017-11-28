@@ -67,6 +67,7 @@ type
   var
     FDelphiLens: IDelphiLens;
     FLoading   : boolean;
+    FOpenCache : boolean;
     FScanResult: IDLScanResult;
     FShowing   : TShowing;
   strict protected
@@ -174,6 +175,8 @@ begin
   FScanResult := nil;
   if not assigned(FDelphiLens) then
     FDelphiLens := CreateDelphiLens(inpProject.Text);
+  if FOpenCache then
+    inpDefines.Text := FDelphiLens.ConditionalDefines;
   FDelphiLens.SearchPath := inpSearchPath.Text;
   FDelphiLens.ConditionalDefines := inpDefines.Text;
   with AutoRestoreCursor(crHourGlass) do begin
@@ -204,6 +207,14 @@ procedure TfrmDLMain.btnSelectClick(Sender: TObject);
 begin
   if dlgOpenProject.Execute then begin
     inpProject.Text := dlgOpenProject.FileName;
+
+    FOpenCache := DSiFileExtensionIs(dlgOpenProject.FileName, '.dlens');
+    if FOpenCache then begin
+      inpProject.Text := ChangeFileExt(inpProject.Text, '.dpk');
+      if not FileExists(inpProject.Text) then
+        inpProject.Text := ChangeFileExt(inpProject.Text, '.dpr');
+    end;
+
     FDelphiLens := nil;
   end;
 end;

@@ -75,14 +75,16 @@ begin
   Result := TDLCache.Create(cacheFileName, dataFormatVersion);
 end; { CreateDLCache }
 
+{ TDLCache }
+
 constructor TDLCache.Create(const AStorageFile: string; ADataFormatVersion: integer);
 
   procedure CreateStorage;
   begin
     FStorage := CreateStructuredStorage;
-  end;
+  end; { CreateStorage }
 
-begin
+begin { TDLCache.Create }
   inherited Create;
   FStorageFile := AStorageFile;
   CreateStorage;

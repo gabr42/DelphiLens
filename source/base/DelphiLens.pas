@@ -97,6 +97,7 @@ begin
   FCache.BindTo(FIndexer);
   FCache.DeserializeSyntaxTree := SyntaxTreeDeserializer;
   FCache.SerializeSyntaxTree := SyntaxTreeSerializer;
+  FConditionalDefines := FCache.DataVersioning;
   FAnalysis := TAnalyzedUnits.Create;
   FTreeAnalyzer := CreateDLTreeAnalyzer;
 end; { TDelphiLens.Create }

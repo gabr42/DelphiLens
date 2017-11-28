@@ -59,7 +59,7 @@ type
 implementation
 
 uses
-  System.SysUtils;
+  System.SysUtils, System.Generics.Defaults;
 
 { TDLCoordinate }
 
@@ -100,11 +100,11 @@ begin
   Result.ImplementationUsesLoc := TDLCoordinate.Invalid;
   Result.InitializationLoc := TDLCoordinate.Invalid;
   Result.FinalizationLoc := TDLCoordinate.Invalid;
-  Result.InterfaceUses := TCollections.CreateList<string>;
+  Result.InterfaceUses := TCollections.CreateList<string>(TIStringComparer.Ordinal);
   Result.InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  Result.ImplementationUses := TCollections.CreateList<string>;
+  Result.ImplementationUses := TCollections.CreateList<string>(TIStringComparer.Ordinal);
   Result.ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  Result.PackageContains := TCollections.CreateList<string>;
+  Result.PackageContains := TCollections.CreateList<string>(TIStringComparer.Ordinal);
 end; { TDLUnitInfo.Create }
 
 function TDLUnitInfo.UnitType: TDLUnitType;

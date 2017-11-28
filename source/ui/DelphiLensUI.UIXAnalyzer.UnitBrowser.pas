@@ -10,7 +10,7 @@ function CreateUnitBrowser: IDLUIXAnalyzer;
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils, System.Generics.Defaults,
   Spring, Spring.Collections,
   DelphiAST.ProjectIndexer,
   DelphiLens.Intf, DelphiLens.UnitInfo,
@@ -63,12 +63,13 @@ procedure TDLUIXUnitBrowser.PrepareParentUnits(const projectInfo: IDLScanResult;
 var
   dlUnitInfo: TDLUnitInfo;
 begin
-  for dlUnitInfo in projectInfo.Analysis do
+  for dlUnitInfo in projectInfo.Analysis do begin
     if dlUnitInfo.ImplementationUses.Contains(initialUnit)
        or dlUnitInfo.InterfaceUses.Contains(initialUnit)
        or dlUnitInfo.PackageContains.Contains(initialUnit)
     then
       units.Add(dlUnitInfo.Name);
+  end;
 end; { TDLUIXUnitBrowser.PrepareParentUnits }
 
 procedure TDLUIXUnitBrowser.PrepareUnitNames(const projectInfo: IDLScanResult;
@@ -76,7 +77,7 @@ procedure TDLUIXUnitBrowser.PrepareUnitNames(const projectInfo: IDLScanResult;
 var
   unsortedUnits: ISet<string>;
 begin
-  unsortedUnits := TCollections.CreateSet<string>;
+  unsortedUnits := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   case filterType of
     ubtNormal: PrepareAllUnits(projectInfo, initialUnit, unsortedUnits);
     ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, unsortedUnits);
@@ -119,7 +120,7 @@ begin
     initialUnit := '';
   end;
 
-  FUnitNames := TCollections.CreateList<string>;
+  FUnitNames := TCollections.CreateList<string>(TIStringComparer.Ordinal);
   PrepareUnitNames(context.Project, filterType, initialUnit, FUnitNames);
 
   filteredList := CreateFilteredListAction('', FUnitNames, context.Source.UnitName) as IDLUIXFilteredListAction;

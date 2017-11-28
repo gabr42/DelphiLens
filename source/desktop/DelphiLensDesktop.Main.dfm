@@ -217,6 +217,10 @@ object frmDLMain: TfrmDLMain
         FileMask = '*.pas'
       end
       item
+        DisplayName = 'DelphiLens cache'
+        FileMask = '*.dlens'
+      end
+      item
         DisplayName = 'Any file'
         FileMask = '*.*'
       end>

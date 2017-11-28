@@ -64,11 +64,15 @@ end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
+  Result := true;
+
   if not assigned(context.Project) then
     Exit(false);
 
-  Result := context.Project.ParsedUnits.Find(context.Source.FileName, FUnitInfo)
-        and context.Project.Analysis.Find(context.Source.FileName, FDLUnitInfo);
+  if not (context.Project.ParsedUnits.Find(context.Source.UnitName, FUnitInfo)
+          and context.Project.Analysis.Find(context.Source.UnitName, FDLUnitInfo))
+  then
+    Exit(false);
 
   if FDLUnitInfo.UnitType = utProgram then begin
     if not (FDLUnitInfo.InterfaceUsesLoc.IsValid or FDLUnitInfo.ContainsLoc.IsValid) then

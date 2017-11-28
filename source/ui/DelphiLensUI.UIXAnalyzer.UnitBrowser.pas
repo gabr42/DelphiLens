@@ -122,7 +122,7 @@ begin
   FUnitNames := TCollections.CreateList<string>;
   PrepareUnitNames(context.Project, filterType, initialUnit, FUnitNames);
 
-  filteredList := CreateFilteredListAction('', FUnitNames, context.Source.FileName) as IDLUIXFilteredListAction;
+  filteredList := CreateFilteredListAction('', FUnitNames, context.Source.UnitName) as IDLUIXFilteredListAction;
   openUses := CreateOpenUnitBrowserAction('&Uses', CreateUnitBrowser, '', ubtUses);
   openUsedBy := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);

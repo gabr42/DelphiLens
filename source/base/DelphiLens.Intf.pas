@@ -5,8 +5,7 @@ interface
 uses
   System.Classes, System.Generics.Collections,
   DelphiAST.ProjectIndexer,
-  DelphiLens.UnitInfo,
-  DelphiLens.Cache.Intf;
+  DelphiLens.UnitInfo, DelphiLens.Cache.Intf, DelphiLens.Analyzers.Intf;
 
 type
   TAnalyzedUnits = class(TList<TDLUnitInfo>)
@@ -23,12 +22,14 @@ type
 
   IDLScanResult = interface ['{69592BF1-A9BB-4495-87A8-1081FAB011B3}']
     function  GetAnalysis: TAnalyzedUnits;
+    function  GetAnalyzers: IDLAnalyzers;
     function  GetCacheStatistics: TCacheStatistics;
     function  GetIncludeFiles: TIncludeFiles;
     function  GetNotFoundUnits: TStringList;
     function  GetParsedUnits: TParsedUnits;
     function  GetProblems: TProblems;
   //
+    property Analyzers: IDLAnalyzers read GetAnalyzers;
     property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
     property ParsedUnits: TParsedUnits read GetParsedUnits;

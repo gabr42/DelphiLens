@@ -15,16 +15,19 @@ uses
   DelphiLens.Cache.Intf, DelphiLens.Cache,
   DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
   DelphiLens.UnitInfo,
-  DelphiLens.TreeAnalyzer.Intf, DelphiLens.TreeAnalyzer;
+  DelphiLens.TreeAnalyzer.Intf, DelphiLens.TreeAnalyzer,
+  DelphiLens.Analyzers.Intf, DelphiLens.Analyzers;
 
 type
   TDLScanResult = class(TInterfacedObject, IDLScanResult)
   strict private
-    [weak] FAnalysis: TAnalyzedUnits;
-           FCache   : IDLCache;
-    [weak] FIndexer : TProjectIndexer;
+    [weak] FAnalysis : TAnalyzedUnits;
+           FAnalyzers: IDLAnalyzers;
+           FCache    : IDLCache;
+    [weak] FIndexer  : TProjectIndexer;
   strict protected
     function  GetAnalysis: TAnalyzedUnits;
+    function  GetAnalyzers: IDLAnalyzers;
     function  GetCacheStatistics: TCacheStatistics;
     function  GetIncludeFiles: TIncludeFiles;
     function  GetNotFoundUnits: TStringList;
@@ -33,6 +36,7 @@ type
   public
     constructor Create(AAnalysis: TAnalyzedUnits; ACache: IDLCache;
       AIndexer: TProjectIndexer);
+    property Analyzers: IDLAnalyzers read GetAnalyzers;
     property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
     property ParsedUnits: TParsedUnits read GetParsedUnits;
@@ -243,6 +247,13 @@ function TDLScanResult.GetAnalysis: TAnalyzedUnits;
 begin
   Result := FAnalysis;
 end; { TDLScanResult.GetAnalysis }
+
+function TDLScanResult.GetAnalyzers: IDLAnalyzers;
+begin
+  if not assigned(FAnalyzers) then
+    FAnalyzers := CreateDLAnalyzers(Self);
+  Result := FAnalyzers;
+end; { TDLScanResult.GetAnalyzers }
 
 function TDLScanResult.GetCacheStatistics: TCacheStatistics;
 begin

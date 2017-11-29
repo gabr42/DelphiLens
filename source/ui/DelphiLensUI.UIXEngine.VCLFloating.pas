@@ -95,6 +95,7 @@ type
     procedure HandleSearchBoxTimer(Sender: TObject);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     procedure NewColumn;
+    function  NumItems(listBox: TListBox): integer;
     procedure PrepareNewColumn;
     procedure QueueOnShow(proc: TProc);
     procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
@@ -495,20 +496,24 @@ var
   listBox: TListBox;
   timer  : TTimer;
 begin
-  if key = VK_UP then begin
+  if (key = VK_UP) or (key = VK_DOWN)
+     or (key = VK_HOME) or (key = VK_END)
+     or (key = VK_PRIOR) or (key = VK_NEXT) then
+  begin
     listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
-    if listBox.ItemIndex > 0 then begin
-      listBox.ItemIndex := listBox.ItemIndex - 1;
-      listBox.OnClick(listBox);
-    end;
-    key := 0;
-  end
-  else if key = VK_DOWN then begin
-    listBox := (TObject((Sender as TSearchBox).Tag) as TListBox);
-    if listBox.ItemIndex < (listBox.Items.Count - 1) then begin
-      listBox.ItemIndex := listBox.ItemIndex + 1;
-      listBox.OnClick(listBox);
-    end;
+    if key = VK_UP then
+      listBox.ItemIndex := Max(listBox.ItemIndex - 1, 0)
+    else if key = VK_DOWN then
+      listBox.ItemIndex := Min(listBox.ItemIndex + 1, listBox.Items.Count - 1)
+    else if key = VK_HOME then
+      listBox.ItemIndex := 0
+    else if key = VK_END then
+      listBox.ItemIndex := listBox.Items.Count - 1
+    else if key = VK_PRIOR then
+      listBox.ItemIndex := Max(listBox.ItemIndex - NumItems(listBox), 0)
+    else if key = VK_NEXT then
+      listBox.ItemIndex := Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1);
+    listBox.OnClick(listBox);
     key := 0;
   end
   else if key = VK_RETURN then begin
@@ -559,6 +564,11 @@ procedure TDLUIXVCLFloatingFrame.NewColumn;
 begin
   FForceNewColumn := true;
 end; { TDLUIXVCLFloatingFrame.NewColumn }
+
+function TDLUIXVCLFloatingFrame.NumItems(listBox: TListBox): integer;
+begin
+  Result := Trunc(listBox.ClientHeight /  listBox.ItemHeight);
+end; { TDLUIXVCLFloatingFrame.NumItems }
 
 procedure TDLUIXVCLFloatingFrame.PrepareNewColumn;
 begin

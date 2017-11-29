@@ -25,15 +25,9 @@ type
     FUnitNames: TUnitNames;
   strict protected
     procedure MakeUnique(const units: TUnitNames);
-    procedure PrepareAllUnits(const projectInfo: IDLScanResult; const initialUnit: string;
-      const units: ICollection<string>);
-    procedure PrepareParentUnits(const projectInfo: IDLScanResult; const initialUnit: string;
-      const units: ICollection<string>);
     procedure PrepareUnitNames(const projectInfo: IDLScanResult;
       filterType: TDLUIXUnitBrowserType; const initialUnit: string;
       const units: TUnitNames);
-    procedure PrepareUsedUnits(const projectInfo: IDLScanResult; const initialUnit: string;
-      const units: ICollection<string>);
   public
     procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
       const context: IDLUIWorkerContext);
@@ -49,57 +43,20 @@ end; { CreateUnitBrowser }
 
 { TDLUIXUnitBrowser }
 
-procedure TDLUIXUnitBrowser.PrepareAllUnits(const projectInfo: IDLScanResult;
-  const initialUnit: string; const units: ICollection<string>);
-var
-  dlUnitInfo: TDLUnitInfo;
-begin
-  for dlUnitInfo in projectInfo.Analysis do
-    units.Add(dlUnitInfo.Name);
-end; { TDLUIXUnitBrowser.PrepareAllUnits }
-
-procedure TDLUIXUnitBrowser.PrepareParentUnits(const projectInfo: IDLScanResult;
-  const initialUnit: string; const units: ICollection<string>);
-var
-  dlUnitInfo: TDLUnitInfo;
-begin
-  for dlUnitInfo in projectInfo.Analysis do begin
-    if dlUnitInfo.ImplementationUses.Contains(initialUnit)
-       or dlUnitInfo.InterfaceUses.Contains(initialUnit)
-       or dlUnitInfo.PackageContains.Contains(initialUnit)
-    then
-      units.Add(dlUnitInfo.Name);
-  end;
-end; { TDLUIXUnitBrowser.PrepareParentUnits }
-
 procedure TDLUIXUnitBrowser.PrepareUnitNames(const projectInfo: IDLScanResult;
   filterType: TDLUIXUnitBrowserType; const initialUnit: string; const units: TUnitNames);
 var
-  unsortedUnits: ISet<string>;
+  unsortedUnits: ICollection<string>;
 begin
-  unsortedUnits := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
-  //TODO: This belongs into DelphiLens, not here
+  units.Clear;
   case filterType of
-    ubtNormal: PrepareAllUnits(projectInfo, initialUnit, unsortedUnits);
-    ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, unsortedUnits);
-    ubtUsedBy: PrepareParentUnits(projectInfo, initialUnit, unsortedUnits);
+    ubtNormal: unsortedUnits := projectInfo.Analyzers.Units.All;
+    ubtUses:   unsortedUnits := projectInfo.Analyzers.Units.UnitUses(initialUnit);
+    ubtUsedBy: unsortedUnits := projectInfo.Analyzers.Units.UnitUsedBy(initialUnit);
   end;
   units.AddRange(unsortedUnits);
   units.Sort;
 end; { TDLUIXUnitBrowser.PrepareUnitNames }
-
-procedure TDLUIXUnitBrowser.PrepareUsedUnits(const projectInfo: IDLScanResult;
-  const initialUnit: string; const units: ICollection<string>);
-var
-  dlUnitInfo: TDLUnitInfo;
-begin
-  if not projectInfo.Analysis.Find(initialUnit, dlUnitInfo) then
-    Exit;
-
-  units.AddRange(dlUnitInfo.InterfaceUses);
-  units.AddRange(dlUnitInfo.ImplementationUses);
-  units.AddRange(dlUnitInfo.PackageContains);
-end; { TDLUIXUnitBrowser.PrepareUsedUnits }
 
 procedure TDLUIXUnitBrowser.BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
   const context: IDLUIWorkerContext);
@@ -140,7 +97,7 @@ end; { TDLUIXUnitBrowser.BuildFrame }
 
 function TDLUIXUnitBrowser.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
-  Result := (context.Project.ParsedUnits.Count > 0);
+  Result := (context.Project.Analysis.Count > 0);
 end; { TDLUIXUnitBrowser.CanHandle }
 
 procedure TDLUIXUnitBrowser.MakeUnique(const units: TUnitNames);

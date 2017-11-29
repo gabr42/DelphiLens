@@ -147,6 +147,7 @@ begin
   FIndexer.SearchPath := SearchPath;
   FIndexer.Defines := ConditionalDefines;
   FAnalysis.Clear;
+  //TODO: Don't reindex problematic units if they didn't change
   FIndexer.Index(Project);
   Result := TDLScanResult.Create(FAnalysis, FCache, FIndexer);
 end; { TDelphiLens.Rescan }

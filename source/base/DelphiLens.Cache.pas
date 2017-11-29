@@ -224,13 +224,14 @@ var
   fullName: string;
   item    : string;
   items   : TStringList;
+  unitInfo: TUnitInfo;
 begin
   items := TStringList.Create;
   try
     FStorage.FileNames(folder, items);
     for item in items do begin
       fullName := folder + item;
-      FCacheInfo.Add(item, TUnitInfo.Create(fullName, FStorage.FileInfo[fullName].Attribute[AttrFileModified]));
+      FCacheInfo.AddOrSetValue(item, TUnitInfo.Create(fullName, FStorage.FileInfo[fullName].Attribute[AttrFileModified]));
     end;
     FStorage.FolderNames(folder, items);
     for item in items do

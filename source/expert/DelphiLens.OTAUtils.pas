@@ -196,6 +196,7 @@ begin
       GLogClasses := PLogClasses(@logLevelInt)^;
       if not silent then
         LogMessage(Format('Logging level set to %d', [logLevelInt]));
+      Include(GLogClasses, lcError);
     end;
   end;
 end; { CheckLogLevel }

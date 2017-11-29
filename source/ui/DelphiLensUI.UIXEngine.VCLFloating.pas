@@ -6,7 +6,7 @@ uses
   DelphiLensUI.UIXEngine.Intf;
 
 //TODO: Lists should change width according to the item
-//TODO: Nicer buttons with icons ...
+//TODO: Nicer buttons with icons ... Derive from TBitBtn and reimplement CN_DRAWITEM?
 
 function CreateUIXEngine: IDLUIXEngine;
 
@@ -420,7 +420,6 @@ begin
     if (listBox.ItemIndex < 0) and (listBox.Items.Count > 0) then
       listBox.ItemIndex := 0;
 
-    //TODO: UIX behaviour, not UI behaviour; only enable Used in/Used by actions if we have syntax info for selected unit
     EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
 
     listBox.OnClick(listBox);
@@ -593,8 +592,6 @@ var
   unitBrowserAction: IDLUIXOpenUnitBrowserAction;
   unitName         : string;
 begin
-  //TODO: ** This does not belong into UI implementation; it is a global UIX behaviour
-
   if listBox.ItemIndex < 0 then
     unitName := ''
   else

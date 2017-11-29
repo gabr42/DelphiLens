@@ -38,7 +38,7 @@ type
 
   TDLUnitType = (utProgram, utUnit);
 
-  TDLUnitInfo = record //TODO: ILists should be only created when needed
+  TDLUnitInfo = record //TODO: ILists should be only created when needed; use Lazy<T>?
     Name                 : string;
     InterfaceLoc         : TDLCoordinate;
     InterfaceUsesLoc     : TDLCoordinate;

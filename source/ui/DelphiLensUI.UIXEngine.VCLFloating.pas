@@ -5,7 +5,6 @@ interface
 uses
   DelphiLensUI.UIXEngine.Intf;
 
-//TODO: Don't add to history if current location = new location
 //TODO: Lists should change width according to the item
 //TODO: Nicer buttons with icons ...
 

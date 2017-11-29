@@ -95,7 +95,7 @@ begin
         navigation.Location.Line, navigation.Location.Column);
       if navigation.IsBackNavigation then
         FUIContext.Storage.History.Remove(FUIContext.Target)
-      else
+      else if FUIContext.Source <> FUIContext.Target then
         FUIContext.Storage.History.Add(TDLUIXLocation.Create(FUIContext.Source));
     end;
   end;

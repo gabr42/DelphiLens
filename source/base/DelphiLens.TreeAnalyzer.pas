@@ -10,7 +10,7 @@ function CreateDLTreeAnalyzer: IDLTreeAnalyzer;
 implementation
 
 uses
-  Spring.Collections,
+  Spring, Spring.Collections,
   GpStuff,
   DelphiAST.Consts, DelphiAST.Classes,
   DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo;
@@ -20,7 +20,7 @@ type
   strict private
     FNodeToSection: array [TSyntaxNodeType] of TDLTypeSection;
   strict protected
-    procedure GetUnitList(usesNode: TSyntaxNode; const units: IList<string>);
+    procedure GetUnitList(usesNode: TSyntaxNode; var units: Vector<string>);
     function  ParseTypes(node: TSyntaxNode): IList<TDLTypeInfo>;
   public
     constructor Create;
@@ -101,7 +101,7 @@ begin
     unitInfo.ImplementationTypes := ParseTypes(ndImpl);
 end; { TDLTreeAnalyzer.AnalyzeTree }
 
-procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; const units: IList<string>);
+procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: Vector<string>);
 var
   childNode: TSyntaxNode;
 begin

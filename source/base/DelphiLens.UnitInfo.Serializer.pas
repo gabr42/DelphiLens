@@ -11,7 +11,7 @@ implementation
 
 uses
   System.Classes,
-  Spring.Collections,
+  Spring, Spring.Collections,
   DelphiLens.UnitInfo;
 
 type
@@ -25,12 +25,12 @@ type
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
-    function  ReadStrings(const strings: IList<string>): boolean;
+    function  ReadStrings(var strings: Vector<string>): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;
     procedure WriteString(const s: string); inline;
-    procedure WriteStrings(const strings: IList<string>);
+    procedure WriteStrings(const strings: Vector<string>);
   public
     function  Read(stream: TStream; var unitInfo: TDLUnitInfo): boolean;
     procedure Write(const unitInfo: TDLUnitInfo; stream: TStream);
@@ -97,7 +97,7 @@ begin
   Result := true;
 end; { TDLUnitInfoSerializer.ReadString }
 
-function TDLUnitInfoSerializer.ReadStrings(const strings: IList<string>): boolean;
+function TDLUnitInfoSerializer.ReadStrings(var strings: Vector<string>): boolean;
 var
   i  : integer;
   len: word;
@@ -106,11 +106,12 @@ begin
   Result := false;
   if not ReadWord(len) then
     Exit;
-  strings.Capacity := len;
+
+  strings.Length := len;
   for i := 0 to len - 1 do begin
     if not ReadString(s) then
       Exit;
-    strings.Add(s);
+    strings[i] := s;
   end;
   Result := true;
 end; { TDLUnitInfoSerializer.ReadStrings }
@@ -155,11 +156,11 @@ begin
     FStream.Write(s[1], Length(s) * SizeOf(s[1]));
 end; { TDLUnitInfoSerializer.WriteString }
 
-procedure TDLUnitInfoSerializer.WriteStrings(const strings: IList<string>);
+procedure TDLUnitInfoSerializer.WriteStrings(const strings: Vector<string>);
 var
   s: string;
 begin
-  WriteWord(strings.Count);
+  WriteWord(strings.Length);
   for s in strings do
     WriteString(s);
 end; { TDLUnitInfoSerializer.WriteStrings }

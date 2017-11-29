@@ -11,7 +11,7 @@ implementation
 
 uses
   System.Generics.Defaults,
-  Spring.Collections,
+  Spring, Spring.Collections,
   DelphiLens.UnitInfo;
 
 type
@@ -55,9 +55,9 @@ var
 begin
   Result := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   for dlUnitInfo in FScanResult.Analysis do begin
-    if dlUnitInfo.ImplementationUses.Contains(unitName)
-       or dlUnitInfo.InterfaceUses.Contains(unitName)
-       or dlUnitInfo.PackageContains.Contains(unitName)
+    if dlUnitInfo.Contains(dlUnitInfo.ImplementationUses, unitName)
+       or dlUnitInfo.Contains(dlUnitInfo.InterfaceUses, unitName)
+       or dlUnitInfo.Contains(dlUnitInfo.PackageContains, unitName)
     then
       Result.Add(dlUnitInfo.Name);
   end;
@@ -71,9 +71,9 @@ begin
   if not FScanResult.Analysis.Find(unitName, dlUnitInfo) then
     Exit;
 
-  Result.AddRange(dlUnitInfo.InterfaceUses);
-  Result.AddRange(dlUnitInfo.ImplementationUses);
-  Result.AddRange(dlUnitInfo.PackageContains);
+  Result.AddRange(dlUnitInfo.InterfaceUses.Data);
+  Result.AddRange(dlUnitInfo.ImplementationUses.Data);
+  Result.AddRange(dlUnitInfo.PackageContains.Data);
 end; { TDLUnitAnalyzer.UnitUses }
 
 end.

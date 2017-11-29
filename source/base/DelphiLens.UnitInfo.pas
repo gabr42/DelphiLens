@@ -5,7 +5,7 @@ interface
 uses
   System.Types,
   DelphiAST.Classes,
-  Spring.Collections;
+  Spring, Spring.Collections;
 
 type
   TDLCoordinate = record
@@ -36,9 +36,10 @@ type
     function  EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
   end; { TDLTypeInfo }
 
-  TDLUnitType = (utProgram, utUnit);
+  TDLUnitType = (utProgram, utUnit, utPackage);
 
-  TDLUnitInfo = record //TODO: ILists should be only created when needed; use Lazy<T>?
+  TDLUnitInfo = record //TODO: ILists should be only created when needed
+  public
     Name                 : string;
     InterfaceLoc         : TDLCoordinate;
     InterfaceUsesLoc     : TDLCoordinate;
@@ -47,13 +48,15 @@ type
     ContainsLoc          : TDLCoordinate;
     InitializationLoc    : TDLCoordinate;
     FinalizationLoc      : TDLCoordinate;
-    InterfaceUses        : IList<string>;      //program 'uses' when UnitType = utProgram
-    InterfaceTypes       : IList<TDLTypeInfo>; //program types when UnitType = utProgram
-    ImplementationUses   : IList<string>;
+    InterfaceUses        : Vector<string>;      //program uses when UnitType = utProgram
+    InterfaceTypes       : IList<TDLTypeInfo>;  //program types when UnitType = utProgram
+    ImplementationUses   : Vector<string>;
     ImplementationTypes  : IList<TDLTypeInfo>;
-    PackageContains      : IList<string>;
+    PackageContains      : Vector<string>;
     class function Create: TDLUnitInfo; static;
     function UnitType: TDLUnitType; inline;
+    //TODO: Simplify when Spring 1.3 is released
+    function Contains(const list: Vector<string>; const item: string): boolean;
   end; { TDLUnitInfo }
 
 implementation
@@ -91,6 +94,16 @@ end; { TDLCoordinate.ToString }
 
 { TDLUnitInfo }
 
+function TDLUnitInfo.Contains(const list: Vector<string>; const item: string): boolean;
+var
+  s: string;
+begin
+  Result := false;
+  for s in list do
+    if SameText(item, s) then
+      Exit(true);
+end; { TDLUnitInfo.Contains }
+
 class function TDLUnitInfo.Create: TDLUnitInfo;
 begin
   Result.Name := '';
@@ -100,18 +113,17 @@ begin
   Result.ImplementationUsesLoc := TDLCoordinate.Invalid;
   Result.InitializationLoc := TDLCoordinate.Invalid;
   Result.FinalizationLoc := TDLCoordinate.Invalid;
-  Result.InterfaceUses := TCollections.CreateList<string>(TIStringComparer.Ordinal);
   Result.InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  Result.ImplementationUses := TCollections.CreateList<string>(TIStringComparer.Ordinal);
   Result.ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  Result.PackageContains := TCollections.CreateList<string>(TIStringComparer.Ordinal);
 end; { TDLUnitInfo.Create }
 
 function TDLUnitInfo.UnitType: TDLUnitType;
 begin
   Result := utProgram;
   if InterfaceLoc.Line >= 0 then
-    Result := utUnit;
+    Result := utUnit
+  else if ContainsLoc.Line >= 0 then
+    Result := utPackage;
 end; { TDLUnitInfo.UnitType }
 
 function TDLTypeInfo.EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;

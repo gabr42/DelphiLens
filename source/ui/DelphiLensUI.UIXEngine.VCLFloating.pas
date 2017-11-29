@@ -5,10 +5,9 @@ interface
 uses
   DelphiLensUI.UIXEngine.Intf;
 
-//TODO: Treat backspace as hotkey for "History"
 //TODO: Don't add to history if current location = new location
 //TODO: Lists should change width according to the item
-//TODO: Nicer buttons ...
+//TODO: Nicer buttons with icons ...
 
 function CreateUIXEngine: IDLUIXEngine;
 

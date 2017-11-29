@@ -78,6 +78,7 @@ var
   unsortedUnits: ISet<string>;
 begin
   unsortedUnits := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
+  //TODO: This belongs into DelphiLens, not here
   case filterType of
     ubtNormal: PrepareAllUnits(projectInfo, initialUnit, unsortedUnits);
     ubtUses:   PrepareUsedUnits(projectInfo, initialUnit, unsortedUnits);

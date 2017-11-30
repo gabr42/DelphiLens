@@ -72,10 +72,10 @@ type
     FShowing   : TShowing;
   strict protected
     function  AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
-    procedure DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);
+    procedure DumpAnalysis(log: TStrings; const unitInfo: IDLUnitInfo);
     procedure DumpSyntaxTree(log: TStrings; node: TSyntaxNode; const prefix: string);
-    procedure DumpUses(log: TStrings; const usesList: IList<string>; const location:
-      TDLCoordinate);
+    procedure DumpUses(log: TStrings; const usesList: TDLUnitList;
+      const location: TDLCoordinate);
     procedure LoadSettings;
     procedure SaveSettings;
     procedure ShowAnalysis;
@@ -219,7 +219,7 @@ begin
   end;
 end;
 
-procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: TDLUnitInfo);
+procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: IDLUnitInfo);
 var
   isProgram: boolean;
 begin
@@ -262,7 +262,8 @@ begin
     DumpSyntaxTree(log, children[i], newPrefix);
 end;
 
-procedure TfrmDLMain.DumpUses(log: TStrings; const usesList: IList<string>; const location: TDLCoordinate);
+procedure TfrmDLMain.DumpUses(log: TStrings; const usesList: TDLUnitList;
+  const location: TDLCoordinate);
 var
   unitName: string;
 begin
@@ -286,7 +287,7 @@ end;
 
 procedure TfrmDLMain.lbFilesClick(Sender: TObject);
 var
-  dlUnitInfo: TDLUnitInfo;
+  dlUnitInfo: IDLUnitInfo;
   outSl     : TStringList;
   unitInfo  : TProjectIndexer.TUnitInfo;
 begin

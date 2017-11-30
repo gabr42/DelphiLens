@@ -20,11 +20,11 @@ type
   strict private
     FNodeToSection: array [TSyntaxNodeType] of TDLTypeSection;
   strict protected
-    procedure GetUnitList(usesNode: TSyntaxNode; var units: Vector<string>);
+    procedure GetUnitList(usesNode: TSyntaxNode; var units: TDLUnitList);
     function  ParseTypes(node: TSyntaxNode): IList<TDLTypeInfo>;
   public
     constructor Create;
-    procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
+    procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: IDLUnitInfo);
   end; { TDLTreeAnalyzer }
 
 { exports }
@@ -48,15 +48,16 @@ begin
   FNodeToSection[ntPublished]       := secPublished;
 end; { TDLTreeAnalyzer.Create }
 
-procedure TDLTreeAnalyzer.AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
+procedure TDLTreeAnalyzer.AnalyzeTree(tree: TSyntaxNode; var unitInfo: IDLUnitInfo);
 var
   ndContains: TSyntaxNode;
   ndImpl    : TSyntaxNode;
   ndIntf    : TSyntaxNode;
   ndUnit    : TSyntaxNode;
   ndUses    : TSyntaxNode;
+  units: TDLUnitList;
 begin
-  unitInfo := TDLUnitInfo.Create;
+  unitInfo := CreateDLUnitInfo;
   if not tree.FindFirst(ntUnit, ndUnit) then
     Exit;
 
@@ -78,20 +79,23 @@ begin
 
   ndUses := ndIntf.FindFirst(ntUses);
   if assigned(ndUses) then begin
-    GetUnitList(ndUses, unitInfo.InterfaceUses);
+    GetUnitList(ndUses, units);
+    unitInfo.InterfaceUses := units;
     unitInfo.InterfaceUsesLoc.SetLocation(ndUses);
   end;
 
   ndContains := ndIntf.FindFirst(ntContains);
   if assigned(ndContains) then begin
-    GetUnitList(ndContains, unitInfo.PackageContains);
+    GetUnitList(ndContains, units);
+    unitInfo.PackageContains := units;
     unitInfo.ContainsLoc.SetLocation(ndContains);
   end;
 
   if assigned(ndImpl) then begin
     ndUses := ndImpl.FindFirst(ntUses);
     if assigned(ndUses) then begin
-      GetUnitList(ndUses, unitInfo.ImplementationUses);
+      GetUnitList(ndUses, units);
+      unitInfo.ImplementationUses := units;
       unitInfo.ImplementationUsesLoc.SetLocation(ndUses);
     end;
   end;
@@ -101,7 +105,7 @@ begin
     unitInfo.ImplementationTypes := ParseTypes(ndImpl);
 end; { TDLTreeAnalyzer.AnalyzeTree }
 
-procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: Vector<string>);
+procedure TDLTreeAnalyzer.GetUnitList(usesNode: TSyntaxNode; var units: TDLUnitList);
 var
   childNode: TSyntaxNode;
 begin

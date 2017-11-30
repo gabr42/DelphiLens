@@ -61,3 +61,5 @@ __history/
 *.ficfg
 
 *.dll_
+
+*.dll__

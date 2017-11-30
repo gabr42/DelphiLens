@@ -8,9 +8,9 @@ uses
   DelphiLens.UnitInfo, DelphiLens.Cache.Intf, DelphiLens.Analyzers.Intf;
 
 type
-  TAnalyzedUnits = class(TList<TDLUnitInfo>)
+  TAnalyzedUnits = class(TList<IDLUnitInfo>)
   public
-    function Find(const unitName: string; var unitInfo: TDLUnitInfo): boolean;
+    function Find(const unitName: string; var unitInfo: IDLUnitInfo): boolean;
   end; { TAnalyzedUnits }
 
   TUnitInfo = TProjectIndexer.TUnitInfo;
@@ -56,7 +56,7 @@ implementation
 uses
   System.SysUtils;
 
-function TAnalyzedUnits.Find(const unitName: string; var unitInfo: TDLUnitInfo): boolean;
+function TAnalyzedUnits.Find(const unitName: string; var unitInfo: IDLUnitInfo): boolean;
 var
   iUnit: integer;
 begin

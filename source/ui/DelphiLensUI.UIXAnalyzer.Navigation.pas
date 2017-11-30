@@ -19,7 +19,7 @@ uses
 type
   TDLUIXNavigationAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private
-    FDLUnitInfo: TDLUnitInfo;
+    FDLUnitInfo: IDLUnitInfo;
     FUnitInfo  : TProjectIndexer.TUnitInfo;
   public
     procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;

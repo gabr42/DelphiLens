@@ -25,15 +25,15 @@ type
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
-    function  ReadStrings(var strings: Vector<string>): boolean;
+    function ReadStrings(var strings: TDLUnitList): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;
     procedure WriteString(const s: string); inline;
-    procedure WriteStrings(const strings: Vector<string>);
+    procedure WriteStrings(const strings: TDLUnitList);
   public
-    function  Read(stream: TStream; var unitInfo: TDLUnitInfo): boolean;
-    procedure Write(const unitInfo: TDLUnitInfo; stream: TStream);
+    function  Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
+    procedure Write(const unitInfo: IDLUnitInfo; stream: TStream);
   end; { TDLUnitInfoSerializer }
 
 { exports }
@@ -45,26 +45,40 @@ end; { CreateSerializer }
 
 { TDLUnitInfoSerializer }
 
-function TDLUnitInfoSerializer.Read(stream: TStream; var unitInfo: TDLUnitInfo): boolean;
+function TDLUnitInfoSerializer.Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
 var
+  loc: TDLCoordinate;
+  s      : string;
+  units: TDLUnitList;
   version: integer;
 begin
   Result := false;
   FStream := stream;
-  unitInfo := TDLUnitInfo.Create;
+  unitInfo := CreateDLUnitInfo;
   if not ReadInteger(version) then Exit;
   if version <> CVersion then Exit;
-  if not ReadString(unitInfo.Name) then Exit;
-  if not ReadLocation(unitInfo.InterfaceLoc) then Exit;
-  if not ReadLocation(unitInfo.InterfaceUsesLoc) then Exit;
-  if not ReadLocation(unitInfo.ImplementationLoc) then Exit;
-  if not ReadLocation(unitInfo.ImplementationUsesLoc) then Exit;
-  if not ReadLocation(unitInfo.ContainsLoc) then Exit;
-  if not ReadLocation(unitInfo.InitializationLoc) then Exit;
-  if not ReadLocation(unitInfo.FinalizationLoc) then Exit;
-  if not ReadStrings(unitInfo.InterfaceUses) then Exit;
-  if not ReadStrings(unitInfo.ImplementationUses) then Exit;
-  if not ReadStrings(unitInfo.PackageContains) then Exit;
+  if not ReadString(s) then Exit;
+  unitInfo.Name := s;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.InterfaceLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.InterfaceUsesLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.ImplementationLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.ImplementationUsesLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.ContainsLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.InitializationLoc := loc;
+  if not ReadLocation(loc) then Exit;
+  unitInfo.FinalizationLoc := loc;
+  if not ReadStrings(units) then Exit;
+  unitInfo.InterfaceUses := units;
+  if not ReadStrings(units) then Exit;
+  unitInfo.ImplementationUses := units;
+  if not ReadStrings(units) then Exit;
+  unitInfo.PackageContains := units;
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
 
@@ -97,7 +111,7 @@ begin
   Result := true;
 end; { TDLUnitInfoSerializer.ReadString }
 
-function TDLUnitInfoSerializer.ReadStrings(var strings: Vector<string>): boolean;
+function TDLUnitInfoSerializer.ReadStrings(var strings: TDLUnitList): boolean;
 var
   i  : integer;
   len: word;
@@ -121,7 +135,7 @@ begin
   Result := FStream.Read(w, 2) = 2;
 end; { TDLUnitInfoSerializer.ReadWord }
 
-procedure TDLUnitInfoSerializer.Write(const unitInfo: TDLUnitInfo; stream: TStream);
+procedure TDLUnitInfoSerializer.Write(const unitInfo: IDLUnitInfo; stream: TStream);
 begin
   FStream := stream;
   WriteInteger(CVersion);
@@ -156,7 +170,7 @@ begin
     FStream.Write(s[1], Length(s) * SizeOf(s[1]));
 end; { TDLUnitInfoSerializer.WriteString }
 
-procedure TDLUnitInfoSerializer.WriteStrings(const strings: Vector<string>);
+procedure TDLUnitInfoSerializer.WriteStrings(const strings: TDLUnitList);
 var
   s: string;
 begin

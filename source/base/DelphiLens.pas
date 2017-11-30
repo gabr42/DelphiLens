@@ -59,7 +59,7 @@ type
     FSearchPath        : string;
     FTreeAnalyzer      : IDLTreeAnalyzer;
   strict protected
-    procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
+    procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: IDLUnitInfo);
     procedure FilterSyntax(node: TSyntaxNode);
     function  GetConditionalDefines: string;
     function  GetProject: string;
@@ -113,7 +113,7 @@ begin
   inherited;
 end; { TDelphiLens.Destroy }
 
-procedure TDelphiLens.AnalyzeTree(tree: TSyntaxNode; var unitInfo: TDLUnitInfo);
+procedure TDelphiLens.AnalyzeTree(tree: TSyntaxNode; var unitInfo: IDLUnitInfo);
 begin
   FTreeAnalyzer.AnalyzeTree(tree, unitInfo);
 end; { TDelphiLens.AnalyzeTree }
@@ -171,7 +171,7 @@ var
   len       : integer;
   mem       : TMemoryStream;
   reader    : TBinarySerializer;
-  unitInfo  : TDLUnitInfo;
+  unitInfo  : IDLUnitInfo;
   unitReader: IDLUnitInfoSerializer;
 begin
   Result := true;
@@ -204,7 +204,7 @@ procedure TDelphiLens.SyntaxTreeSerializer(tree: TSyntaxNode; data: TStream);
 var
   len       : integer;
   mem       : TMemoryStream;
-  unitInfo  : TDLUnitInfo;
+  unitInfo  : IDLUnitInfo;
   unitWriter: IDLUnitInfoSerializer;
   writer    : TBinarySerializer;
 begin

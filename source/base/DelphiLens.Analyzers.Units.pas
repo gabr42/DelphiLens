@@ -42,7 +42,7 @@ end; { TDLUnitAnalyzer.Create }
 
 function TDLUnitAnalyzer.All: ICollection<string>;
 var
-  dlUnitInfo: TDLUnitInfo;
+  dlUnitInfo: IDLUnitInfo;
 begin
   Result := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   for dlUnitInfo in FScanResult.Analysis do
@@ -51,13 +51,13 @@ end; { TDLUnitAnalyzer.All }
 
 function TDLUnitAnalyzer.UnitUsedBy(const unitName: string): ICollection<string>;
 var
-  dlUnitInfo: TDLUnitInfo;
+  dlUnitInfo: IDLUnitInfo;
 begin
   Result := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   for dlUnitInfo in FScanResult.Analysis do begin
-    if dlUnitInfo.Contains(dlUnitInfo.ImplementationUses, unitName)
-       or dlUnitInfo.Contains(dlUnitInfo.InterfaceUses, unitName)
-       or dlUnitInfo.Contains(dlUnitInfo.PackageContains, unitName)
+    if dlUnitInfo.ImplementationUses.ContainsI(unitName)
+       or dlUnitInfo.InterfaceUses.ContainsI(unitName)
+       or dlUnitInfo.PackageContains.ContainsI(unitName)
     then
       Result.Add(dlUnitInfo.Name);
   end;
@@ -65,7 +65,7 @@ end; { TDLUnitAnalyzer.UnitUsedBy }
 
 function TDLUnitAnalyzer.UnitUses(const unitName: string): ICollection<string>;
 var
-  dlUnitInfo: TDLUnitInfo;
+  dlUnitInfo: IDLUnitInfo;
 begin
   Result := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   if not FScanResult.Analysis.Find(unitName, dlUnitInfo) then

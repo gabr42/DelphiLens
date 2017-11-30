@@ -2,6 +2,8 @@ unit DelphiLensUI.Worker;
 
 interface
 
+//TODO: Catch exceptions in worker and report them back
+
 uses
   OtlSync, OtlComm, OtlTaskControl,
   DelphiLens.Intf,
@@ -50,6 +52,7 @@ type
 implementation
 
 uses
+  GpConsole,
   System.UITypes,
   System.SysUtils,
   Vcl.Forms,
@@ -68,6 +71,7 @@ type
     FOwner     : TDelphiLensUIProject;
     FScanLock  : IOmniCriticalSection;
   strict protected
+    procedure ReportException(const funcName: string; E: Exception);
     procedure ScheduleRescan;
   protected
     function  Initialize: boolean; override;
@@ -135,9 +139,14 @@ begin
     //TODO: Show nicer "Please wait" window with TActivityIndicator
     Screen.Cursor := oldCursor;
 
-    context := CreateWorkerContext(FUIXStorage, FScanResult,
-      TDLUIXLocation.Create(fileName, unitName, line, column));
-    DLUIShowUI(context);
+    if not assigned(FScanResult) then
+      //TODO: Report error
+      Console.Writeln('Activate: Project = nil')
+    else begin
+      context := CreateWorkerContext(FUIXStorage, FScanResult,
+        TDLUIXLocation.Create(fileName, unitName, line, column));
+      DLUIShowUI(context);
+    end;
   finally FScanLock.Release; end;
 
   navigate := assigned(context) and context.Target.HasValue;
@@ -179,12 +188,23 @@ end; { TDelphiLensUIProject.SetConfig }
 
 procedure TDelphiLensUIWorker.Close;
 begin
-  FDelphiLens := nil;
+  Console.Writeln('Worker Close');
+  try
+    FDelphiLens := nil;
+  except
+    on E:Exception do
+      ReportException('Close', E);
+  end;
 end; { TDelphiLensUIWorker.Close }
 
 procedure TDelphiLensUIWorker.FileModified(const fileModified: TOmniValue);
 begin
-  ScheduleRescan;
+  try
+    ScheduleRescan;
+  except
+    on E:Exception do
+      ReportException('FileModified', E);
+  end;
 end; { TDelphiLensUIWorker.FileModified }
 
 function TDelphiLensUIWorker.Initialize: boolean;
@@ -198,51 +218,83 @@ end; { TDelphiLensUIWorker.Initialize }
 
 procedure TDelphiLensUIWorker.Open(const projectName: TOmniValue);
 begin
-  FDelphiLens := CreateDelphiLens(projectName);
+  try
+    FDelphiLens := CreateDelphiLens(projectName);
+  except
+    on E:Exception do
+      ReportException('Open', E);
+  end;
 end; { TDelphiLensUIWorker.Open }
 
 procedure TDelphiLensUIWorker.ProjectModified;
 begin
-  ScheduleRescan;
+  try
+    ScheduleRescan;
+  except
+    on E:Exception do
+      ReportException('ProjectModified', E);
+  end;
 end; { TDelphiLensUIWorker.ProjectModified }
+
+procedure TDelphiLensUIWorker.ReportException(const funcName: string;
+  E: Exception);
+begin
+  //TODO: Temporary solution
+  Console.Writeln(['Worker exception in ', funcName, ' ', E.ClassName, ': ', E.Message]);
+end; { TDelphiLensUIWorker.ReportException }
 
 procedure TDelphiLensUIWorker.Rescan;
 var
   scanResult: IDLScanResult;
 begin
-  if not assigned(FDelphiLens) then
-    Exit;
-
-  Task.ClearTimer(CTimerRescan);
-
-  FScanLock.Acquire;
   try
-    scanResult := FDelphiLens.Rescan;
-  finally FScanLock.Release; end;
+    if not assigned(FDelphiLens) then
+      Exit;
 
-  Task.Invoke(
-    procedure
-    begin
-      FOwner.ScanComplete(scanResult);
-    end);
+    Task.ClearTimer(CTimerRescan);
+
+    FScanLock.Acquire;
+    try
+      scanResult := FDelphiLens.Rescan;
+    finally FScanLock.Release; end;
+
+    Task.Invoke(
+      procedure
+      begin
+        FOwner.ScanComplete(scanResult);
+      end);
+  except
+    on E:Exception do
+      ReportException('Rescan', E);
+  end;
 end; { TDelphiLensUIWorker.Rescan }
 
 procedure TDelphiLensUIWorker.ScheduleRescan;
 begin
-  if assigned(FDelphiLens) then
-    Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensUIWorker.Rescan);
+  try
+    if assigned(FDelphiLens) then
+      Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensUIWorker.Rescan);
+  except
+    on E:Exception do
+      ReportException('ScheduleRescan', E);
+  end;
 end; { TDelphiLensUIWorker.ScheduleRescan }
 
 procedure TDelphiLensUIWorker.SetConfig(const configInfo: TOmniValue);
 var
   config: TDLUIProjectConfig;
 begin
-  if assigned(FDelphiLens) then begin
-    config := configInfo.ToRecord<TDLUIProjectConfig>;
-    { TODO : Implement: SetProjectConfig }
-//    FDelphiLens.Platform := config.PlatformName;
-    FDelphiLens.ConditionalDefines := config.ConditionalDefines;
-    FDelphiLens.SearchPath := config.SearchPath;
+  try
+    if assigned(FDelphiLens) then begin
+      config := configInfo.ToRecord<TDLUIProjectConfig>;
+      { TODO : Implement: SetProjectConfig }
+  //    FDelphiLens.Platform := config.PlatformName;
+      FDelphiLens.ConditionalDefines := config.ConditionalDefines;
+      FDelphiLens.SearchPath := config.SearchPath;
+    end;
+  except
+    on E:Exception do
+      ReportException('SetConfig', E);
   end;
 end; { TDelphiLensUIWorker.SetConfig }
 

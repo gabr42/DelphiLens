@@ -12,9 +12,9 @@ type
   public
     Line  : integer;
     Column: integer;
+    class function Create(const node: TSyntaxNode): TDLCoordinate; static;
     class function Invalid: TDLCoordinate; static; inline;
     function  IsValid: boolean; inline;
-    procedure SetLocation(const node: TSyntaxNode);
     function  ToString: string; inline;
   end; { TDLCoordinateHelper }
 
@@ -43,7 +43,7 @@ type
   TDLUnitList = Vector<string>;
 
   TDLUnitListHelper = record helper for TDLUnitList
-    //TODO: Simplify when Spring 1.3 is released
+    //TODO: Simplify when Spring 1.2.2 is released
     function ContainsI(const item: string): boolean;
   end; { TDLUnitListHelper }
 
@@ -171,6 +171,16 @@ end; { CreateDLUnitInfo }
 
 { TDLCoordinate }
 
+class function TDLCoordinate.Create(const node: TSyntaxNode): TDLCoordinate;
+begin
+  if not assigned(node) then
+    Result := TDLCoordinate.Invalid
+  else begin
+    Result.Line := node.Line;
+    Result.Column := node.Col;
+  end;
+end; { TDLCoordinate.Create }
+
 class function TDLCoordinate.Invalid: TDLCoordinate;
 begin
   Result.Line := -1;
@@ -182,16 +192,6 @@ begin
   Result := (Line >= 0) and (Column >= 0);
 end; { TDLCoordinate.IsValid }
 
-procedure TDLCoordinate.SetLocation(const node: TSyntaxNode);
-begin
-  if not assigned(node) then
-    Self := TDLCoordinate.Invalid
-  else begin
-    Line := node.Line;
-    Column := node.Col;
-  end;
-end;
-
 function TDLCoordinate.ToString: string;
 begin
   Result := Format('%d,%d', [Line, Column]);
@@ -202,6 +202,7 @@ end; { TDLCoordinate.ToString }
 constructor TDLUnitInfo.Create;
 begin
   inherited Create;
+  ContainsLoc := TDLCoordinate.Invalid;
   InterfaceLoc := TDLCoordinate.Invalid;
   InterfaceUsesLoc := TDLCoordinate.Invalid;
   ImplementationLoc := TDLCoordinate.Invalid;
@@ -280,10 +281,10 @@ end; { TDLUnitInfo.GetPackageContains }
 function TDLUnitInfo.GetUnitType: TDLUnitType;
 begin
   Result := utProgram;
-  if InterfaceLoc.Line >= 0 then
-    Result := utUnit
-  else if ContainsLoc.Line >= 0 then
-    Result := utPackage;
+  if ContainsLoc.Line > 0 then
+    Result := utPackage
+  else if InterfaceLoc.Line > 0 then
+    Result := utUnit;
 end; { TDLUnitInfo.GetUnitType }
 
 procedure TDLUnitInfo.SetContainsLoc(const value: TDLCoordinate);

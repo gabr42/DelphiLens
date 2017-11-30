@@ -66,29 +66,29 @@ begin
   ndIntf := ndUnit.FindFirst(ntInterface);
   if assigned(ndIntf) then begin
     ndImpl := ndUnit.FindFirst(ntImplementation);
-    unitInfo.InterfaceLoc.SetLocation(ndIntf);
-    unitInfo.ImplementationLoc.SetLocation(ndImpl);
+    unitInfo.InterfaceLoc := TDLCoordinate.Create(ndIntf);
+    unitInfo.ImplementationLoc := TDLCoordinate.Create(ndImpl);
   end
   else begin
     ndIntf := ndUnit; //alias to simplify .dpr parsing
     ndImpl := nil;
   end;
 
-  unitInfo.InitializationLoc.SetLocation(ndUnit.FindFirst(ntInitialization));
-  unitInfo.FinalizationLoc.SetLocation(ndUnit.FindFirst(ntFinalization));
+  unitInfo.InitializationLoc := TDLCoordinate.Create(ndUnit.FindFirst(ntInitialization));
+  unitInfo.FinalizationLoc := TDLCoordinate.Create(ndUnit.FindFirst(ntFinalization));
 
   ndUses := ndIntf.FindFirst(ntUses);
   if assigned(ndUses) then begin
     GetUnitList(ndUses, units);
     unitInfo.InterfaceUses := units;
-    unitInfo.InterfaceUsesLoc.SetLocation(ndUses);
+    unitInfo.InterfaceUsesLoc := TDLCoordinate.Create(ndUses);
   end;
 
   ndContains := ndIntf.FindFirst(ntContains);
   if assigned(ndContains) then begin
     GetUnitList(ndContains, units);
     unitInfo.PackageContains := units;
-    unitInfo.ContainsLoc.SetLocation(ndContains);
+    unitInfo.ContainsLoc := TDLCoordinate.Create(ndContains);
   end;
 
   if assigned(ndImpl) then begin
@@ -96,7 +96,7 @@ begin
     if assigned(ndUses) then begin
       GetUnitList(ndUses, units);
       unitInfo.ImplementationUses := units;
-      unitInfo.ImplementationUsesLoc.SetLocation(ndUses);
+      unitInfo.ImplementationUsesLoc := TDLCoordinate.Create(ndUses);
     end;
   end;
 
@@ -126,12 +126,12 @@ begin
   for nodeTypeSect in node.FindAll(ntTypeSection, false) do begin
     for nodeTypeDecl in nodeTypeSect.FindAll(ntTypeDecl) do begin
       typeInfo := TDLTypeInfo.Create;
-      typeInfo.Location.SetLocation(nodeTypeDecl);
+      typeInfo.Location := TDLCoordinate.Create(nodeTypeDecl);
       if nodeTypeDecl.FindFirst(ntType, nodeType) then begin
         for nodeSection in nodeType.FindAll([ntStrictPrivate, ntPrivate, ntStrictProtected,
                                              ntProtected, ntPublic, ntPublished]) do
         begin
-          typeInfo.EnsureSection(FNodeToSection[nodeSection.Typ]).Location.SetLocation(nodeSection);
+          typeInfo.EnsureSection(FNodeToSection[nodeSection.Typ]).Location := TDLCoordinate.Create(nodeSection);
           // TODO 1 -oPrimoz Gabrijelcic : Parse subtypes
         end;
       end;

@@ -10,6 +10,7 @@ uses
 type
   TAnalyzedUnits = class(TList<IDLUnitInfo>)
   public
+    function ContainsUnit(const unitName: string): boolean;
     function Find(const unitName: string; var unitInfo: IDLUnitInfo): boolean;
   end; { TAnalyzedUnits }
 
@@ -56,14 +57,22 @@ implementation
 uses
   System.SysUtils;
 
+function TAnalyzedUnits.ContainsUnit(const unitName: string): boolean;
+var
+  uInfo: IDLUnitInfo;
+begin
+  Result := Find(unitName, uInfo);
+end; { TAnalyzedUnits.ContainsUnit }
+
 function TAnalyzedUnits.Find(const unitName: string; var unitInfo: IDLUnitInfo): boolean;
 var
   iUnit: integer;
+  uInfo: IDLUnitInfo;
 begin
   Result := false;
-  for iUnit := 0 to Count - 1 do
-    if SameText(Items[iUnit].Name, unitName) then begin
-      unitInfo := Items[iUnit];
+  for uInfo in Self do
+    if SameText(uInfo.Name, unitName) then begin
+      unitInfo := uInfo;
       Exit(true);
     end;
 end; { TAnalyzedUnits.Find }

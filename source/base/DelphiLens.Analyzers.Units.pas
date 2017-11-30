@@ -66,14 +66,24 @@ end; { TDLUnitAnalyzer.UnitUsedBy }
 function TDLUnitAnalyzer.UnitUses(const unitName: string): ICollection<string>;
 var
   dlUnitInfo: IDLUnitInfo;
-begin
+
+  procedure Add(const collection: ICollection<string>; const units: TDLUnitList);
+  var
+    unitName: string;
+  begin
+    for unitName in units do
+      if FScanResult.Analysis.ContainsUnit(unitName) then
+        collection.Add(unitName);
+  end; { Add }
+
+begin { TDLUnitAnalyzer.UnitUses }
   Result := TCollections.CreateSet<string>(TIStringComparer.Ordinal);
   if not FScanResult.Analysis.Find(unitName, dlUnitInfo) then
     Exit;
 
-  Result.AddRange(dlUnitInfo.InterfaceUses.Data);
-  Result.AddRange(dlUnitInfo.ImplementationUses.Data);
-  Result.AddRange(dlUnitInfo.PackageContains.Data);
+  Add(Result, dlUnitInfo.InterfaceUses);
+  Add(Result, dlUnitInfo.ImplementationUses);
+  Add(Result, dlUnitInfo.PackageContains);
 end; { TDLUnitAnalyzer.UnitUses }
 
 end.

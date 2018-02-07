@@ -124,7 +124,7 @@ begin
   then
     ReportUIError('DLUIActivate')
   else if navToFile <> '' then begin
-    navToUnit := ExtractFileName(navToFile.Split(#13)[0]);
+    navToUnit := ExtractFileName(string(navToFile).Split([#13])[0]);
     if SameText(ExtractFileExt(navToUnit), '.pas') then
       navToUnit := ChangeFileExt(navToUnit, '');
     NavigateTo(navToUnit, navToLine, navToColumn);

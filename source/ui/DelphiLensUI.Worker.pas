@@ -52,7 +52,6 @@ type
 implementation
 
 uses
-  GpConsole,
   System.UITypes,
   System.SysUtils,
   Vcl.Forms,
@@ -141,7 +140,7 @@ begin
 
     if not assigned(FScanResult) then
       //TODO: Report error
-      Console.Writeln('Activate: Project = nil')
+//      Console.Writeln('Activate: Project = nil')
     else begin
       context := CreateWorkerContext(FUIXStorage, FScanResult,
         TDLUIXLocation.Create(fileName, unitName, line, column));
@@ -188,7 +187,6 @@ end; { TDelphiLensUIProject.SetConfig }
 
 procedure TDelphiLensUIWorker.Close;
 begin
-  Console.Writeln('Worker Close');
   try
     FDelphiLens := nil;
   except
@@ -240,7 +238,7 @@ procedure TDelphiLensUIWorker.ReportException(const funcName: string;
   E: Exception);
 begin
   //TODO: Temporary solution
-  Console.Writeln(['Worker exception in ', funcName, ' ', E.ClassName, ': ', E.Message]);
+//  Console.Writeln(['Worker exception in ', funcName, ' ', E.ClassName, ': ', E.Message]);
 end; { TDelphiLensUIWorker.ReportException }
 
 procedure TDelphiLensUIWorker.Rescan;

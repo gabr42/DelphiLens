@@ -11,7 +11,6 @@ implementation
 
 uses
   System.SysUtils, System.Classes, System.Generics.Defaults, System.Generics.Collections,
-  GpConsole,
   DelphiAST.Classes, DelphiAST.ProjectIndexer,
   DSiWin32,
   GpStuff, GpStructuredStorage;
@@ -88,7 +87,6 @@ constructor TDLCache.Create(const AStorageFile: string; ADataFormatVersion: inte
 begin { TDLCache.Create }
   inherited Create;
   FStorageFile := AStorageFile;
-  Console.Writeln(['Cache open: ', FStorageFile]);
   CreateStorage;
   FStorage.Initialize(FStorageFile, IFF(FileExists(FStorageFile), fmOpenReadWrite, fmCreate));
   if StrToIntDef(FStorage.FileInfo['/'].Attribute[AttrDataFormatVersion], 0) <> ADataFormatVersion then begin
@@ -102,7 +100,6 @@ end; { TDLCache.Create }
 
 destructor TDLCache.Destroy;
 begin
-  Console.Writeln(['Cache close: ', FStorageFile]);
   FStorage := nil;
   FreeAndNil(FCacheInfo);
   inherited;

@@ -177,11 +177,12 @@ begin
 
   if Result and (editSvc.TopBuffer.GetSubViewCount > 0) then
     editSvc.TopBuffer.SwitchToView(0);
-end; { ActivateTab }
+end;
 
-procedure CheckLogLevel(silent: boolean);
+procedure CheckLogLevel;
 var
-  logLevel: string;
+  logClasses : TLogClasses;
+  logLevel   : string;
   logLevelInt: integer;
 begin
   logLevel := GetEnvironmentVariable('DL_LOGGING');
@@ -193,13 +194,15 @@ begin
     else if (logLevelInt < 0) or (logLevelInt > 255) then
       LogMessage('Invalid DL_LOGGING setting: ' + logLevel + '. Number must be between 0 and 255.')
     else begin
-      GLogClasses := PLogClasses(@logLevelInt)^;
-      if not silent then
+      logClasses := PLogClasses(@logLevelInt)^;
+      if logClasses <> GLogClasses then begin
+        GLogClasses := logClasses;
         LogMessage(Format('Logging level set to %d', [logLevelInt]));
+      end;
       Include(GLogClasses, lcError);
     end;
   end;
-end; { CheckLogLevel }
+end;
 
 procedure LogMessage(const s: string);
 begin
@@ -208,7 +211,7 @@ end;
 
 procedure Log(logClass: TLogClass; const s: string);
 begin
-  CheckLogLevel(true);
+  CheckLogLevel;
   if logClass in GLogClasses then
     LogMessage(s);
 end;
@@ -224,5 +227,6 @@ begin
 end;
 
 initialization
-  CheckLogLevel(false);
+  GLogClasses := [];
+  CheckLogLevel;
 end.

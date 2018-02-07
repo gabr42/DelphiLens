@@ -1,7 +1,5 @@
 library DelphiLensUI;
 
-
-
 uses
   Winapi.Windows,
   System.SysUtils,

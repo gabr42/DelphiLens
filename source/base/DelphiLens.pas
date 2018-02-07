@@ -11,7 +11,6 @@ implementation
 
 uses
   System.SysUtils, System.Classes,
-  GpConsole,
   DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary, DelphiAST.ProjectIndexer,
   DelphiLens.Cache.Intf, DelphiLens.Cache,
   DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
@@ -37,6 +36,7 @@ type
   public
     constructor Create(AAnalysis: TAnalyzedUnits; ACache: IDLCache;
       AIndexer: TProjectIndexer);
+    procedure ReleaseAnalyzers;
     property Analyzers: IDLAnalyzers read GetAnalyzers;
     property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
@@ -109,7 +109,6 @@ end; { TDelphiLens.Create }
 
 destructor TDelphiLens.Destroy;
 begin
-  Console.Writeln(['DelphiLens destroy']);
   FreeAndNil(FAnalysis);
   FreeAndNil(FIndexer);
   inherited;
@@ -281,5 +280,10 @@ function TDLScanResult.GetProblems: TProblems;
 begin
   Result := FIndexer.Problems;
 end; { TDLScanResult.GetProblems }
+
+procedure TDLScanResult.ReleaseAnalyzers;
+begin
+  FAnalyzers := nil;
+end; { TDLScanResult.ReleaseAnalyzers }
 
 end.

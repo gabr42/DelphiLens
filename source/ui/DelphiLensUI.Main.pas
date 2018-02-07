@@ -16,7 +16,6 @@ uses
   System.SysUtils,
   System.Generics.Collections,
   Spring.Collections,
-  GpConsole,
   DelphiLens.DelphiASTHelpers,
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
@@ -136,6 +135,7 @@ begin
         if analyzer.Value.CanHandle(FUIContext) then
           frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
     end);
+  FUIContext.Project.ReleaseAnalyzers;
 end; { TDLUserInterface.ShowMain }
 
 procedure TDLUserInterface.ShowPanel(const parentFrame: IDLUIXFrame;

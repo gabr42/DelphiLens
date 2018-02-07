@@ -121,6 +121,7 @@ type
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
     procedure HandleListBoxClick(Sender: TObject);
+    procedure HandleListBoxDblClick(Sender: TObject);
     procedure HandleListBoxData(control: TWinControl; index: integer;
       var data: string);
     function  HandleListBoxDataFind(control: TWinControl; findString: string): integer;
@@ -301,6 +302,7 @@ begin
   listBox.Style := lbVirtual;
   listBox.MultiSelect := true;
   listBox.OnClick := HandleListBoxClick;
+  listBox.OnDblClick := HandleListBoxDblClick;
   listBox.OnKeyDown := HandleListBoxKeyDown;
   listBox.OnData := HandleListBoxData;
   listBox.OnDataFind := HandleListBoxDataFind;
@@ -534,7 +536,7 @@ begin
   listBox := (Sender as TListBox);
   filteredList := (FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction);
   EnableActions(filteredList.ManagedActions, listBox.SelCount);
-  SetLocationAndOpen(Sender as TListBox, false);
+  SetLocationAndOpen(listBox, false);
 end; { TDLUIXVCLFloatingFrame.HandleListBoxClick }
 
 procedure TDLUIXVCLFloatingFrame.HandleListBoxData(control: TWinControl; index: integer;
@@ -548,6 +550,17 @@ function TDLUIXVCLFloatingFrame.HandleListBoxDataFind(control: TWinControl;
 begin
   Result := FListMap[control].Content.IndexOf(findString);
 end; { TDLUIXVCLFloatingFrame.HandleListBoxDataFind }
+
+procedure TDLUIXVCLFloatingFrame.HandleListBoxDblClick(Sender: TObject);
+var
+  filteredList: IDLUIXFilteredListAction;
+  listBox     : TListBox;
+begin
+  listBox := (Sender as TListBox);
+  filteredList := (FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction);
+  EnableActions(filteredList.ManagedActions, listBox.SelCount);
+  SetLocationAndOpen(listBox, true);
+end; { TDLUIXVCLFloatingFrame.HandleListBoxDblClick }
 
 procedure TDLUIXVCLFloatingFrame.HandleListBoxKeyDown(Sender: TObject;
   var key: word; shift: TShiftState);

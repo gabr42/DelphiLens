@@ -30,7 +30,6 @@ implementation
 uses
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
-  GpConsole,
   OtlSync, OtlCommon,
   DelphiLensUI.Worker;
 
@@ -236,10 +235,8 @@ end; { DLUIInitialize }
 
 procedure DLUIFinalize;
 begin
-  Console.Writeln('Destroying engine workers');
   FreeAndNil(GDLEngineWorkers);
   FreeAndNil(GDLEngineErrors);
-  Console.Writeln('Engine workers destroyed');
 end; { DLUIFinalize }
 
 end.

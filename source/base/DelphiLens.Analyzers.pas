@@ -15,8 +15,8 @@ uses
 type
   TDLAnalyzers = class(TInterfacedObject, IDLAnalyzers)
   strict private
-    FScanResult  : IDLScanResult;
-    FUnitAnalyzer: IDLUnitAnalyzer;
+    [weak] FScanResult: IDLScanResult;
+    FUnitAnalyzer     : IDLUnitAnalyzer;
   strict protected
     function GetUnits: IDLUnitAnalyzer;
   public

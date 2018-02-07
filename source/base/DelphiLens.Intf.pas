@@ -30,6 +30,7 @@ type
     function  GetParsedUnits: TParsedUnits;
     function  GetProblems: TProblems;
   //
+    procedure ReleaseAnalyzers;
     property Analyzers: IDLAnalyzers read GetAnalyzers;
     property Analysis: TAnalyzedUnits read GetAnalysis;
     property CacheStatistics: TCacheStatistics read GetCacheStatistics;
@@ -66,7 +67,6 @@ end; { TAnalyzedUnits.ContainsUnit }
 
 function TAnalyzedUnits.Find(const unitName: string; var unitInfo: IDLUnitInfo): boolean;
 var
-  iUnit: integer;
   uInfo: IDLUnitInfo;
 begin
   Result := false;

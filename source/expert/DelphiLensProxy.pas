@@ -45,6 +45,7 @@ type
     FDLUIHasProject: boolean;
     FDLUIProjectID : integer;
   strict protected
+    function  ActivateTabs(const fileNames: string): boolean;
     function  CheckAPI(const apiName: string; apiResult: integer): boolean;
     procedure CloseProject;
     procedure SetCursorPosition(line, column: integer);
@@ -63,11 +64,14 @@ type
 
 procedure TDelphiLensProxy.Activate;
 var
-  edit: IOTAEditorServices;
-  filePath: string;
-  navToFile: PChar;
-  navToLine, navToColumn: integer;
-  apiRes: integer;
+  apiRes     : integer;
+  col        : integer;
+  edit       : IOTAEditorServices;
+  filePath   : string;
+  line       : integer;
+  navToColumn: integer;
+  navToFile  : PChar;
+  navToLine  : integer;
 begin
   try
     Log(lcActivation, 'Activate');
@@ -75,6 +79,11 @@ begin
       Log(lcActivation, '... no DLL or no project');
       Exit;
     end;
+
+    filePath := '';
+    line := -1;
+    col := -1;
+
     edit := (BorlandIDEServices as IOTAEditorServices);
     if not assigned(edit) then
       Log(lcActivation, '... no editor')
@@ -84,20 +93,21 @@ begin
       Log(lcActivation, '... no top view buffer')
     else begin
       filePath := edit.TopView.Buffer.GetSubViewIdentifier(0);
-      Log(lcActivation, 'Activate in %s @ %d,%d',
-        [filePath, edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col]);
-
-      apiRes := DLUIActivate(FDLUIProjectID,
-        PChar(filePath), edit.TopView.CursorPos.Line, edit.TopView.CursorPos.Col,
-        navToFile, navToLine, navToColumn);
-
-      if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTab(string(navToFile)) then
-        if (navToLine > 0) and (navToColumn > 0) then begin
-          Log(lcActivation, '... navigate to %s @ %d,%d',
-            [string(navToFile), navToLine, navToColumn]);
-          SetCursorPosition(navToLine, navToColumn);
-        end;
+      line := edit.TopView.CursorPos.Line;
+      col := edit.TopView.CursorPos.Col;
+      Log(lcActivation, 'Activate in %s @ %d,%d', [filePath, line, col]);
     end;
+
+    apiRes := DLUIActivate(FDLUIProjectID,
+      PChar(filePath), line, col,
+      navToFile, navToLine, navToColumn);
+
+    if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTabs(string(navToFile)) then
+      if (navToLine > 0) and (navToColumn > 0) then begin
+        Log(lcActivation, '... navigate to %s @ %d,%d',
+          [string(navToFile), navToLine, navToColumn]);
+        SetCursorPosition(navToLine, navToColumn);
+      end;
   except
     on E: Exception do
       Log(lcError, 'TDelphiLensProxy.Activate', E);
@@ -109,6 +119,15 @@ begin
   CloseProject;
   inherited;
 end; { TDelphiLensProxy.Destroy }
+
+function TDelphiLensProxy.ActivateTabs(const fileNames: string): boolean;
+var
+  fileName: string;
+begin
+  Result := true;
+  for fileName in fileNames.Split([#13]) do
+    Result := ActivateTab(fileName) and Result;
+end; { TDelphiLensProxy.ActivateTabs }
 
 function TDelphiLensProxy.CheckAPI(const apiName: string; apiResult: integer): boolean;
 var

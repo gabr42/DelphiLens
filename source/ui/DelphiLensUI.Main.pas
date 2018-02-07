@@ -38,6 +38,7 @@ type
     FUIXAnalyzers : TDLAnalyzers;
     FUIXEngine    : IDLUIXEngine;
   strict protected
+    function  MapUnitNamesToFileNames(const unitNames: string): string;
     procedure ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
       const parentAction: IDLUIXAction; const action: IDLUIXOpenAnalyzerAction);
     procedure ShowPanel(const parentFrame: IDLUIXFrame; const parentAction: IDLUIXAction;
@@ -80,6 +81,19 @@ begin
   FUIContext := workerContext;
 end; { TDLUserInterface.Create }
 
+function TDLUserInterface.MapUnitNamesToFileNames(const unitNames: string): string;
+var
+  fileNames: TArray<string>;
+  i        : integer;
+  units    : TArray<string>;
+begin
+  units := unitNames.Split([#13]);
+  SetLength(fileNames, Length(units));
+  for i := Low(units) to High(units) do
+    fileNames[i] := FUIContext.Project.ParsedUnits.FindOrDefault(units[i]).Path;
+  Result := string.Join(#13, fileNames);
+end; { TDLUserInterface.MapUnitNamesToFileNames }
+
 procedure TDLUserInterface.ProcessExecuteAction;
 var
   fileName  : string;
@@ -89,7 +103,7 @@ begin
     if Supports(ExecuteAction, IDLUIXNavigationAction, navigation) then begin
       fileName := navigation.Location.FileName;
       if fileName = '' then
-        fileName := FUIContext.Project.ParsedUnits.FindOrDefault(navigation.Location.UnitName).Path;
+        fileName := MapUnitNamesToFileNames(navigation.Location.UnitName);
       FUIContext.Target := TDLUIXLocation.Create(fileName,
         navigation.Location.UnitName,
         navigation.Location.Line, navigation.Location.Column);

@@ -111,6 +111,7 @@ type
       options: TDLUIXFrameActionOptions): TRect;
     function  BuildList(const listNavigation: IDLUIXListNavigationAction;
       options: TDLUIXFrameActionOptions): TRect;
+    function  CollectNames(listBox: TListBox): string;
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
     procedure EnableActions(const actions: IDLUIXManagedActions; numSelected: integer);
@@ -377,6 +378,18 @@ begin
   FForm.Close;
 end; { TDLUIXVCLFloatingFrame.Close }
 
+function TDLUIXVCLFloatingFrame.CollectNames(listBox: TListBox): string;
+var
+  i       : integer;
+  selected: IList<string>;
+begin
+  selected := TCollections.CreateList<string>;
+  for i := 0 to listBox.Count - 1 do
+    if listBox.Selected[i] then
+      selected.Add(listBox.Items[i]);
+  Result := string.Join(#13, selected.ToArray);
+end; { TDLUIXVCLFloatingFrame.CollectNames }
+
 procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction;
   options: TDLUIXFrameActionOptions);
 var
@@ -517,7 +530,6 @@ procedure TDLUIXVCLFloatingFrame.HandleListBoxClick(Sender: TObject);
 var
   filteredList: IDLUIXFilteredListAction;
   listBox     : TListBox;
-  searchBox   : TSearchBox;
 begin
   listBox := (Sender as TListBox);
   filteredList := (FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction);
@@ -651,8 +663,10 @@ var
 begin
   if listBox.ItemIndex < 0 then
     unitName := ''
+  else if listBox.SelCount = 1 then
+    unitName := listBox.Items[listBox.ItemIndex]
   else
-    unitName := listBox.Items[listBox.ItemIndex];
+    unitName := CollectNames(listBox);
 
   filterAction := FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction;
 

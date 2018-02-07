@@ -44,15 +44,14 @@ type
   IDLUIXFilteredListAction = interface(IDLUIXAction) ['{A74C5DBB-F0FA-4560-BAF1-41AB5E4E109F}']
     function  GetDefaultAction: IDLUIXAction;
     function  GetList: IList<string>;
-    function  GetManagedActions: TDLUIXActions;
+    function  GetManagedActions: IDLUIXManagedActions;
     function  GetSelected: string;
     procedure SetDefaultAction(const value: IDLUIXAction);
-    procedure SetManagedActions(const value: TDLUIXActions);
   //
     property List: IList<string> read GetList;
     property Selected: string read GetSelected;
     property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
-    property ManagedActions: TDLUIXActions read GetManagedActions write SetManagedActions;
+    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
   end; { IDLUIXFilteredListAction }
 
 function  CreateOpenAnalyzerAction(const name: string; const analyzer: IDLUIXAnalyzer): IDLUIXAction;
@@ -131,13 +130,12 @@ type
   strict private
     FDefaultAction : IDLUIXAction;
     FList          : IList<string>;
-    FManagedActions: TDLUIXActions;
+    FManagedActions: IDLUIXManagedActions;
     FSelected      : string;
   strict protected
     function  GetDefaultAction: IDLUIXAction;
-    function  GetManagedActions: TDLUIXActions;
+    function  GetManagedActions: IDLUIXManagedActions;
     procedure SetDefaultAction(const value: IDLUIXAction);
-    procedure SetManagedActions(const value: TDLUIXActions);
     function  GetList: IList<string>;
     function  GetSelected: string;
   public
@@ -145,7 +143,7 @@ type
       const selected: string);
     property List: IList<string> read GetList;
     property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
-    property ManagedActions: TDLUIXActions read GetManagedActions write SetManagedActions;
+    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
   end; { TDLUIXFilteredListAction }
 
 { exports }
@@ -279,6 +277,7 @@ begin
   inherited Create(name);
   FList := list;
   FSelected := selected;
+  FManagedActions := TCollections.CreateList<TDLUIXManagedAction>;
 end; { TDLUIXFilteredListAction.Create }
 
 function TDLUIXFilteredListAction.GetDefaultAction: IDLUIXAction;
@@ -291,7 +290,7 @@ begin
   Result := FList;
 end; { TDLUIXFilteredListAction.GetList }
 
-function TDLUIXFilteredListAction.GetManagedActions: TDLUIXActions;
+function TDLUIXFilteredListAction.GetManagedActions: IDLUIXManagedActions;
 begin
   Result := FManagedActions;
 end; { TDLUIXFilteredListAction.GetManagedActions }
@@ -305,10 +304,5 @@ procedure TDLUIXFilteredListAction.SetDefaultAction(const value: IDLUIXAction);
 begin
   FDefaultAction := value;
 end; { TDLUIXFilteredListAction.SetDefaultAction }
-
-procedure TDLUIXFilteredListAction.SetManagedActions(const value: TDLUIXActions);
-begin
-  FManagedActions := value;
-end; { TDLUIXFilteredListAction.SetManagedActions }
 
 end.

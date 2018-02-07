@@ -43,12 +43,12 @@ type
     function  GetContent: IList<string>;
     function  GetListBox: TListBox;
     function  GetSearchBox: TSearchBox;
-    function  GetTimer: TTimer;
+    function  GetSearchTimer: TTimer;
   //
     property Content: IList<string> read GetContent;
     property ListBox: TListBox read GetListBox;
     property SearchBox: TSearchBox read GetSearchBox;
-    property SearchTimer: TTimer read GetTimer;
+    property SearchTimer: TTimer read GetSearchTimer;
   end; { IDLUIXVCLListStorage }
 
   TDLUIXVCLListStorage = class(TInterfacedObject, IDLUIXVCLListStorage)
@@ -61,13 +61,13 @@ type
     function  GetContent: IList<string>;
     function  GetListBox: TListBox;
     function  GetSearchBox: TSearchBox;
-    function  GetTimer: TTimer;
+    function  GetSearchTimer: TTimer;
   public
     constructor Create(AListBox: TListBox; ASearchBox: TSearchBox; ATimer: TTimer);
     property Content: IList<string> read GetContent;
     property ListBox: TListBox read GetListBox;
     property SearchBox: TSearchBox read GetSearchBox;
-    property SearchTimer: TTimer read GetTimer;
+    property SearchTimer: TTimer read GetSearchTimer;
   end; { IDLUIXVCLListStorage }
 
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
@@ -113,7 +113,7 @@ type
       options: TDLUIXFrameActionOptions): TRect;
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
-    procedure EnableActions(actions: TDLUIXActions; enabled: boolean);
+    procedure EnableActions(const actions: IDLUIXManagedActions; numSelected: integer);
     procedure FilterListBox(Sender: TObject);
     procedure ForwardAction(Sender: TObject);
     function  GetOnAction: TDLUIXFrameAction;
@@ -298,6 +298,7 @@ begin
   listBox.Left := FColumnLeft;
   listBox.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
   listBox.Style := lbVirtual;
+  listBox.MultiSelect := true;
   listBox.OnClick := HandleListBoxClick;
   listBox.OnKeyDown := HandleListBoxKeyDown;
   listBox.OnData := HandleListBoxData;
@@ -327,7 +328,7 @@ begin
     procedure
     begin
       SetLocationAndOpen(listBox, false);
-      EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
+      EnableActions(filteredList.ManagedActions, listBox.SelCount);
     end);
 end; { TDLUIXVCLFloatingFrame.BuildFilteredList }
 
@@ -412,15 +413,15 @@ begin
     end);
 end; { TDLUIXVCLFloatingFrame.EaseLeft }
 
-procedure TDLUIXVCLFloatingFrame.EnableActions(actions: TDLUIXActions;
-  enabled: boolean);
+procedure TDLUIXVCLFloatingFrame.EnableActions(const actions: IDLUIXManagedActions;
+  numSelected: integer);
 var
-  action : IDLUIXAction;
+  action : TDLUIXManagedAction;
   control: TObject;
 begin
   for action in actions do
-    if FActionMap.TryGetKey(action, control) then
-      (control as TControl).Enabled := enabled;
+    if FActionMap.TryGetKey(action.Action, control) then
+      (control as TControl).Enabled := action.Test(numSelected);
 end; { TDLUIXVCLFloatingFrame.EnableActions }
 
 procedure TDLUIXVCLFloatingFrame.FilterListBox(Sender: TObject);
@@ -466,7 +467,7 @@ begin
     if (listBox.ItemIndex < 0) and (listBox.Items.Count > 0) then
       listBox.ItemIndex := 0;
 
-    EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
+    EnableActions(filteredList.ManagedActions, listBox.SelCount);
 
     listBox.OnClick(listBox);
   finally listBox.Items.EndUpdate; end;
@@ -520,7 +521,7 @@ var
 begin
   listBox := (Sender as TListBox);
   filteredList := (FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction);
-  EnableActions(filteredList.ManagedActions, listBox.ItemIndex >= 0);
+  EnableActions(filteredList.ManagedActions, listBox.SelCount);
   SetLocationAndOpen(Sender as TListBox, false);
 end; { TDLUIXVCLFloatingFrame.HandleListBoxClick }
 
@@ -642,7 +643,7 @@ end; { TDLUIXVCLFloatingFrame.QueueOnShow }
 
 procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
 var
-  action           : IDLUIXAction;
+  action           : TDLUIXManagedAction;
   filterAction     : IDLUIXFilteredListAction;
   navigationAction : IDLUIXNavigationAction;
   unitBrowserAction: IDLUIXOpenUnitBrowserAction;
@@ -656,7 +657,7 @@ begin
   filterAction := FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction;
 
   for action in filterAction.ManagedActions do
-    if Supports(action, IDLUIXOpenUnitBrowserAction, unitBrowserAction) then
+    if Supports(action.Action, IDLUIXOpenUnitBrowserAction, unitBrowserAction) then
       unitBrowserAction.InitialUnit := unitName;
 
   if assigned(filterAction.DefaultAction)
@@ -755,9 +756,9 @@ begin
   Result := FSearchBox;
 end; { TDLUIXVCLListStorage.GetSearchBox }
 
-function TDLUIXVCLListStorage.GetTimer: TTimer;
+function TDLUIXVCLListStorage.GetSearchTimer: TTimer;
 begin
   Result := FTimer;
-end; { TDLUIXVCLListStorage.GetTimer }
+end; { TDLUIXVCLListStorage.GetSearchTimer }
 
 end.

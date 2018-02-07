@@ -86,7 +86,9 @@ begin
   openUsedBy := CreateOpenUnitBrowserAction('Used &by', CreateUnitBrowser, '', ubtUsedBy);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
 
-  filteredList.ManagedActions := [openUses, openUsedBy, navigateToUnit];
+  filteredList.ManagedActions.Add(TDLUIXManagedAction.Create(openUses, TDLUIXManagedAction.SingleSelected()));
+  filteredList.ManagedActions.Add(TDLUIXManagedAction.Create(openUsedBy, TDLUIXManagedAction.SingleSelected()));
+  filteredList.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToUnit, TDLUIXManagedAction.AnySelected()));
   filteredList.DefaultAction := navigateToUnit;
 
   frame.CreateAction(filteredList);

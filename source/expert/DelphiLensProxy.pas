@@ -23,6 +23,7 @@ uses
   System.Win.Registry,
   System.SysUtils, System.Classes, System.Math,
   ToolsAPI, DCCStrs,
+  GpConsole,
   UtilityFunctions,
   DSiWin32,
   DelphiLens.OTAUtils,
@@ -259,5 +260,7 @@ initialization
     Log(lcError, '%s.dll not found!', [DelphiLensUIDLL]);
   DLProxy := TDelphiLensProxy.Create;
 finalization
+  Console.Writeln('Destroying DLProxy');
   DLProxy := nil;
+  Console.Writeln('DLProxy destroyed');
 end.

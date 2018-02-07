@@ -3,6 +3,7 @@ unit DelphiLensUI.UIXEngine.Intf;
 interface
 
 uses
+  System.SysUtils,
   Spring, Spring.Collections,
   DelphiLens.UnitInfo;
 
@@ -26,6 +27,22 @@ type
   end; { IDLUIXAction }
 
   TDLUIXActions = TArray<IDLUIXAction>;
+
+  TDLUIXManagedActionTest = TFunc<integer, boolean>;
+
+  TDLUIXManagedAction = record
+  private
+    FAction: IDLUIXAction;
+    FTest  : TDLUIXManagedActionTest;
+  public
+    constructor Create(const action: IDLUIXAction; const test: TDLUIXManagedActionTest);
+    class function  AnySelected: TDLUIXManagedActionTest; static;
+    class function  SingleSelected: TDLUIXManagedActionTest; static;
+    property Action: IDLUIXAction read FAction;
+    property Test: TDLUIXManagedActionTest read FTest;
+  end; { TDLUIXManagedAction }
+
+  IDLUIXManagedActions = IList<TDLUIXManagedAction>;
 
   IDLUIXFrame = interface;
 
@@ -77,5 +94,32 @@ begin
   Line := ADLCoordinate.Line;
   Column := ADLCoordinate.Column;
 end; { TDLUIXLocation.Create }
+
+{ TDLUIXManagedAction }
+
+constructor TDLUIXManagedAction.Create(const action: IDLUIXAction;
+  const test: TDLUIXManagedActionTest);
+begin
+  FAction := action;
+  FTest := test;
+end; { TDLUIXManagedAction.Create }
+
+class function TDLUIXManagedAction.AnySelected: TDLUIXManagedActionTest;
+begin
+  Result :=
+    function (numSelected: integer): boolean
+    begin
+      Result := (numSelected > 0);
+    end;
+end; { TDLUIXManagedAction.AnySelected }
+
+class function TDLUIXManagedAction.SingleSelected: TDLUIXManagedActionTest;
+begin
+  Result :=
+    function (numSelected: integer): boolean
+    begin
+      Result := (numSelected = 1);
+    end;
+end; { TDLUIXManagedAction.SingleSelected }
 
 end.

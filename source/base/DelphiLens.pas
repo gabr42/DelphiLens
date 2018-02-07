@@ -11,6 +11,7 @@ implementation
 
 uses
   System.SysUtils, System.Classes,
+  GpConsole,
   DelphiAST.Consts, DelphiAST.Classes, DelphiAST.Serialize.Binary, DelphiAST.ProjectIndexer,
   DelphiLens.Cache.Intf, DelphiLens.Cache,
   DelphiLens.UnitInfo.Serializer.Intf, DelphiLens.UnitInfo.Serializer,
@@ -108,6 +109,7 @@ end; { TDelphiLens.Create }
 
 destructor TDelphiLens.Destroy;
 begin
+  Console.Writeln(['DelphiLens destroy']);
   FreeAndNil(FAnalysis);
   FreeAndNil(FIndexer);
   inherited;

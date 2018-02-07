@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{C7526D55-AEE7-451C-AA39-1869BC01197F}</ProjectGuid>
         <MainSource>DelphiLensExpertPackage.dpk</MainSource>
-        <ProjectVersion>18.2</ProjectVersion>
+        <ProjectVersion>18.3</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>

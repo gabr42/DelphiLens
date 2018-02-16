@@ -12,12 +12,15 @@ implementation
 uses
   System.Classes,
   Spring, Spring.Collections,
+  DelphiAST.Consts,
   DelphiLens.UnitInfo;
 
 type
   TDLUnitInfoSerializer = class(TInterfacedObject, IDLUnitInfoSerializer)
   strict private const
-    CVersion = 3;
+    CVersion = 4;
+  type
+    TDLSectionArr = Vector<TDLSectionInfo>;
   var
     FStream: TStream;
   strict protected
@@ -25,10 +28,14 @@ type
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
-    function ReadStrings(var strings: TDLUnitList): boolean;
+    function  ReadStrings(var strings: TDLUnitList): boolean;
+    function  ReadSection(var sec: TDLSectionInfo): boolean; inline;
+    function  ReadSections(var sec: TDLSectionArr): boolean;
     procedure WriteInteger(val: integer); inline;
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;
+    procedure WriteSection(sec: TDLSectionInfo); inline;
+    procedure WriteSections(sec: TDLSectionList); inline;
     procedure WriteString(const s: string); inline;
     procedure WriteStrings(const strings: TDLUnitList);
   public
@@ -47,9 +54,10 @@ end; { CreateSerializer }
 
 function TDLUnitInfoSerializer.Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
 var
-  loc: TDLCoordinate;
+  loc    : TDLCoordinate;
   s      : string;
-  units: TDLUnitList;
+  sec    : TDLSectionArr;
+  units  : TDLUnitList;
   version: integer;
 begin
   Result := false;
@@ -79,6 +87,8 @@ begin
   unitInfo.ImplementationUses := units;
   if not ReadStrings(units) then Exit;
   unitInfo.PackageContains := units;
+  if not ReadSections(sec) then Exit;
+  unitInfo.UnitSections.AddRange(sec.Data);
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
 
@@ -93,6 +103,42 @@ begin
   if Result then
     Result := ReadInteger(loc.Column);
 end; { TDLUnitInfoSerializer.ReadLocation }
+
+function TDLUnitInfoSerializer.ReadSection(var sec: TDLSectionInfo): boolean;
+var
+  loc     : TDLCoordinate;
+  nodeType: integer;
+begin
+  Result := false;
+  if not ReadInteger(nodeType) then
+    Exit;
+  if (nodeType < Ord(Low(TSyntaxNodeType))) or (nodeType > Ord(High(TSyntaxNodeType))) then
+    Exit;
+  sec.NodeType := TSyntaxNodeType(nodeType);
+  if not ReadLocation(loc) then
+    Exit;
+  sec.Location := loc;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadSection }
+
+function TDLUnitInfoSerializer.ReadSections(var sec: TDLSectionArr): boolean;
+var
+  i      : integer;
+  len    : word;
+  section: TDLSectionInfo;
+begin
+  Result := false;
+  if not ReadWord(len) then
+    Exit;
+
+  sec.Length := len;
+  for i := 0 to len - 1 do begin
+    if not ReadSection(section) then
+      Exit;
+    sec[i] := section;
+  end;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadSections }
 
 function TDLUnitInfoSerializer.ReadString(var s: string): boolean;
 var
@@ -150,6 +196,7 @@ begin
   WriteStrings(unitInfo.InterfaceUses);
   WriteStrings(unitInfo.ImplementationUses);
   WriteStrings(unitInfo.PackageContains);
+  WriteSections(unitInfo.UnitSections);
 end; { TDLUnitInfoSerializer.Write }
 
 procedure TDLUnitInfoSerializer.WriteInteger(val: integer);
@@ -162,6 +209,21 @@ begin
   WriteInteger(loc.Line);
   WriteInteger(loc.Column);
 end; { TDLUnitInfoSerializer.WriteLocation }
+
+procedure TDLUnitInfoSerializer.WriteSection(sec: TDLSectionInfo);
+begin
+  WriteInteger(Ord(sec.NodeType));
+  WriteLocation(sec.Location);
+end; { TDLUnitInfoSerializer.WriteSection }
+
+procedure TDLUnitInfoSerializer.WriteSections(sec: TDLSectionList);
+var
+  section: TDLSectionInfo;
+begin
+  WriteWord(sec.Count);
+  for section in sec do
+    WriteSection(section);
+end; { TDLUnitInfoSerializer.WriteSections }
 
 procedure TDLUnitInfoSerializer.WriteString(const s: string);
 begin

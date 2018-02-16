@@ -14,7 +14,7 @@ function CreateUIXEngine: IDLUIXEngine;
 implementation
 
 uses
-  Winapi.Windows,
+  Winapi.Windows, Winapi.Messages,
   System.Types, System.RTTI, System.SysUtils, System.StrUtils, System.Classes, System.Math,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls,
   Spring, Spring.Collections, Spring.Reflection,
@@ -24,6 +24,13 @@ uses
   DelphiLensUI.UIXEngine.Actions;
 
 type
+  TDLUIXListBoxWrapper = class(TListBox)
+  protected
+    function  GetItemIndex: integer; override;
+    procedure SelectAndMakeVisible(const value: integer);
+    procedure SetItemIndex(const value: integer); overload; override;
+  end; { TDLUIXListBoxWrapper }
+
   TVCLFloatingForm = class(TForm)
   strict private
     FOnBackSpace: TProc;
@@ -167,13 +174,44 @@ begin
   Result := TDLUIXVCLFloatingEngine.Create;
 end; { CreateUIXEngine }
 
+{ TDLUIXListBoxWrapper }
+
+function TDLUIXListBoxWrapper.GetItemIndex: integer;
+begin
+  if not MultiSelect then
+    Result := inherited GetItemIndex
+  else begin
+    for Result := 0 to Count - 1 do
+      if Selected[Result] then
+        Exit;
+    Result := -1;
+  end;
+end; { TDLUIXListBoxWrapper.GetItemIndex }
+
+procedure TDLUIXListBoxWrapper.SelectAndMakeVisible(const value: integer);
+begin
+  ItemIndex := value;
+  SendMessage(Handle, LB_SETCARETINDEX, ItemIndex, 0);
+end; { TDLUIXListBoxWrapper.SelectAndMakeVisible }
+
+procedure TDLUIXListBoxWrapper.SetItemIndex(const value: integer);
+var
+  i: integer;
+begin
+  if not MultiSelect then
+    inherited SetItemIndex(value)
+  else
+    for i := 0 to Count - 1 do
+      Selected[i] := (i = value);
+end; { TDLUIXListBoxWrapper.SetItemIndex }
+
 { TVCLFloatingForm }
 
 constructor TVCLFloatingForm.CreateNew(AOwner: TComponent; Dummy: Integer = 0);
 begin
   inherited;
   OnKeyDown := HandleKeyDown;
-end;
+end; { TVCLFloatingForm.CreateNew }
 
 procedure TVCLFloatingForm.HandleKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
@@ -278,7 +316,7 @@ function TDLUIXVCLFloatingFrame.BuildFilteredList(
   const filteredList: IDLUIXFilteredListAction;
   options: TDLUIXFrameActionOptions): TRect;
 var
-  listBox    : TListBox;
+  listBox    : TDLUIXListBoxWrapper;
   listBoxData: IDLUIXVCLListStorage;
   searchBox  : TSearchBox;
   searchTimer: TTimer;
@@ -293,7 +331,7 @@ begin
   searchBox.OnInvokeSearch := FilterListBox;
   ApplyOptions(searchBox, options);
 
-  listBox := TListBox.Create(FForm);
+  listBox := TDLUIXListBoxWrapper.Create(FForm);
   listBox.Parent := FForm;
   listBox.Width := searchBox.Width;
   listBox.Height := CFilteredListHeight;
@@ -321,7 +359,7 @@ begin
   FActionMap.Add(searchBox, filteredList);
 
   FilterListBox(searchBox);
-  listBox.ItemIndex := listBox.Items.IndexOf(filteredList.Selected);
+  listBox.SelectAndMakeVisible(listBox.Items.IndexOf(filteredList.Selected));
 
   Result.TopLeft := searchBox.BoundsRect.TopLeft;
   Result.BottomRight := listBox.BoundsRect.BottomRight;
@@ -574,26 +612,26 @@ end; { TDLUIXVCLFloatingFrame.HandleListBoxKeyDown }
 procedure TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown(Sender: TObject;
   var key: word; shift: TShiftState);
 var
-  listBox: TListBox;
+  listBox: TDLUIXListBoxWrapper;
   timer  : TTimer;
 begin
   if (key = VK_UP) or (key = VK_DOWN)
      or (key = VK_HOME) or (key = VK_END)
      or (key = VK_PRIOR) or (key = VK_NEXT) then
   begin
-    listBox := FListMap[Sender as TSearchBox].ListBox;
+    listBox := FListMap[Sender as TSearchBox].ListBox as TDLUIXListBoxWrapper;
     if key = VK_UP then
-      listBox.ItemIndex := Max(listBox.ItemIndex - 1, 0)
+      listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - 1, 0))
     else if key = VK_DOWN then
-      listBox.ItemIndex := Min(listBox.ItemIndex + 1, listBox.Items.Count - 1)
+      listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + 1, listBox.Items.Count - 1))
     else if key = VK_HOME then
-      listBox.ItemIndex := 0
+      listBox.SelectAndMakeVisible(0)
     else if key = VK_END then
-      listBox.ItemIndex := listBox.Items.Count - 1
+      listBox.SelectAndMakeVisible(listBox.Items.Count - 1)
     else if key = VK_PRIOR then
-      listBox.ItemIndex := Max(listBox.ItemIndex - NumItems(listBox), 0)
+      listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - NumItems(listBox), 0))
     else if key = VK_NEXT then
-      listBox.ItemIndex := Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1);
+      listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1));
     listBox.OnClick(listBox);
     key := 0;
   end

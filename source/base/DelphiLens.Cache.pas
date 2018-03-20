@@ -225,7 +225,6 @@ var
   fullName: string;
   item    : string;
   items   : TStringList;
-  unitInfo: TUnitInfo;
 begin
   items := TStringList.Create;
   try

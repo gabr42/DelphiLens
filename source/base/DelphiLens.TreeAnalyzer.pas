@@ -66,29 +66,29 @@ begin
   ndIntf := ndUnit.FindFirst(ntInterface);
   if assigned(ndIntf) then begin
     ndImpl := ndUnit.FindFirst(ntImplementation);
-    unitInfo.InterfaceLoc := TDLCoordinate.Create(ndIntf);
-    unitInfo.ImplementationLoc := TDLCoordinate.Create(ndImpl);
+    unitInfo.Sections[sntInterface] := TDLCoordinate.Create(ndIntf);
+    unitInfo.Sections[sntImplementation] := TDLCoordinate.Create(ndImpl);
   end
   else begin
     ndIntf := ndUnit; //alias to simplify .dpr parsing
     ndImpl := nil;
   end;
 
-  unitInfo.InitializationLoc := TDLCoordinate.Create(ndUnit.FindFirst(ntInitialization));
-  unitInfo.FinalizationLoc := TDLCoordinate.Create(ndUnit.FindFirst(ntFinalization));
+  unitInfo.Sections[sntInitialization] := TDLCoordinate.Create(ndUnit.FindFirst(ntInitialization));
+  unitInfo.Sections[sntFinalization] := TDLCoordinate.Create(ndUnit.FindFirst(ntFinalization));
 
   ndUses := ndIntf.FindFirst(ntUses);
   if assigned(ndUses) then begin
     GetUnitList(ndUses, units);
     unitInfo.InterfaceUses := units;
-    unitInfo.InterfaceUsesLoc := TDLCoordinate.Create(ndUses);
+    unitInfo.Sections[sntInterfaceUses] := TDLCoordinate.Create(ndUses);
   end;
 
   ndContains := ndIntf.FindFirst(ntContains);
   if assigned(ndContains) then begin
     GetUnitList(ndContains, units);
     unitInfo.PackageContains := units;
-    unitInfo.ContainsLoc := TDLCoordinate.Create(ndContains);
+    unitInfo.Sections[sntContains] := TDLCoordinate.Create(ndContains);
   end;
 
   if assigned(ndImpl) then begin
@@ -96,7 +96,7 @@ begin
     if assigned(ndUses) then begin
       GetUnitList(ndUses, units);
       unitInfo.ImplementationUses := units;
-      unitInfo.ImplementationUsesLoc := TDLCoordinate.Create(ndUses);
+      unitInfo.Sections[sntImplementationUses] := TDLCoordinate.Create(ndUses);
     end;
   end;
 

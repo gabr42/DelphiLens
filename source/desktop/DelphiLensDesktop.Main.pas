@@ -226,17 +226,17 @@ begin
   isProgram := (unitInfo.UnitType = utProgram);
   log.Add(IFF(isProgram, 'program ', 'unit ') + unitInfo.Name);
   if isProgram then
-    DumpUses(log, unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc)
+    DumpUses(log, unitInfo.InterfaceUses, unitInfo.Sections[sntInterfaceUses])
   else begin
-    log.Add('Interface @ ' + unitInfo.InterfaceLoc.ToString);
-    DumpUses(log, unitInfo.InterfaceUses, unitInfo.InterfaceUsesLoc);
-    log.Add('Implementation @ ' + unitInfo.ImplementationLoc.ToString);
-    DumpUses(log, unitInfo.ImplementationUses, unitInfo.ImplementationUsesLoc);
+    log.Add('Interface @ ' + unitInfo.Sections[sntInterface].ToString);
+    DumpUses(log, unitInfo.InterfaceUses, unitInfo.Sections[sntInterfaceUses]);
+    log.Add('Implementation @ ' + unitInfo.Sections[sntImplementation].ToString);
+    DumpUses(log, unitInfo.ImplementationUses, unitInfo.Sections[sntImplementationUses]);
   end;
-  if unitInfo.InitializationLoc.IsValid then
-    log.Add('Initialization @ ' + unitInfo.InitializationLoc.ToString);
-  if unitInfo.FinalizationLoc.IsValid then
-    log.Add('Finalization @ ' + unitInfo.FinalizationLoc.ToString);
+  if unitInfo.Sections[sntInitialization].IsValid then
+    log.Add('Initialization @ ' + unitInfo.Sections[sntInitialization].ToString);
+  if unitInfo.Sections[sntFinalization].IsValid then
+    log.Add('Finalization @ ' + unitInfo.Sections[sntFinalization].ToString);
 end;
 
 procedure TfrmDLMain.DumpSyntaxTree(log: TStrings; node: TSyntaxNode; const prefix: string);

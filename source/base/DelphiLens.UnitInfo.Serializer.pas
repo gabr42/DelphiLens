@@ -35,7 +35,7 @@ type
     procedure WriteWord(w: word); inline;
     procedure WriteLocation(loc: TDLCoordinate); inline;
     procedure WriteSection(sec: TDLSectionInfo); inline;
-    procedure WriteSections(sec: TDLSectionList); inline;
+    procedure WriteSections(sec: IDLSectionList); inline;
     procedure WriteString(const s: string); inline;
     procedure WriteStrings(const strings: TDLUnitList);
   public
@@ -54,7 +54,6 @@ end; { CreateSerializer }
 
 function TDLUnitInfoSerializer.Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
 var
-  loc    : TDLCoordinate;
   s      : string;
   sec    : TDLSectionArr;
   units  : TDLUnitList;
@@ -67,20 +66,6 @@ begin
   if version <> CVersion then Exit;
   if not ReadString(s) then Exit;
   unitInfo.Name := s;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.InterfaceLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.InterfaceUsesLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.ImplementationLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.ImplementationUsesLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.ContainsLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.InitializationLoc := loc;
-  if not ReadLocation(loc) then Exit;
-  unitInfo.FinalizationLoc := loc;
   if not ReadStrings(units) then Exit;
   unitInfo.InterfaceUses := units;
   if not ReadStrings(units) then Exit;
@@ -88,7 +73,7 @@ begin
   if not ReadStrings(units) then Exit;
   unitInfo.PackageContains := units;
   if not ReadSections(sec) then Exit;
-  unitInfo.UnitSections.AddRange(sec.Data);
+  unitInfo.Sections.Add(sec);
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
 
@@ -114,7 +99,7 @@ begin
     Exit;
   if (nodeType < Ord(Low(TSyntaxNodeType))) or (nodeType > Ord(High(TSyntaxNodeType))) then
     Exit;
-  sec.NodeType := TSyntaxNodeType(nodeType);
+  sec.NodeType := TDLSectionNodeType(nodeType);
   if not ReadLocation(loc) then
     Exit;
   sec.Location := loc;
@@ -186,17 +171,10 @@ begin
   FStream := stream;
   WriteInteger(CVersion);
   WriteString(unitInfo.Name);
-  WriteLocation(unitInfo.InterfaceLoc);
-  WriteLocation(unitInfo.InterfaceUsesLoc);
-  WriteLocation(unitInfo.ImplementationLoc);
-  WriteLocation(unitInfo.ImplementationUsesLoc);
-  WriteLocation(unitInfo.ContainsLoc);
-  WriteLocation(unitInfo.InitializationLoc);
-  WriteLocation(unitInfo.FinalizationLoc);
   WriteStrings(unitInfo.InterfaceUses);
   WriteStrings(unitInfo.ImplementationUses);
   WriteStrings(unitInfo.PackageContains);
-  WriteSections(unitInfo.UnitSections);
+  WriteSections(unitInfo.Sections);
 end; { TDLUnitInfoSerializer.Write }
 
 procedure TDLUnitInfoSerializer.WriteInteger(val: integer);
@@ -216,7 +194,7 @@ begin
   WriteLocation(sec.Location);
 end; { TDLUnitInfoSerializer.WriteSection }
 
-procedure TDLUnitInfoSerializer.WriteSections(sec: TDLSectionList);
+procedure TDLUnitInfoSerializer.WriteSections(sec: IDLSectionList);
 var
   section: TDLSectionInfo;
 begin

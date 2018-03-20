@@ -44,21 +44,21 @@ procedure TDLUIXNavigationAnalyzer.BuildFrame(const action: IDLUIXAction;
 
 begin { TDLUIXNavigationAnalyzer.BuildFrame }
   if FDLUnitInfo.UnitType = utProgram then begin
-    if FDLUnitInfo.ContainsLoc.IsValid then
-      AddNavigation('&Contains', FDLUnitInfo.ContainsLoc)
+    if FDLUnitInfo.Sections[sntContains].IsValid then
+      AddNavigation('&Contains', FDLUnitInfo.Sections[sntContains])
     else
-      AddNavigation('&Uses list', FDLUnitInfo.InterfaceLoc);
+      AddNavigation('&Uses list', FDLUnitInfo.Sections[sntInterface]);
   end
   else begin
-    if FDLUnitInfo.InterfaceUsesLoc.IsValid then
-      AddNavigation('I&nterface Uses list', FDLUnitInfo.InterfaceUsesLoc)
-    else if FDLUnitInfo.InterfaceLoc.IsValid then
-      AddNavigation('I&nterface', FDLUnitInfo.InterfaceLoc);
+    if FDLUnitInfo.Sections[sntInterfaceUses].IsValid then
+      AddNavigation('I&nterface Uses list', FDLUnitInfo.Sections[sntInterfaceUses])
+    else if FDLUnitInfo.Sections[sntInterface].IsValid then
+      AddNavigation('I&nterface', FDLUnitInfo.Sections[sntInterface]);
 
-    if FDLUnitInfo.ImplementationUsesLoc.IsValid then
-      AddNavigation('I&mplementation Uses list', FDLUnitInfo.ImplementationUsesLoc)
-    else if FDLUnitInfo.ImplementationLoc.IsValid then
-      AddNavigation('I&mplementation', FDLUnitInfo.ImplementationLoc);
+    if FDLUnitInfo.Sections[sntImplementationUses].IsValid then
+      AddNavigation('I&mplementation Uses list', FDLUnitInfo.Sections[sntImplementationUses])
+    else if FDLUnitInfo.Sections[sntImplementation].IsValid then
+      AddNavigation('I&mplementation', FDLUnitInfo.Sections[sntImplementation]);
   end;
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
@@ -75,14 +75,16 @@ begin
     Exit(false);
 
   if FDLUnitInfo.UnitType = utProgram then begin
-    if not (FDLUnitInfo.InterfaceUsesLoc.IsValid or FDLUnitInfo.ContainsLoc.IsValid) then
+    if not (FDLUnitInfo.Sections[sntInterfaceUses].IsValid
+            or FDLUnitInfo.Sections[sntContains].IsValid)
+    then
       Result := false;
   end
   else begin
-    if not (FDLUnitInfo.InterfaceLoc.IsValid
-            or FDLUnitInfo.InterfaceUsesLoc.IsValid
-            or FDLUnitInfo.ImplementationLoc.IsValid
-            or FDLUnitInfo.ImplementationUsesLoc.IsValid)
+    if not (FDLUnitInfo.Sections[sntInterface].IsValid
+            or FDLUnitInfo.Sections[sntInterfaceUses].IsValid
+            or FDLUnitInfo.Sections[sntImplementation].IsValid
+            or FDLUnitInfo.Sections[sntImplementationUses].IsValid)
     then
       Result := false;
   end;

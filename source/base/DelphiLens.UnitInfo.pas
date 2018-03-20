@@ -5,7 +5,7 @@ interface
 uses
   System.Types,
   DelphiAST.Consts, DelphiAST.Classes,
-  Spring, Spring.Collections, Spring.Collections.Lists;
+  Spring, Spring.Collections, Spring.Collections.Extensions;
 
 type
   TDLCoordinate = record
@@ -38,20 +38,40 @@ type
 
   TDLTypeInfoList = IList<TDLTypeInfo>;
 
-  TDLSectionInfo = class
+  TDLSectionNodeType = (sntUnit, sntInterface, sntInterfaceUses,
+    sntImplementation, sntImplementationUses, sntContains,
+    sntInitialization, sntFinalization);
+
+  TDLSectionInfo = record
   public
-    NodeType: TSyntaxNodeType;
+    NodeType: TDLSectionNodeType;
     Location: TDLCoordinate;
   end; { TDLSectionInfo }
 
-  IDLSectionList = interface(IList<TDLSectionInfo>)
-    function FindLocation(nodeType: TSyntaxNodeType): TDLCoordinate;
+  IDLSectionList = interface ['{9B9CEDED-20B2-44FA-A526-60BC8FE2BA23}']
+    procedure Add(const values: Vector<TDLSectionInfo>);
+    procedure AddOrSetLocation(nodeType: TDLSectionNodeType; value: TDLCoordinate);
+    function  Count: integer;
+    function  FindLocation(nodeType: TDLSectionNodeType): TDLCoordinate;
+    function  GetEnumerator: IEnumerator<TDLSectionInfo>;
+    procedure RemoveLocation(nodeType: TDLSectionNodeType);
+    procedure UpdateLocation(nodeType: TDLSectionNodeType; value: TDLCoordinate);
+    property Location[nodeType: TDLSectionNodeType]: TDLCoordinate read FindLocation write UpdateLocation; default;
   end; { IDLSectionList }
 
-  TDLSectionList = class(TObjectList<TDLSectionInfo>, IDLSectionList)
+  TDLSectionList = class(TInterfacedObject, IDLSectionList)
+  strict private
+    FSections: IDictionary<TDLSectionNodeType, TDLCoordinate>;
   public
     constructor Create;
-    function FindLocation(nodeType: TSyntaxNodeType): TDLCoordinate;
+    procedure Add(const values: Vector<TDLSectionInfo>); inline;
+    procedure AddOrSetLocation(nodeType: TDLSectionNodeType; value: TDLCoordinate);
+    function  Count: integer; inline;
+    function  FindLocation(nodeType: TDLSectionNodeType): TDLCoordinate;
+    function  GetEnumerator: IEnumerator<TDLSectionInfo>;
+    procedure RemoveLocation(nodeType: TDLSectionNodeType);
+    procedure UpdateLocation(nodeType: TDLSectionNodeType; value: TDLCoordinate);
+    property Location[nodeType: TDLSectionNodeType]: TDLCoordinate read FindLocation write UpdateLocation; default;
   end; { TDLSectionList }
 
   TDLUnitList = Vector<string>;
@@ -64,43 +84,22 @@ type
   TDLUnitType = (utProgram, utUnit, utPackage);
 
   IDLUnitInfo = interface ['{66126E24-1395-4EAB-A2B7-117A42A3EAF2}']
-    function  GetContainsLoc: TDLCoordinate;
-    function  GetFinalizationLoc: TDLCoordinate;
-    function  GetImplementationLoc: TDLCoordinate;
-    function  GetImplementationSectionList: TDLSectionList;
     function  GetImplementationTypes: TDLTypeInfoList;
     function  GetImplementationUses: TDLUnitList;
-    function  GetImplementationUsesLoc: TDLCoordinate;
-    function  GetInitializationLoc: TDLCoordinate;
-    function  GetInterfaceLoc: TDLCoordinate;
-    function  GetInterfaceSectionList: TDLSectionList;
     function  GetInterfaceTypes: TDLTypeInfoList;
     function  GetInterfaceUses: TDLUnitList;
-    function  GetInterfaceUsesLoc: TDLCoordinate;
     function  GetName: string;
     function  GetPackageContains: TDLUnitList;
+    function  GetSections: IDLSectionList;
     function  GetUnitType: TDLUnitType;
-    procedure SetContainsLoc(const value: TDLCoordinate);
-    procedure SetFinalizationLoc(const value: TDLCoordinate);
-    procedure SetImplementationLoc(const value: TDLCoordinate);
     procedure SetImplementationTypes(const value: TDLTypeInfoList);
     procedure SetImplementationUses(const value: TDLUnitList);
-    procedure SetInitializationLoc(const value: TDLCoordinate);
-    procedure SetInterfaceLoc(const value: TDLCoordinate);
     procedure SetInterfaceTypes(const value: TDLTypeInfoList);
     procedure SetInterfaceUses(const value: TDLUnitList);
     procedure SetName(const value: string);
     procedure SetPackageContains(const value: TDLUnitList);
   //
-    property InterfaceLoc: TDLCoordinate read GetInterfaceLoc write SetInterfaceLoc;
-    property InterfaceUsesLoc: TDLCoordinate read GetInterfaceUsesLoc;
-    property InterfaceSections: TDLSectionList read GetInterfaceSectionList;
-    property ImplementationLoc: TDLCoordinate read GetImplementationLoc write SetImplementationLoc;
-    property ImplementationUsesLoc: TDLCoordinate read GetImplementationUsesLoc;
-    property ImplementationSections: TDLSectionList read GetImplementationSectionList;
-    property ContainsLoc: TDLCoordinate read GetContainsLoc write SetContainsLoc;
-    property InitializationLoc: TDLCoordinate read GetInitializationLoc write SetInitializationLoc;
-    property FinalizationLoc: TDLCoordinate read GetFinalizationLoc write SetFinalizationLoc;
+    property Sections: IDLSectionList read GetSections;
 
     property InterfaceUses: TDLUnitList read GetInterfaceUses write SetInterfaceUses;
     property InterfaceTypes: TDLTypeInfoList read GetInterfaceTypes write SetInterfaceTypes;
@@ -122,63 +121,36 @@ uses
 type
   TDLUnitInfo = class(TInterfacedObject, IDLUnitInfo)
   strict private
-    FContainsLoc              : TDLCoordinate;
-    FFinalizationLoc          : TDLCoordinate;
-    FImplementationLoc        : TDLCoordinate;
-    FImplementationSectionList: TDLSectionList;
-    FImplementationTypes      : TDLTypeInfoList;
-    FImplementationUses       : TDLUnitList; // also used to store PackageContains
-    FInitializationLoc        : TDLCoordinate;
-    FInterfaceLoc             : TDLCoordinate;
-    FInterfaceSectionList     : TDLSectionList;
-    FInterfaceTypes           : TDLTypeInfoList;
-    FInterfaceUses            : TDLUnitList;
-    FName                     : string;
+    FImplementationTypes: TDLTypeInfoList;
+    FImplementationUses : TDLUnitList; // also used to store PackageContains
+    FInterfaceTypes     : TDLTypeInfoList;
+    FInterfaceUses      : TDLUnitList;
+    FName               : string;
+    FSections           : IDLSectionList;
   strict protected
-    function  GetContainsLoc: TDLCoordinate;
-    function  GetFinalizationLoc: TDLCoordinate;
-    function  GetImplementationLoc: TDLCoordinate;
-    function  GetImplementationSectionList: TDLSectionList;
     function  GetImplementationTypes: TDLTypeInfoList;
     function  GetImplementationUses: TDLUnitList;
-    function  GetImplementationUsesLoc: TDLCoordinate;
-    function  GetInitializationLoc: TDLCoordinate;
-    function  GetInterfaceLoc: TDLCoordinate;
-    function  GetInterfaceSectionList: TDLSectionList;
     function  GetInterfaceTypes: TDLTypeInfoList;
     function  GetInterfaceUses: TDLUnitList;
-    function  GetInterfaceUsesLoc: TDLCoordinate;
     function  GetName: string;
     function  GetPackageContains: TDLUnitList;
+    function  GetSections: IDLSectionList;
     function  GetUnitType: TDLUnitType;
-    procedure SetContainsLoc(const value: TDLCoordinate);
-    procedure SetFinalizationLoc(const value: TDLCoordinate);
-    procedure SetImplementationLoc(const value: TDLCoordinate);
     procedure SetImplementationTypes(const value: TDLTypeInfoList);
     procedure SetImplementationUses(const value: TDLUnitList);
-    procedure SetInitializationLoc(const value: TDLCoordinate);
-    procedure SetInterfaceLoc(const value: TDLCoordinate);
     procedure SetInterfaceTypes(const value: TDLTypeInfoList);
     procedure SetInterfaceUses(const value: TDLUnitList);
     procedure SetName(const value: string);
     procedure SetPackageContains(const value: TDLUnitList);
   public
     constructor Create;
-    property ContainsLoc: TDLCoordinate read GetContainsLoc write SetContainsLoc;
-    property FinalizationLoc: TDLCoordinate read GetFinalizationLoc write SetFinalizationLoc;
-    property ImplementationLoc: TDLCoordinate read GetImplementationLoc write SetImplementationLoc;
-    property ImplementationSections: TDLSectionList read GetInterfaceSectionList;
     property ImplementationTypes: TDLTypeInfoList read GetImplementationTypes write SetImplementationTypes;
     property ImplementationUses: TDLUnitList read GetImplementationUses write SetImplementationUses;
-    property ImplementationUsesLoc: TDLCoordinate read GetImplementationUsesLoc;
-    property InitializationLoc: TDLCoordinate read GetInitializationLoc write SetInitializationLoc;
-    property InterfaceLoc: TDLCoordinate read GetInterfaceLoc write SetInterfaceLoc;
-    property InterfaceSections: TDLSectionList read GetInterfaceSectionList;
     property InterfaceTypes: TDLTypeInfoList read GetInterfaceTypes write SetInterfaceTypes;
     property InterfaceUses: TDLUnitList read GetInterfaceUses write SetInterfaceUses;
-    property InterfaceUsesLoc: TDLCoordinate read GetInterfaceUsesLoc;
     property Name: string read GetName write SetName;
     property PackageContains: TDLUnitList read GetPackageContains write SetPackageContains;
+    property Sections: IDLSectionList read GetSections;
     property UnitType: TDLUnitType read GetUnitType;
   end; { TDLUnitInfo }
 
@@ -222,31 +194,10 @@ end; { TDLCoordinate.ToString }
 constructor TDLUnitInfo.Create;
 begin
   inherited Create;
-  ContainsLoc := TDLCoordinate.Invalid;
-  InterfaceLoc := TDLCoordinate.Invalid;
-  ImplementationLoc := TDLCoordinate.Invalid;
-  InitializationLoc := TDLCoordinate.Invalid;
-  FinalizationLoc := TDLCoordinate.Invalid;
   InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
   ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  FInterfaceSectionList := TCollections.CreateObjectList<TDLSectionInfo>;
-  FImplementationSectionList := TCollections.CreateObjectList<TDLSectionInfo>;
+  FSections := TDLSectionList.Create;
 end; { TDLUnitInfo.Create }
-
-function TDLUnitInfo.GetContainsLoc: TDLCoordinate;
-begin
-  Result := FContainsLoc;
-end; { TDLUnitInfo.GetContainsLoc }
-
-function TDLUnitInfo.GetFinalizationLoc: TDLCoordinate;
-begin
-  Result := FFinalizationLoc;
-end; { TDLUnitInfo.GetFinalizationLoc }
-
-function TDLUnitInfo.GetImplementationLoc: TDLCoordinate;
-begin
-  Result := FImplementationLoc;
-end; { TDLUnitInfo.GetImplementationLoc }
 
 function TDLUnitInfo.GetImplementationTypes: TDLTypeInfoList;
 begin
@@ -258,21 +209,6 @@ begin
   Result := FImplementationUses;
 end; { TDLUnitInfo.GetImplementationUses }
 
-function TDLUnitInfo.GetImplementationUsesLoc: TDLCoordinate;
-begin
-  Result := ImplementationSections.FindLocation(ntUses);
-end; { TDLUnitInfo.GetImplementationUsesLoc }
-
-function TDLUnitInfo.GetInitializationLoc: TDLCoordinate;
-begin
-  Result := FInitializationLoc;
-end; { TDLUnitInfo.GetInitializationLoc }
-
-function TDLUnitInfo.GetInterfaceLoc: TDLCoordinate;
-begin
-  Result := FInterfaceLoc;
-end; { TDLUnitInfo.GetInterfaceLoc }
-
 function TDLUnitInfo.GetInterfaceTypes: TDLTypeInfoList;
 begin
   Result := FInterfaceTypes;
@@ -282,11 +218,6 @@ function TDLUnitInfo.GetInterfaceUses: TDLUnitList;
 begin
   Result := FInterfaceUses;
 end; { TDLUnitInfo.GetInterfaceUses }
-
-function TDLUnitInfo.GetInterfaceUsesLoc: TDLCoordinate;
-begin
-  Result := FInterfaceUsesLoc;
-end; { TDLUnitInfo.GetInterfaceUsesLoc }
 
 function TDLUnitInfo.GetName: string;
 begin
@@ -298,34 +229,19 @@ begin
   Result := FImplementationUses;
 end; { TDLUnitInfo.GetPackageContains }
 
-function TDLUnitInfo.GetSectionList: TDLSectionList;
+function TDLUnitInfo.GetSections: IDLSectionList;
 begin
-  Result := FSectionList;
-end; { TDLUnitInfo.GetSectionList }
+  Result := FSections;
+end; { TDLUnitInfo.GetSections }
 
 function TDLUnitInfo.GetUnitType: TDLUnitType;
 begin
   Result := utProgram;
-  if ContainsLoc.Line > 0 then
+  if Sections[sntContains].IsValid then
     Result := utPackage
-  else if InterfaceLoc.Line > 0 then
+  else if Sections[sntInterface].IsValid then
     Result := utUnit;
 end; { TDLUnitInfo.GetUnitType }
-
-procedure TDLUnitInfo.SetContainsLoc(const value: TDLCoordinate);
-begin
-  FContainsLoc := value;
-end; { TDLUnitInfo.SetContainsLoc }
-
-procedure TDLUnitInfo.SetFinalizationLoc(const value: TDLCoordinate);
-begin
-  FFinalizationLoc := value;
-end; { TDLUnitInfo.SetFinalizationLoc }
-
-procedure TDLUnitInfo.SetImplementationLoc(const value: TDLCoordinate);
-begin
-  FImplementationLoc := value;
-end; { TDLUnitInfo.SetImplementationLoc }
 
 procedure TDLUnitInfo.SetImplementationTypes(const value: TDLTypeInfoList);
 begin
@@ -337,21 +253,6 @@ begin
   FImplementationUses := value;
 end; { TDLUnitInfo.SetImplementationUses }
 
-procedure TDLUnitInfo.SetImplementationUsesLoc(const value: TDLCoordinate);
-begin
-  FImplementationUsesLoc := value;
-end; { TDLUnitInfo.SetImplementationUsesLoc }
-
-procedure TDLUnitInfo.SetInitializationLoc(const value: TDLCoordinate);
-begin
-  FInitializationLoc := value;
-end; { TDLUnitInfo.SetInitializationLoc }
-
-procedure TDLUnitInfo.SetInterfaceLoc(const value: TDLCoordinate);
-begin
-  FInterfaceLoc := value;
-end; { TDLUnitInfo.SetInterfaceLoc }
-
 procedure TDLUnitInfo.SetInterfaceTypes(const value: TDLTypeInfoList);
 begin
   FInterfaceTypes := value;
@@ -361,11 +262,6 @@ procedure TDLUnitInfo.SetInterfaceUses(const value: TDLUnitList);
 begin
   FInterfaceUses := value;
 end; { TDLUnitInfo.SetInterfaceUses }
-
-procedure TDLUnitInfo.SetInterfaceUsesLoc(const value: TDLCoordinate);
-begin
-  FInterfaceUsesLoc := value;
-end; { TDLUnitInfo.SetInterfaceUsesLoc }
 
 procedure TDLUnitInfo.SetName(const value: string);
 begin
@@ -402,17 +298,51 @@ end; { TDLUnitListHelper.Contains }
 
 constructor TDLSectionList.Create;
 begin
+  inherited Create;
+  FSections := TCollections.CreateDictionary<TDLSectionNodeType, TDLCoordinate>;
+end; { TDLSectionList.Create }
 
-end;
-
-function TDLSectionList.FindLocation(nodeType: TSyntaxNodeType): TDLCoordinate;
+procedure TDLSectionList.Add(const values: Vector<TDLSectionInfo>);
 var
-  section: TDLSectionInfo;
+  value: TDLSectionInfo;
 begin
-  for section in Self do
-    if section.NodeType = nodeType then
-      Exit(section.Location);
-  Result := TDLCoordinate.Invalid;
+  for value in values do
+    FSections.Add(value.NodeType, value.Location);
+end; { TDLSectionList.Add }
+
+procedure TDLSectionList.AddOrSetLocation(nodeType: TDLSectionNodeType; value: TDLCoordinate);
+begin
+  FSections.AddOrSetValue(nodeType, value);
+end; { TDLSectionList.AddOrSetLocation }
+
+function TDLSectionList.Count: integer;
+begin
+  Result := FSections.Count;
+end; { TDLSectionList.Count }
+
+function TDLSectionList.FindLocation(nodeType: TDLSectionNodeType): TDLCoordinate;
+begin
+  if not FSections.TryGetValue(nodeType, Result) then
+    Result := TDLCoordinate.Invalid;
 end; { TDLSectionList.FindLocation }
+
+function TDLSectionList.GetEnumerator: IEnumerator<TDLSectionInfo>;
+begin
+  Result := IEnumerator<TDLSectionInfo>(FSections.GetEnumerator);
+end; { TDLSectionList.GetEnumerator }
+
+procedure TDLSectionList.RemoveLocation(nodeType: TDLSectionNodeType);
+begin
+  FSections.Remove(nodeType);
+end; { TDLSectionList.RemoveLocation }
+
+procedure TDLSectionList.UpdateLocation(nodeType: TDLSectionNodeType;
+  value: TDLCoordinate);
+begin
+  if value.IsValid then
+    AddOrSetLocation(nodeType, value)
+  else
+    RemoveLocation(nodeType);
+end; { TDLSectionList.UpdateLocation }
 
 end.

@@ -126,7 +126,8 @@ begin
   for nodeTypeSect in node.FindAll(ntTypeSection, false) do begin
     for nodeTypeDecl in nodeTypeSect.FindAll(ntTypeDecl) do begin
       typeInfo := TDLTypeInfo.Create;
-      typeInfo.Location := TDLCoordinate.Create(nodeTypeDecl);
+      typeInfo.Name := nodeTypeDecl.GetAttribute(anName);
+      typeInfo.Location := TDLRange.Create(nodeTypeDecl);
       if nodeTypeDecl.FindFirst(ntType, nodeType) then begin
         for nodeSection in nodeType.FindAll([ntStrictPrivate, ntPrivate, ntStrictProtected,
                                              ntProtected, ntPublic, ntPublished]) do

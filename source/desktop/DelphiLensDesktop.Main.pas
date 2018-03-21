@@ -73,6 +73,7 @@ type
   strict protected
     function  AttributestoStr(const attributes: TArray<TAttributeEntry>): string;
     procedure DumpAnalysis(log: TStrings; const unitInfo: IDLUnitInfo);
+    procedure DumpClasses(log: TStrings; const typeList: TDLTypeInfoList);
     procedure DumpSyntaxTree(log: TStrings; node: TSyntaxNode; const prefix: string);
     procedure DumpUses(log: TStrings; const usesList: TDLUnitList;
       const location: TDLCoordinate);
@@ -230,8 +231,10 @@ begin
   else begin
     log.Add('Interface @ ' + unitInfo.Sections[sntInterface].ToString);
     DumpUses(log, unitInfo.InterfaceUses, unitInfo.Sections[sntInterfaceUses]);
+    DumpClasses(log, unitInfo.InterfaceTypes);
     log.Add('Implementation @ ' + unitInfo.Sections[sntImplementation].ToString);
     DumpUses(log, unitInfo.ImplementationUses, unitInfo.Sections[sntImplementationUses]);
+    DumpClasses(log, unitInfo.ImplementationTypes);
   end;
   if unitInfo.Sections[sntInitialization].IsValid then
     log.Add('Initialization @ ' + unitInfo.Sections[sntInitialization].ToString);
@@ -273,6 +276,18 @@ begin
   log.Add('uses @ ' + location.ToString);
   for unitName in usesList do
     log.Add('  ' + unitName);
+end;
+
+procedure TfrmDLMain.DumpClasses(log: TStrings; const typeList: TDLTypeInfoList);
+var
+  typeInfo: TDLTypeInfo;
+begin
+  if typeList.Count = 0 then
+    Exit;
+
+  log.Add('type');
+  for typeInfo in typeList do
+    log.Add('  ' + typeInfo.Name + ' @ ' + typeInfo.Location.ToString);
 end;
 
 procedure TfrmDLMain.EnableResultActions(Sender: TObject);

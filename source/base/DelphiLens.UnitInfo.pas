@@ -12,11 +12,24 @@ type
   public
     Line  : integer;
     Column: integer;
-    class function Create(const node: TSyntaxNode): TDLCoordinate; static;
+    class function Create(const node: TSyntaxNode): TDLCoordinate; overload; static;
+    class function Create(ALine, AColumn: integer): TDLCoordinate; overload; static;
     class function Invalid: TDLCoordinate; static; inline;
+    class function Max(const coord1, coord2: TDLCoordinate): TDLCoordinate; static;
+    class function Min(const coord1, coord2: TDLCoordinate): TDLCoordinate; static;
     function  IsValid: boolean; inline;
     function  ToString: string; inline;
   end; { TDLCoordinateHelper }
+
+  TDLRange = record
+  public
+    Start: TDLCoordinate;
+    &End : TDLCoordinate;
+    class function Create(const node: TSyntaxNode): TDLRange; static;
+    class function Invalid: TDLRange; static; inline;
+    function  ToString: string; inline;
+    function  Union(const range: TDLRange): TDLRange;
+  end; { TDLRange }
 
   TDLTypeSection = (secStrictPrivate, secPrivate, secStrictProtected, secProtected,
     secPublic, secPublished);
@@ -31,7 +44,8 @@ type
 
   TDLTypeInfo = class
   public
-    Location: TDLCoordinate;
+    Name    : string;
+    Location: TDLRange;
     Sections: array [TDLTypeSection] of TDLTypeSectionInfo;
     function  EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
   end; { TDLTypeInfo }
@@ -173,6 +187,12 @@ begin
   end;
 end; { TDLCoordinate.Create }
 
+class function TDLCoordinate.Create(ALine, AColumn: integer): TDLCoordinate;
+begin
+  Result.Line := ALine;
+  Result.Column := AColumn;
+end; { TDLCoordinate.Create }
+
 class function TDLCoordinate.Invalid: TDLCoordinate;
 begin
   Result.Line := -1;
@@ -184,10 +204,88 @@ begin
   Result := (Line >= 0) and (Column >= 0);
 end; { TDLCoordinate.IsValid }
 
+class function TDLCoordinate.Max(const coord1,
+  coord2: TDLCoordinate): TDLCoordinate;
+begin
+  if not coord1.IsValid then
+    Result := coord2
+  else if not coord2.IsValid then
+    Result := coord1
+  else if coord1.Line > coord2.Line then
+    Result := coord1
+  else if coord2.Line > coord1.Line then
+    Result := coord2
+  else if coord1.Column > coord2.Column then
+    Result := coord1
+  else
+    Result := coord2;
+end; { TDLCoordinate.Max }
+
+class function TDLCoordinate.Min(const coord1,
+  coord2: TDLCoordinate): TDLCoordinate;
+begin
+  if not coord1.IsValid then
+    Result := coord2
+  else if not coord2.IsValid then
+    Result := coord1
+  else if coord1.Line < coord2.Line then
+    Result := coord1
+  else if coord2.Line < coord1.Line then
+    Result := coord2
+  else if coord1.Column < coord2.Column then
+    Result := coord1
+  else
+    Result := coord2;
+end; { TDLCoordinate.Min }
+
 function TDLCoordinate.ToString: string;
 begin
   Result := Format('%d,%d', [Line, Column]);
 end; { TDLCoordinate.ToString }
+
+{ TDLRange }
+
+class function TDLRange.Create(const node: TSyntaxNode): TDLRange;
+begin
+  if not assigned(node) then begin
+    Result.Start := TDLCoordinate.Invalid;
+    Result.&End := TDLCoordinate.Invalid;
+  end
+  else begin
+    Result.Start := TDLCoordinate.Create(node);
+    if node is TCompoundSyntaxNode then
+      Result.&End := TDLCoordinate.Create(TCompoundSyntaxNode(node).EndLine,
+                                          TCompoundSyntaxNode(node).EndCol)
+    else
+      Result.&End := TDLCoordinate.Invalid;
+  end;
+end; { TDLRange.Create }
+
+class function TDLRange.Invalid: TDLRange;
+begin
+  Result.Start := TDLCoordinate.Invalid;
+  Result.&End  := TDLCoordinate.Invalid;
+end; { TDLRange.Invalid }
+
+function TDLRange.ToString: string;
+begin
+  Result := Start.ToString;
+  if &End.IsValid then
+    Result := Result + ' - ' + &End.ToString;
+end; { TDLRange.ToString }
+
+function TDLRange.Union(const range: TDLRange): TDLRange;
+begin
+  Result.Start := TDLCoordinate.Min(Start, range.Start);
+  if &End.IsValid and range.&End.IsValid then
+    Result.&End := TDLCoordinate.Max(&End, range.&End)
+  else if range.&End.IsValid then
+    Result.&End := TDLCoordinate.Max(Start, range.&End)
+  else if &End.IsValid then
+    Result.&End := TDLCoordinate.Max(&End, range.Start)
+  else
+    Result.&End := Result.Start;
+end; { TDLRange.Union }
 
 { TDLUnitInfo }
 

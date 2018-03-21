@@ -16,9 +16,10 @@ implementation
 uses
   Winapi.Windows, Winapi.Messages,
   System.Types, System.RTTI, System.SysUtils, System.StrUtils, System.Classes, System.Math,
+  System.RegularExpressions,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls,
   Spring, Spring.Collections, Spring.Reflection,
-  GpStuff, GpEasing,
+  GpStuff, GpEasing, GpVCL,
   DelphiLens.UnitInfo,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
   DelphiLensUI.UIXEngine.Actions;
@@ -378,6 +379,7 @@ function TDLUIXVCLFloatingFrame.BuildList(
   options: TDLUIXFrameActionOptions): TRect;
 var
   button    : TButton;
+  hasHotkey : TRegEx;
   hotkey    : string;
   navigation: IDLUIXNavigationAction;
   nextTop   : integer;
@@ -387,6 +389,14 @@ begin
   button := nil;
 
   hotkey := '1';
+
+  hasHotkey := TRegEx.Create('&[^&]');
+  for navigation in listNavigation.Locations do
+    if hasHotkey.IsMatch(navigation.Name) then begin
+      hotkey := '';
+      break; //for
+    end;
+
   for navigation in listNavigation.Locations do begin
     button := TButton.Create(FForm);
     button.Parent := FForm;
@@ -394,7 +404,7 @@ begin
     button.Height := CListButtonHeight;
     button.Left := FColumnLeft;
     button.Top := nextTop;
-    button.Caption := IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
+    button.Caption := '  ' + IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
     button.OnClick := ForwardAction;
     ApplyOptions(button, options);
 
@@ -746,6 +756,7 @@ var
   isBack        : boolean;
   proc          : TProc;
   rect          : TRect;
+  button: TButton;
 begin
   if not assigned(FParent) then
     FForm.Position := poScreenCenter
@@ -765,6 +776,11 @@ begin
   for proc in FOnShowProc do
     proc();
   FForm.UpdateMask;
+
+  for button in FForm.EnumControls<TButton> do
+    if string(button.Caption).StartsWith('  ') then
+      SetWindowLong(button.Handle, GWL_STYLE, GetWindowLong(button.Handle, GWL_STYLE) OR BS_LEFT);
+
   FForm.ShowModal;
 end; { TDLUIXVCLFloatingFrame.Show }
 

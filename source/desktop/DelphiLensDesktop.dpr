@@ -1,6 +1,7 @@
 program DelphiLensDesktop;
 
 uses
+  FastMM4,
   Vcl.Forms,
   DelphiLensDesktop.Main in 'DelphiLensDesktop.Main.pas' {frmDLMain},
   Vcl.Themes,

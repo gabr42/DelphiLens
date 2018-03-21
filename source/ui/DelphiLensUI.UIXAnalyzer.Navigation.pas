@@ -14,7 +14,8 @@ uses
   DelphiAST.ProjectIndexer,
   DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo,
   DelphiLensUI.WorkerContext,
-  DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
+  DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions,
+  DelphiLensUI.UIXAnalyzer.ClassSelector;
 
 type
   TDLUIXNavigationAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
@@ -56,9 +57,9 @@ begin
 
   if FDLUnitInfo.UnitType = utProgram then begin
     if FDLUnitInfo.Sections[sntContains].IsValid then
-      AddNavigation('&Contains', FDLUnitInfo.Sections[sntContains])
+      AddNavigation('"&contains"', FDLUnitInfo.Sections[sntContains])
     else
-      AddNavigation('&Uses list', FDLUnitInfo.Sections[sntInterface]);
+      AddNavigation('"&uses"', FDLUnitInfo.Sections[sntInterface]);
 
     if FDLUnitInfo.InterfaceTypes.Count >  0 then begin
       GetFirstLastCoordinate(FDLUnitInfo.InterfaceTypes, range);
@@ -81,7 +82,7 @@ begin
     end;
 
     if FDLUnitInfo.Sections[sntImplementationUses].IsValid then
-      AddNavigation('I&mplementation Uses list', FDLUnitInfo.Sections[sntImplementationUses])
+      AddNavigation('I&mplementation "uses"', FDLUnitInfo.Sections[sntImplementationUses])
     else if FDLUnitInfo.Sections[sntImplementation].IsValid then
       AddNavigation('I&mplementation', FDLUnitInfo.Sections[sntImplementation]);
 
@@ -96,7 +97,7 @@ begin
   frame.CreateAction(CreateListNavigationAction('', locations));
 
   if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) >  0 then
-    frame.CreateAction(CreateOpenAnalyzerAction('Classes >', nil));
+    frame.CreateAction(CreateOpenAnalyzerAction('&Classes', CreateClassSelector));
 
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 

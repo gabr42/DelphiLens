@@ -21,7 +21,7 @@ type
     FNodeToSection: array [TSyntaxNodeType] of TDLTypeSection;
   strict protected
     procedure GetUnitList(usesNode: TSyntaxNode; var units: TDLUnitList);
-    function  ParseTypes(node: TSyntaxNode): IList<TDLTypeInfo>;
+    function  ParseTypes(node: TSyntaxNode): TDLTypeInfoList;
   public
     constructor Create;
     procedure AnalyzeTree(tree: TSyntaxNode; var unitInfo: IDLUnitInfo);
@@ -114,7 +114,7 @@ begin
       units.Add(childNode.GetAttribute(anName));
 end; { TDLTreeAnalyzer.GetUnitList }
 
-function TDLTreeAnalyzer.ParseTypes(node: TSyntaxNode): IList<TDLTypeInfo>;
+function TDLTreeAnalyzer.ParseTypes(node: TSyntaxNode): TDLTypeInfoList;
 var
   nodeSection : TSyntaxNode;
   nodeType    : TSyntaxNode;
@@ -122,7 +122,7 @@ var
   nodeTypeSect: TSyntaxNode;
   typeInfo    : TDLTypeInfo;
 begin
-  Result := TCollections.CreateObjectList<TDLTypeInfo>;
+  Result := TDLTypeInfoList.Create;
   for nodeTypeSect in node.FindAll(ntTypeSection, false) do begin
     for nodeTypeDecl in nodeTypeSect.FindAll(ntTypeDecl) do begin
       typeInfo := TDLTypeInfo.Create;

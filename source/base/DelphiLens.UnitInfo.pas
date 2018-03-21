@@ -34,12 +34,12 @@ type
   TDLTypeSection = (secStrictPrivate, secPrivate, secStrictProtected, secProtected,
     secPublic, secPublished);
 
-  TDLTypeInfo = class;
+  TDLTypeInfoList = class;
 
   TDLTypeSectionInfo = class
   public
     Location: TDLCoordinate;
-    Types   : IList<TDLTypeInfo>;
+    Types   : TDLTypeInfoList;
   end; { TDLTypeSectionInfo }
 
   TDLTypeInfo = class
@@ -50,7 +50,19 @@ type
     function  EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
   end; { TDLTypeInfo }
 
-  TDLTypeInfoList = IList<TDLTypeInfo>;
+  TDLTypeInfoList = class
+  strict private
+    FList: IList<TDLTypeInfo>;
+  strict protected
+    function  GetItem(idx: integer): TDLTypeInfo; inline;
+  public
+    constructor Create;
+    procedure Add(typeInfo: TDLTypeInfo); inline;
+    procedure Clear; inline;
+    function  Count: integer; inline;
+    function  GetEnumerator: IEnumerator<TDLTypeInfo>; inline;
+    property Items[idx: integer]: TDLTypeInfo read GetItem;
+  end; { TDLTypeInfoList }
 
   TDLSectionNodeType = (sntUnit, sntInterface, sntInterfaceUses,
     sntImplementation, sntImplementationUses, sntContains,
@@ -158,6 +170,7 @@ type
     procedure SetPackageContains(const value: TDLUnitList);
   public
     constructor Create;
+    destructor  Destroy; override;
     property ImplementationTypes: TDLTypeInfoList read GetImplementationTypes write SetImplementationTypes;
     property ImplementationUses: TDLUnitList read GetImplementationUses write SetImplementationUses;
     property InterfaceTypes: TDLTypeInfoList read GetInterfaceTypes write SetInterfaceTypes;
@@ -292,10 +305,17 @@ end; { TDLRange.Union }
 constructor TDLUnitInfo.Create;
 begin
   inherited Create;
-  InterfaceTypes := TCollections.CreateObjectList<TDLTypeInfo>;
-  ImplementationTypes := TCollections.CreateObjectList<TDLTypeInfo>;
+  FInterfaceTypes := TDLTypeInfoList.Create;
+  FImplementationTypes := TDLTypeInfoList.Create;
   FSections := TDLSectionList.Create;
 end; { TDLUnitInfo.Create }
+
+destructor TDLUnitInfo.Destroy;
+begin
+  FreeAndNil(FInterfaceTypes);
+  FreeAndNil(FImplementationTypes);
+  inherited;
+end; { TDLUnitInfo.Destroy }
 
 function TDLUnitInfo.GetImplementationTypes: TDLTypeInfoList;
 begin
@@ -379,6 +399,39 @@ begin
     Sections[sectionType] := TDLTypeSectionInfo.Create;
   Result := Sections[sectionType];
 end; { TDLTypeInfo.EnsureSection }
+
+{ TDLTypeInfoList }
+
+constructor TDLTypeInfoList.Create;
+begin
+  inherited Create;
+  FList := TCollections.CreateObjectList<TDLTypeInfo>;
+end; { TDLTypeInfoList.Create }
+
+procedure TDLTypeInfoList.Add(typeInfo: TDLTypeInfo);
+begin
+  FList.Add(typeInfo);
+end; { TDLTypeInfoList.Add }
+
+procedure TDLTypeInfoList.Clear;
+begin
+  FList.Clear;
+end; { TDLTypeInfoList.Clear }
+
+function TDLTypeInfoList.Count: integer;
+begin
+  Result := FList.Count;
+end; { TDLTypeInfoList.Count }
+
+function TDLTypeInfoList.GetEnumerator: IEnumerator<TDLTypeInfo>;
+begin
+  Result := FList.GetEnumerator;
+end; { TDLTypeInfoList.GetEnumerator }
+
+function TDLTypeInfoList.GetItem(idx: integer): TDLTypeInfo;
+begin
+  Result := FList[idx];
+end; { TDLTypeInfoList.GetItem }
 
 { TDLUnitListHelper }
 

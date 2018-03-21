@@ -10,7 +10,7 @@ function CreateSerializer: IDLUnitInfoSerializer;
 implementation
 
 uses
-  System.Classes,
+  System.SysUtils, System.Classes,
   Spring, Spring.Collections,
   DelphiAST.Consts,
   DelphiLens.UnitInfo;
@@ -18,26 +18,36 @@ uses
 type
   TDLUnitInfoSerializer = class(TInterfacedObject, IDLUnitInfoSerializer)
   strict private const
-    CVersion = 4;
+    CVersion = 5;
   type
     TDLSectionArr = Vector<TDLSectionInfo>;
   var
     FStream: TStream;
   strict protected
+    function  ReadByte(var b: byte): boolean; inline;
     function  ReadInteger(var val: integer): boolean; inline;
     function  ReadLocation(var loc: TDLCoordinate): boolean; inline;
+    function  ReadRange(var range: TDLRange): boolean;
     function  ReadWord(var w: word): boolean; inline;
     function  ReadString(var s: string): boolean; inline;
     function  ReadStrings(var strings: TDLUnitList): boolean;
     function  ReadSection(var sec: TDLSectionInfo): boolean; inline;
     function  ReadSections(var sec: TDLSectionArr): boolean;
+    function  ReadTypeInfo(typeInfo: TDLTypeInfo): boolean;
+    function  ReadTypeList(types: TDLTypeInfoList): boolean;
+    function  ReadTypeSectionInfo(typeSection: TDLTypeSectionInfo): boolean;
+    procedure WriteByte(b: byte); inline;
     procedure WriteInteger(val: integer); inline;
-    procedure WriteWord(w: word); inline;
-    procedure WriteLocation(loc: TDLCoordinate); inline;
-    procedure WriteSection(sec: TDLSectionInfo); inline;
+    procedure WriteLocation(const loc: TDLCoordinate); inline;
+    procedure WriteRange(const range: TDLRange); inline;
+    procedure WriteSection(const sec: TDLSectionInfo); inline;
     procedure WriteSections(sec: IDLSectionList); inline;
     procedure WriteString(const s: string); inline;
     procedure WriteStrings(const strings: TDLUnitList);
+    procedure WriteTypeInfo(typeInfo: TDLTypeInfo);
+    procedure WriteTypeList(types: TDLTypeInfoList);
+    procedure WriteTypeSectionInfo(typeSection: TDLTypeSectionInfo);
+    procedure WriteWord(w: word); inline;
   public
     function  Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
     procedure Write(const unitInfo: IDLUnitInfo; stream: TStream);
@@ -54,7 +64,7 @@ end; { CreateSerializer }
 
 function TDLUnitInfoSerializer.Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
 var
-  s      : string;
+  s     : string;
   sec    : TDLSectionArr;
   units  : TDLUnitList;
   version: integer;
@@ -74,8 +84,15 @@ begin
   unitInfo.PackageContains := units;
   if not ReadSections(sec) then Exit;
   unitInfo.Sections.Add(sec);
+  if not ReadTypeList(unitInfo.InterfaceTypes) then Exit;
+  if not ReadTypeList(unitInfo.ImplementationTypes) then Exit;
   Result := true;
 end; { TDLUnitInfoSerializer.Read }
+
+function TDLUnitInfoSerializer.ReadByte(var b: byte): boolean;
+begin
+  Result := FStream.Read(b, 1) = 1;
+end; { TDLUnitInfoSerializer.ReadByte }
 
 function TDLUnitInfoSerializer.ReadInteger(var val: integer): boolean;
 begin
@@ -89,13 +106,25 @@ begin
     Result := ReadInteger(loc.Column);
 end; { TDLUnitInfoSerializer.ReadLocation }
 
+function TDLUnitInfoSerializer.ReadRange(var range: TDLRange): boolean;
+var
+  loc: TDLCoordinate;
+begin
+  Result := false;
+  if not ReadLocation(loc) then Exit;
+  range.Start := loc;
+  if not ReadLocation(loc) then Exit;
+  range.&End := loc;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadRange }
+
 function TDLUnitInfoSerializer.ReadSection(var sec: TDLSectionInfo): boolean;
 var
   loc     : TDLCoordinate;
-  nodeType: integer;
+  nodeType: byte;
 begin
   Result := false;
-  if not ReadInteger(nodeType) then
+  if not ReadByte(nodeType) then
     Exit;
   if (nodeType < Ord(Low(TSyntaxNodeType))) or (nodeType > Ord(High(TSyntaxNodeType))) then
     Exit;
@@ -161,6 +190,79 @@ begin
   Result := true;
 end; { TDLUnitInfoSerializer.ReadStrings }
 
+function TDLUnitInfoSerializer.ReadTypeInfo(typeInfo: TDLTypeInfo): boolean;
+var
+  b      : byte;
+  loc    : TDLRange;
+  s      : string;
+  secInfo: TDLTypeSectionInfo;
+  section: TDLTypeSection;
+begin
+  Result := false;
+  if not ReadString(s) then Exit;
+  typeInfo.Name := s;
+  if not ReadRange(loc) then
+    typeInfo.Location := loc;
+
+  repeat
+    if not ReadByte(b) then Exit;
+    if b = High(byte) then
+      break; //repeat
+    if (b < Ord(Low(TDLTypeSection))) or (b > Ord(High(TDLTypeSection))) then Exit;
+    section := TDLTypeSection(b);
+    secInfo := TDLTypeSectionInfo.Create;
+    if not ReadTypeSectionInfo(secInfo) then begin
+      FreeAndNil(secInfo);
+      Exit;
+    end;
+    typeInfo.Sections[section] := secInfo;
+  until false;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadTypeInfo }
+
+function TDLUnitInfoSerializer.ReadTypeList(types: TDLTypeInfoList): boolean;
+var
+  i       : integer;
+  len     : word;
+  typeInfo: TDLTypeInfo;
+begin
+  Result := false;
+  if not ReadWord(len) then
+    Exit;
+
+  types.Clear;
+  for i := 1 to len do begin
+    typeInfo := TDLTypeInfo.Create;
+    if not ReadTypeInfo(typeInfo) then begin
+      FreeAndNil(typeInfo);
+      Exit;
+    end;
+    types.Add(typeInfo);
+  end;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadTypeList }
+
+function TDLUnitInfoSerializer.ReadTypeSectionInfo(
+  typeSection: TDLTypeSectionInfo): boolean;
+var
+  loc     : TDLCoordinate;
+  typeList: TDLTypeInfoList;
+begin
+  Result := false;
+  if not ReadLocation(loc) then Exit;
+  typeSection.Location := loc;
+  typeList := TDLTypeInfoList.Create;
+  if not ReadTypeList(typeList) then begin
+    FreeAndNil(typeList);
+    Exit;
+  end;
+  if typeList.Count = 0 then
+    FreeAndNil(typeList)
+  else
+    typeSection.Types := typeList;
+  Result := true;
+end; { TDLUnitInfoSerializer.ReadTypeSectionInfo }
+
 function TDLUnitInfoSerializer.ReadWord(var w: word): boolean;
 begin
   Result := FStream.Read(w, 2) = 2;
@@ -175,22 +277,35 @@ begin
   WriteStrings(unitInfo.ImplementationUses);
   WriteStrings(unitInfo.PackageContains);
   WriteSections(unitInfo.Sections);
+  WriteTypeList(unitInfo.InterfaceTypes);
+  WriteTypeList(unitInfo.ImplementationTypes);
 end; { TDLUnitInfoSerializer.Write }
+
+procedure TDLUnitInfoSerializer.WriteByte(b: byte);
+begin
+  FStream.Write(b, 1);
+end; { TDLUnitInfoSerializer.WriteByte }
 
 procedure TDLUnitInfoSerializer.WriteInteger(val: integer);
 begin
   FStream.Write(val, 4);
 end; { TDLUnitInfoSerializer.WriteInteger }
 
-procedure TDLUnitInfoSerializer.WriteLocation(loc: TDLCoordinate);
+procedure TDLUnitInfoSerializer.WriteLocation(const loc: TDLCoordinate);
 begin
   WriteInteger(loc.Line);
   WriteInteger(loc.Column);
 end; { TDLUnitInfoSerializer.WriteLocation }
 
-procedure TDLUnitInfoSerializer.WriteSection(sec: TDLSectionInfo);
+procedure TDLUnitInfoSerializer.WriteRange(const range: TDLRange);
 begin
-  WriteInteger(Ord(sec.NodeType));
+  WriteLocation(range.Start);
+  WriteLocation(range.&End);
+end; { TDLUnitInfoSerializer.WriteRange }
+
+procedure TDLUnitInfoSerializer.WriteSection(const sec: TDLSectionInfo);
+begin
+  WriteByte(Ord(sec.NodeType));
   WriteLocation(sec.Location);
 end; { TDLUnitInfoSerializer.WriteSection }
 
@@ -218,6 +333,40 @@ begin
   for s in strings do
     WriteString(s);
 end; { TDLUnitInfoSerializer.WriteStrings }
+
+procedure TDLUnitInfoSerializer.WriteTypeInfo(typeInfo: TDLTypeInfo);
+var
+  section: TDLTypeSection;
+begin
+  WriteString(typeInfo.Name);
+  WriteRange(typeInfo.Location);
+  for section := Low(TDLTypeSection) to High(TDLTypeSection) do
+    if assigned(typeInfo.Sections[section]) then begin
+      WriteByte(Ord(section));
+      WriteTypeSectionInfo(typeInfo.Sections[section]);
+    end;
+  WriteByte(High(byte));
+end; { TDLUnitInfoSerializer.WriteTypeInfo }
+
+procedure TDLUnitInfoSerializer.WriteTypeList(types: TDLTypeInfoList);
+var
+  typeInfo: TDLTypeInfo;
+begin
+  if not assigned(types) then
+    WriteWord(0)
+  else begin
+    WriteWord(types.Count);
+    for typeInfo in types do
+      WriteTypeInfo(typeInfo);
+  end;
+end; { TDLUnitInfoSerializer.WriteTypeList }
+
+procedure TDLUnitInfoSerializer.WriteTypeSectionInfo(
+  typeSection: TDLTypeSectionInfo);
+begin
+  WriteLocation(typeSection.Location);
+  WriteTypeList(typeSection.Types);
+end; { TDLUnitInfoSerializer.WriteTypeSectionInfo }
 
 procedure TDLUnitInfoSerializer.WriteWord(w: word);
 begin

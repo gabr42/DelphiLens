@@ -10,3 +10,6 @@
 [submodule "OmniThreadLibrary"]
 	path = OmniThreadLibrary
 	url = https://github.com/gabr42/OmniThreadLibrary.git
+[submodule "FastMM4"]
+	path = FastMM4
+	url = https://github.com/pleriche/FastMM4

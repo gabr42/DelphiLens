@@ -743,7 +743,8 @@ begin
   if assigned(filterAction.DefaultAction)
      and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction)
   then begin
-    navigationAction.Location := TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid);
+    navigationAction.Location := filterAction.FilterLocation(
+      TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid));
 
     if doOpen then
       OnAction(Self, navigationAction);

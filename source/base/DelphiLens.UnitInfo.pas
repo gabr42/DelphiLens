@@ -76,10 +76,11 @@ type
   strict protected
     function  GetItem(idx: integer): TDLTypeInfo; inline;
   public
-    constructor Create;
+    constructor Create(ownsElements: boolean = true);
     procedure Add(typeInfo: TDLTypeInfo); inline;
     procedure Clear; inline;
     function  Count: integer; inline;
+    function  Find(const name: string; var typeInfo: TDLTypeInfo): boolean;
     function  GetEnumerator: IEnumerator<TDLTypeInfo>; inline;
     procedure SortByName;
     property Items[idx: integer]: TDLTypeInfo read GetItem; default;
@@ -423,11 +424,26 @@ end; { TDLTypeInfo.EnsureSection }
 
 { TDLTypeInfoList }
 
-constructor TDLTypeInfoList.Create;
+constructor TDLTypeInfoList.Create(ownsElements: boolean);
 begin
   inherited Create;
-  FList := TCollections.CreateObjectList<TDLTypeInfo>;
+  if ownsElements then
+    FList := TCollections.CreateObjectList<TDLTypeInfo>
+  else
+    FList := TCollections.CreateList<TDLTypeInfo>;
 end; { TDLTypeInfoList.Create }
+
+function TDLTypeInfoList.Find(const name: string; var typeInfo: TDLTypeInfo): boolean;
+var
+  i: integer;
+begin
+  Result := false;
+  for i := 0 to FList.Count - 1 do
+    if FList[i].Name = name then begin
+      typeInfo := FList[i];
+      Exit(true);
+    end;
+end; { TDLTypeInfoList.Find }
 
 procedure TDLTypeInfoList.Add(typeInfo: TDLTypeInfo);
 begin

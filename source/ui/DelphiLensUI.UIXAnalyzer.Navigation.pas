@@ -10,6 +10,7 @@ function CreateNavigationAnalyzer: IDLUIXAnalyzer;
 implementation
 
 uses
+  System.SysUtils,
   Spring.Collections,
   GpStuff,
   DelphiAST.ProjectIndexer,
@@ -95,8 +96,11 @@ begin
     end;
   end;
 
-  if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) >  0 then
-    frame.CreateAction(CreateOpenAnalyzerAction('&Classes', CreateClassSelector));
+  if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) >  0 then begin
+    frame.CreateAction(
+      CreateOpenAnalyzerAction('&Classes',
+        CreateClassSelector(FDLUnitInfo.InterfaceTypes, FDLUnitInfo.ImplementationTypes)));
+  end;
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;

@@ -81,6 +81,7 @@ type
     procedure Clear; inline;
     function  Count: integer; inline;
     function  GetEnumerator: IEnumerator<TDLTypeInfo>; inline;
+    procedure SortByName;
     property Items[idx: integer]: TDLTypeInfo read GetItem; default;
   end; { TDLTypeInfoList }
 
@@ -452,6 +453,16 @@ function TDLTypeInfoList.GetItem(idx: integer): TDLTypeInfo;
 begin
   Result := FList[idx];
 end; { TDLTypeInfoList.GetItem }
+
+procedure TDLTypeInfoList.SortByName;
+begin
+  FList.Sort(
+    TComparer<TDLTypeInfo>.Construct(
+      function (const item1, item2: TDLTypeInfo): integer
+      begin
+        Result := CompareValue(item1.Name, item2.Name);
+      end));
+end; { TDLTypeInfoList.SortByName }
 
 { TDLUnitListHelper }
 

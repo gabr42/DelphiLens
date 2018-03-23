@@ -126,7 +126,7 @@ begin
   Result := false;
   if not ReadByte(nodeType) then
     Exit;
-  if (nodeType < Ord(Low(TSyntaxNodeType))) or (nodeType > Ord(High(TSyntaxNodeType))) then
+  if {(nodeType < Ord(Low(TSyntaxNodeType))) or} (nodeType > Ord(High(TSyntaxNodeType))) then
     Exit;
   sec.NodeType := TDLSectionNodeType(nodeType);
   if not ReadLocation(loc) then
@@ -208,7 +208,7 @@ begin
     if not ReadByte(b) then Exit;
     if b = High(byte) then
       break; //repeat
-    if (b < Ord(Low(TDLTypeSection))) or (b > Ord(High(TDLTypeSection))) then Exit;
+    if {(b < Ord(Low(TDLTypeSection))) or} (integer(b) > Ord(High(TDLTypeSection))) then Exit;
     section := TDLTypeSection(b);
     secInfo := TDLTypeSectionInfo.Create;
     if not ReadTypeSectionInfo(secInfo) then begin

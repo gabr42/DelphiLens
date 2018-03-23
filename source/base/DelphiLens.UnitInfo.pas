@@ -57,7 +57,7 @@ type
     procedure SetTypes(value: TDLTypeInfoList); inline;
   public
     constructor Create;
-    destructor  Destroy;
+    destructor  Destroy; override;
     property Location: TDLCoordinate read GetLocation write SetLocation;
     property Types   : TDLTypeInfoList read GetTypes write SetTypes;
   end; { TDLTypeSectionInfo }

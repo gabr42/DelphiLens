@@ -48,7 +48,7 @@ type
 
   TDLUIXFrameAction = reference to procedure (const frame: IDLUIXFrame; const action: IDLUIXAction);
 
-  TDLUIXFrameActionOption = (faoDefault, faoDisabled);
+  TDLUIXFrameActionOption = (faoDefault, faoDisabled, faoSmall);
   TDLUIXFrameActionOptions = set of TDLUIXFrameActionOption;
 
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']

@@ -11,6 +11,7 @@ implementation
 
 uses
   Spring.Collections,
+  GpStuff,
   DelphiAST.ProjectIndexer,
   DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo,
   DelphiLensUI.WorkerContext,
@@ -41,64 +42,61 @@ end; { CreateNavigationAnalyzer }
 procedure TDLUIXNavigationAnalyzer.BuildFrame(const action: IDLUIXAction;
   const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
 
-var
-  locations: IDLUIXNamedLocationList;
-
-  procedure AddNavigation(const name: string; const location: TDLCoordinate);
+  procedure AddNavigation(const name: string; const location: TDLCoordinate;
+    isSmall: boolean);
   begin
-    locations.Add(CreateNavigationAction(name, TDLUIXLocation.Create(FUnitInfo.Path, FDLUnitInfo.Name, location), false) as IDLUIXNavigationAction);
+    frame.CreateAction(
+      CreateNavigationAction(name,
+        TDLUIXLocation.Create(FUnitInfo.Path, FDLUnitInfo.Name, location),
+        false),
+      Ternary<TDLUIXFrameActionOptions>.IFF(isSmall, [faoSmall], []));
   end; { AddNavigation }
 
 var
   range: TDLRange;
 
 begin
-  locations := TCollections.CreateList<IDLUIXNavigationAction>;
-
   if FDLUnitInfo.UnitType = utProgram then begin
     if FDLUnitInfo.Sections[sntContains].IsValid then
-      AddNavigation('"&contains"', FDLUnitInfo.Sections[sntContains])
+      AddNavigation('"&contains"', FDLUnitInfo.Sections[sntContains], false)
     else
-      AddNavigation('"&uses"', FDLUnitInfo.Sections[sntInterface]);
+      AddNavigation('"&uses"', FDLUnitInfo.Sections[sntInterface], false);
 
     if FDLUnitInfo.InterfaceTypes.Count >  0 then begin
       GetFirstLastCoordinate(FDLUnitInfo.InterfaceTypes, range);
-      AddNavigation('"type" start', range.Start);
+      AddNavigation('"type" start', range.Start, true);
       if range.&End.IsValid then
-        AddNavigation('"type" end', range.&End);
+        AddNavigation('"type" end', range.&End, true);
     end;
   end
   else begin
     if FDLUnitInfo.Sections[sntInterfaceUses].IsValid then
-      AddNavigation('I&nterface "uses"', FDLUnitInfo.Sections[sntInterfaceUses])
+      AddNavigation('I&nterface "uses"', FDLUnitInfo.Sections[sntInterfaceUses], false)
     else if FDLUnitInfo.Sections[sntInterface].IsValid then
-      AddNavigation('I&nterface', FDLUnitInfo.Sections[sntInterface]);
+      AddNavigation('I&nterface', FDLUnitInfo.Sections[sntInterface], false);
 
     if FDLUnitInfo.InterfaceTypes.Count >  0 then begin
       GetFirstLastCoordinate(FDLUnitInfo.InterfaceTypes, range);
-      AddNavigation('Interface "type" start', range.Start);
+      AddNavigation('Interface "type" start', range.Start, true);
       if range.&End.IsValid then
-        AddNavigation('Interface "type" end', range.&End);
+        AddNavigation('Interface "type" end', range.&End, true);
     end;
 
     if FDLUnitInfo.Sections[sntImplementationUses].IsValid then
-      AddNavigation('I&mplementation "uses"', FDLUnitInfo.Sections[sntImplementationUses])
+      AddNavigation('I&mplementation "uses"', FDLUnitInfo.Sections[sntImplementationUses], false)
     else if FDLUnitInfo.Sections[sntImplementation].IsValid then
-      AddNavigation('I&mplementation', FDLUnitInfo.Sections[sntImplementation]);
+      AddNavigation('I&mplementation', FDLUnitInfo.Sections[sntImplementation], false);
 
     if FDLUnitInfo.ImplementationTypes.Count > 0 then begin
       GetFirstLastCoordinate(FDLUnitInfo.ImplementationTypes, range);
-      AddNavigation('Implementation "type" start', range.Start);
+      AddNavigation('Implementation "type" start', range.Start, true);
       if range.&End.IsValid then
-        AddNavigation('Implementation "type" end', range.&End);
+        AddNavigation('Implementation "type" end', range.&End, true);
     end;
   end;
 
-  frame.CreateAction(CreateListNavigationAction('', locations));
-
   if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) >  0 then
     frame.CreateAction(CreateOpenAnalyzerAction('&Classes', CreateClassSelector));
-
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;

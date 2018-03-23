@@ -84,7 +84,9 @@ type
     CAlphaBlendActive         = 255;
     CAlphaBlendInactive       =  64;
     CButtonHeight             =  81;
+    CButtonHeightSmall        =  33;
     CButtonSpacing            =  15;
+    CButtonSpacingSmall       =   7;
     CButtonWidth              = 201;
     CColumnSpacing            =  15;
     CFilteredListWidth        = 201;
@@ -111,6 +113,7 @@ type
     FOnShowProc    : IQueue<TProc>;
     FOriginalLeft  : Nullable<integer>;
     FParent        : IDLUIXFrame;
+    FPrevOptions   : TDLUIXFrameActionOptions;
     FTargetLeft    : Nullable<integer>;
   strict protected
     procedure ApplyOptions(control: TControl; options: TDLUIXFrameActionOptions);
@@ -291,9 +294,10 @@ begin
   button := TButton.Create(FForm);
   button.Parent := FForm;
   button.Width := CButtonWidth;
-  button.Height := CButtonHeight;
+  button.Height := IFF(faoSmall in options, CButtonHeightSmall, CButtonHeight);
   button.Left := FColumnLeft;
-  button.Top := FColumnTop + IFF(FColumnTop = 0, 0, CButtonSpacing);
+  button.Top := FColumnTop + IFF(FColumnTop = 0, 0,
+    IFF((faoSmall in options) and (faoSmall in FPrevOptions), CButtonSpacingSmall, CButtonSpacing));
 
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
     if not IsHistoryAnalyzer(openAnalyzer.Analyzer) then
@@ -453,6 +457,7 @@ begin
     UpdateClientSize(BuildFilteredList(filterList, options))
   else
     UpdateClientSize(BuildButton(action, options));
+  FPrevOptions := options;
 end; { TDLUIXVCLFloatingFrame.CreateAction }
 
 procedure TDLUIXVCLFloatingFrame.EaseAlphaBlend(start, stop: integer);

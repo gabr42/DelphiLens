@@ -35,7 +35,7 @@ type
     function  ReadSections(var sec: TDLSectionArr): boolean;
     function  ReadTypeInfo(typeInfo: TDLTypeInfo): boolean;
     function  ReadTypeList(types: TDLTypeInfoList): boolean;
-    function  ReadTypeSectionInfo(typeSection: TDLTypeSectionInfo): boolean;
+    function  ReadTypeSectionInfo(typeSection: IDLTypeSectionInfo): boolean;
     procedure WriteByte(b: byte); inline;
     procedure WriteInteger(val: integer); inline;
     procedure WriteLocation(const loc: TDLCoordinate); inline;
@@ -46,7 +46,7 @@ type
     procedure WriteStrings(const strings: TDLUnitList);
     procedure WriteTypeInfo(typeInfo: TDLTypeInfo);
     procedure WriteTypeList(types: TDLTypeInfoList);
-    procedure WriteTypeSectionInfo(typeSection: TDLTypeSectionInfo);
+    procedure WriteTypeSectionInfo(typeSection: IDLTypeSectionInfo);
     procedure WriteWord(w: word); inline;
   public
     function  Read(stream: TStream; var unitInfo: IDLUnitInfo): boolean;
@@ -195,14 +195,14 @@ var
   b      : byte;
   loc    : TDLRange;
   s      : string;
-  secInfo: TDLTypeSectionInfo;
+  secInfo: IDLTypeSectionInfo;
   section: TDLTypeSection;
 begin
   Result := false;
   if not ReadString(s) then Exit;
   typeInfo.Name := s;
-  if not ReadRange(loc) then
-    typeInfo.Location := loc;
+  if not ReadRange(loc) then Exit;
+  typeInfo.Location := loc;
 
   repeat
     if not ReadByte(b) then Exit;
@@ -243,7 +243,7 @@ begin
 end; { TDLUnitInfoSerializer.ReadTypeList }
 
 function TDLUnitInfoSerializer.ReadTypeSectionInfo(
-  typeSection: TDLTypeSectionInfo): boolean;
+  typeSection: IDLTypeSectionInfo): boolean;
 var
   loc     : TDLCoordinate;
   typeList: TDLTypeInfoList;
@@ -257,9 +257,8 @@ begin
     Exit;
   end;
   if typeList.Count = 0 then
-    FreeAndNil(typeList)
-  else
-    typeSection.Types := typeList;
+    FreeAndNil(typeList);
+  typeSection.Types := typeList;
   Result := true;
 end; { TDLUnitInfoSerializer.ReadTypeSectionInfo }
 
@@ -362,7 +361,7 @@ begin
 end; { TDLUnitInfoSerializer.WriteTypeList }
 
 procedure TDLUnitInfoSerializer.WriteTypeSectionInfo(
-  typeSection: TDLTypeSectionInfo);
+  typeSection: IDLTypeSectionInfo);
 begin
   WriteLocation(typeSection.Location);
   WriteTypeList(typeSection.Types);

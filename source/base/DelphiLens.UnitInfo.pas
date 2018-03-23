@@ -36,18 +36,38 @@ type
 
   TDLTypeInfoList = class;
 
-  TDLTypeSectionInfo = class
+  IDLTypeSectionInfo = interface ['{2D11D33C-2946-40EA-9716-B5D1C9086529}']
+    function  GetLocation: TDLCoordinate;
+    function  GetTypes: TDLTypeInfoList;
+    procedure SetLocation(const value: TDLCoordinate);
+    procedure SetTypes(value: TDLTypeInfoList);
+  //
+    property Location: TDLCoordinate read GetLocation write SetLocation;
+    property Types   : TDLTypeInfoList read GetTypes write SetTypes;
+  end; { IDLTypeSectionInfo }
+
+  TDLTypeSectionInfo = class(TInterfacedObject, IDLTypeSectionInfo)
+  strict private
+    FLocation: TDLCoordinate;
+    FTypes   : TDLTypeInfoList;
+  strict protected
+    function  GetLocation: TDLCoordinate; inline;
+    function  GetTypes: TDLTypeInfoList; inline;
+    procedure SetLocation(const value: TDLCoordinate); inline;
+    procedure SetTypes(value: TDLTypeInfoList); inline;
   public
-    Location: TDLCoordinate;
-    Types   : TDLTypeInfoList;
+    constructor Create;
+    destructor  Destroy;
+    property Location: TDLCoordinate read GetLocation write SetLocation;
+    property Types   : TDLTypeInfoList read GetTypes write SetTypes;
   end; { TDLTypeSectionInfo }
 
   TDLTypeInfo = class
   public
     Name    : string;
     Location: TDLRange;
-    Sections: array [TDLTypeSection] of TDLTypeSectionInfo;
-    function  EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
+    Sections: array [TDLTypeSection] of IDLTypeSectionInfo;
+    function  EnsureSection(sectionType: TDLTypeSection): IDLTypeSectionInfo;
   end; { TDLTypeInfo }
 
   TDLTypeInfoList = class
@@ -61,7 +81,7 @@ type
     procedure Clear; inline;
     function  Count: integer; inline;
     function  GetEnumerator: IEnumerator<TDLTypeInfo>; inline;
-    property Items[idx: integer]: TDLTypeInfo read GetItem;
+    property Items[idx: integer]: TDLTypeInfo read GetItem; default;
   end; { TDLTypeInfoList }
 
   TDLSectionNodeType = (sntUnit, sntInterface, sntInterfaceUses,
@@ -393,7 +413,7 @@ end; { TDLUnitInfo.SetPackageContains }
 
 { TDLTypeInfo }
 
-function TDLTypeInfo.EnsureSection(sectionType: TDLTypeSection): TDLTypeSectionInfo;
+function TDLTypeInfo.EnsureSection(sectionType: TDLTypeSection): IDLTypeSectionInfo;
 begin
   if not assigned(Sections[sectionType]) then
     Sections[sectionType] := TDLTypeSectionInfo.Create;
@@ -495,5 +515,41 @@ begin
   else
     RemoveLocation(nodeType);
 end; { TDLSectionList.UpdateLocation }
+
+{ TDLTypeSectionInfo }
+
+constructor TDLTypeSectionInfo.Create;
+begin
+  inherited Create;
+  FLocation := TDLCoordinate.Invalid;
+end; { TDLTypeSectionInfo.Create }
+
+destructor TDLTypeSectionInfo.Destroy;
+begin
+  FreeAndNil(FTypes);
+  inherited;
+end; { TDLTypeSectionInfo.Destroy }
+
+function TDLTypeSectionInfo.GetLocation: TDLCoordinate;
+begin
+  Result := FLocation;
+end; { TDLTypeSectionInfo.GetLocation }
+
+function TDLTypeSectionInfo.GetTypes: TDLTypeInfoList;
+begin
+  Result := FTypes;
+end; { TDLTypeSectionInfo.GetTypes }
+
+procedure TDLTypeSectionInfo.SetLocation(const value: TDLCoordinate);
+begin
+  FLocation := value;
+end; { TDLTypeSectionInfo.SetLocation }
+
+procedure TDLTypeSectionInfo.SetTypes(value: TDLTypeInfoList);
+begin
+  if assigned(FTypes) then
+    FTypes.Free;
+  FTypes := value;
+end; { TDLTypeSectionInfo.SetTypes }
 
 end.

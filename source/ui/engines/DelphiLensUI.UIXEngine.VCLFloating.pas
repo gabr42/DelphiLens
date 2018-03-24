@@ -84,6 +84,7 @@ type
     CAlphaBlendActive         = 255;
     CAlphaBlendInactive       =  64;
     CButtonHeight             =  81;
+    CButtonHeight2nd          =  53;
     CButtonHeightSmall        =  33;
     CButtonSpacing            =  15;
     CButtonSpacingSmall       =   7;
@@ -294,10 +295,14 @@ begin
   button := TButton.Create(FForm);
   button.Parent := FForm;
   button.Width := CButtonWidth;
-  button.Height := IFF(faoSmall in options, CButtonHeightSmall, CButtonHeight);
+  button.Height := IFF(faoSmall in options, CButtonHeightSmall,
+                     IFF(assigned(FParent), CButtonHeight2nd, CButtonHeight));
   button.Left := FColumnLeft;
   button.Top := FColumnTop + IFF(FColumnTop = 0, 0,
     IFF((faoSmall in options) and (faoSmall in FPrevOptions), CButtonSpacingSmall, CButtonSpacing));
+
+  if not assigned(FParent) then
+    button.Font.Size := 11;
 
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
     if not IsHistoryAnalyzer(openAnalyzer.Analyzer) then

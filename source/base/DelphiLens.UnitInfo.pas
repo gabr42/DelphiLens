@@ -19,7 +19,7 @@ type
     class function Min(const coord1, coord2: TDLCoordinate): TDLCoordinate; static;
     function  IsValid: boolean; inline;
     function  ToString: string; inline;
-  end; { TDLCoordinateHelper }
+  end; { TDLCoordinate }
 
   TDLRange = record
   public

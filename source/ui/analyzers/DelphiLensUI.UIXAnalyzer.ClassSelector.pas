@@ -13,6 +13,7 @@ implementation
 uses
   System.SysUtils,
   Spring, Spring.Collections,
+  DelphiAST.Consts,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
@@ -77,8 +78,16 @@ procedure TDLUIXClassSelector.BuildFrame(const action: IDLUIXAction;
 var
   filteredList  : IDLUIXFilteredListAction;
   navigateToDecl: IDLUIXAction;
+  selected      : string;
 begin
-  filteredList := CreateFilteredListAction('', FClassNames, '') as IDLUIXFilteredListAction;
+  selected := '';
+  if assigned(context.NamedSyntaxNode) then begin
+    selected := context.NamedSyntaxNode.GetAttribute(anName);
+    if not FClassNames.Contains(selected) then
+      selected := '';
+  end;
+
+  filteredList := CreateFilteredListAction('', FClassNames, selected) as IDLUIXFilteredListAction;
   filteredList.LocationQuery :=
     function (const name: string;
       var unitName: string; var location: TDLCoordinate): boolean

@@ -66,7 +66,7 @@
         <DCC_Namespace>Winapi;System.Win;Data.Win;Datasnap.Win;Web.Win;Soap.Win;Xml.Win;Bde;Vcl;$(DCC_Namespace)</DCC_Namespace>
         <DCC_ExeOutput>H:\RAZVOJ\DelphiLens\bin\</DCC_ExeOutput>
         <DCC_DcuOutput>H:\RAZVOJ\DelphiLens\bin\dcu\</DCC_DcuOutput>
-        <DCC_UnitSearchPath>..\base;..\..\GpDelphiUnits\src;..\..\DelphiAST\Project indexer;..\..\DelphiAST\source;..\..\DelphiAST\source\SimpleParser;..\..\OmniThreadLibrary;..\..\Spring4D\Source\Base;..\..\Spring4D\Source\Base\Collections;..\..\Spring4D\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
+        <DCC_UnitSearchPath>analyzers;..\base;..\..\GpDelphiUnits\src;..\..\DelphiAST\Project indexer;..\..\DelphiAST\source;..\..\DelphiAST\source\SimpleParser;..\..\OmniThreadLibrary;..\..\Spring4D\Source\Base;..\..\Spring4D\Source\Base\Collections;..\..\Spring4D\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <Manifest_File>(None)</Manifest_File>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Base_Win64)'!=''">
@@ -86,7 +86,6 @@
         <Debugger_HostApplication>..\..\bin\DelphiLensUITest.exe</Debugger_HostApplication>
         <DCC_UNIT_PLATFORM>false</DCC_UNIT_PLATFORM>
         <DCC_SYMBOL_PLATFORM>false</DCC_SYMBOL_PLATFORM>
-        <DCC_UnitSearchPath>..\base;..\..\GpDelphiUnits\src;..\..\DelphiAST\Project indexer;..\..\DelphiAST\source;..\..\DelphiAST\source\SimpleParser;..\..\OmniThreadLibrary;..\..\Spring4D\Source\Base;..\..\Spring4D\Source\Base\Collections;..\..\Spring4D\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <Manifest_File>..\engine\(None)</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -130,6 +129,8 @@
                     <Source Name="MainSource">DelphiLensUI.dpr</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="H:\RAZVOJ\DelphiLens\bin\DelphiLensExpertPackage.bpl">DelphiLens Expert</Excluded_Packages>
+                    <Excluded_Packages Name="$(BDSBIN)\MobileWizardExpert250.bpl">Embarcadero Mobile Wizard Help</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>

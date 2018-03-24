@@ -98,7 +98,7 @@ end; { TDLUIXClassSelector.BuildFrame }
 
 function TDLUIXClassSelector.CanHandle(const context: IDLUIWorkerContext): boolean;
 begin
-  Result := true;
+  Result := FTypeList.Count > 0;
 end; { TDLUIXClassSelector.CanHandle }
 
 end.

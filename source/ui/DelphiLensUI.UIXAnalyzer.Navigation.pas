@@ -17,7 +17,7 @@ uses
   DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions,
-  DelphiLensUI.UIXAnalyzer.ClassSelector;
+  DelphiLensUI.UIXAnalyzer.ClassSelector, DelphiLensUI.UIXAnalyzer.ListSelector;
 
 type
   TDLUIXNavigationAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
@@ -43,20 +43,30 @@ end; { CreateNavigationAnalyzer }
 procedure TDLUIXNavigationAnalyzer.BuildFrame(const action: IDLUIXAction;
   const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
 
+var
+  locations: IDLUIXNamedLocationList;
+
   procedure AddNavigation(const name: string; const location: TDLCoordinate;
-    isSmall: boolean);
+    isSection: boolean);
   begin
-    frame.CreateAction(
-      CreateNavigationAction(name,
-        TDLUIXLocation.Create(FUnitInfo.Path, FDLUnitInfo.Name, location),
-        false),
-      Ternary<TDLUIXFrameActionOptions>.IFF(isSmall, [faoSmall], []));
+    if isSection then
+      locations.Add(
+        CreateNavigationAction(name,
+          TDLUIXLocation.Create(FUnitInfo.Path, FDLUnitInfo.Name, location),
+          false) as IDLUIXNavigationAction)
+    else
+      frame.CreateAction(
+        CreateNavigationAction(name,
+          TDLUIXLocation.Create(FUnitInfo.Path, FDLUnitInfo.Name, location),
+          false));
   end; { AddNavigation }
 
 var
   range: TDLRange;
 
 begin
+  locations := TCollections.CreateList<IDLUIXNavigationAction>;
+
   if FDLUnitInfo.UnitType = utProgram then begin
     if FDLUnitInfo.Sections[sntContains].IsValid then
       AddNavigation('"&contains"', FDLUnitInfo.Sections[sntContains], false)
@@ -96,11 +106,13 @@ begin
     end;
   end;
 
-  if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) >  0 then begin
-    frame.CreateAction(
-      CreateOpenAnalyzerAction('&Classes',
-        CreateClassSelector(FDLUnitInfo.InterfaceTypes, FDLUnitInfo.ImplementationTypes)));
-  end;
+  frame.CreateAction(
+    CreateOpenAnalyzerAction('&Sections',
+      CreateListSelector('Sections', locations)));
+
+  frame.CreateAction(
+    CreateOpenAnalyzerAction('&Classes',
+      CreateClassSelector(FDLUnitInfo.InterfaceTypes, FDLUnitInfo.ImplementationTypes)));
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;

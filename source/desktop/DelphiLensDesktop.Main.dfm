@@ -204,6 +204,15 @@ object frmDLMain: TfrmDLMain
     Action = actFindSyntaxNode
     TabOrder = 14
   end
+  object btnTestForm: TButton
+    Left = 674
+    Top = 144
+    Width = 75
+    Height = 18
+    Caption = 'Test form'
+    TabOrder = 15
+    OnClick = btnTestFormClick
+  end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'
     FavoriteLinks = <>

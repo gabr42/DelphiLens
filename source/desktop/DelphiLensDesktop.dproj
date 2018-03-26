@@ -138,6 +138,10 @@
         <DCCReference Include="DelphiLensDesktop.Main.pas">
             <Form>frmDLMain</Form>
         </DCCReference>
+        <DCCReference Include="DelphiLensDesktop.Test.pas">
+            <Form>frmTest</Form>
+            <FormType>dfm</FormType>
+        </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

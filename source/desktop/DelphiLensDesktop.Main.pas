@@ -43,6 +43,7 @@ type
     lblWhatIsShowing : TLabel;
     outLog           : TMemo;
     lblNodeName      : TLabel;
+    btnTestForm: TButton;
     procedure actAnalysisExecute(Sender: TObject);
     procedure actFindSyntaxNodeExecute(Sender: TObject);
     procedure actFindSyntaxNodeUpdate(Sender: TObject);
@@ -57,6 +58,7 @@ type
     procedure inpProjectChange(Sender: TObject);
     procedure lbFilesClick(Sender: TObject);
     procedure SettingExit(Sender: TObject);
+    procedure btnTestFormClick(Sender: TObject);
   private const
     CSettingsKey = '\SOFTWARE\Gp\DelphiLens\DelphiLensDesktop';
     CSettingsProject            = 'Project';
@@ -98,7 +100,8 @@ uses
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  DelphiLens;
+  DelphiLens,
+  DelphiLensDesktop.Test;
 
 {$R *.dfm}
 
@@ -218,6 +221,11 @@ begin
 
     FDelphiLens := nil;
   end;
+end;
+
+procedure TfrmDLMain.btnTestFormClick(Sender: TObject);
+begin
+  frmTest.ShowModal;
 end;
 
 procedure TfrmDLMain.DumpAnalysis(log: TStrings; const unitInfo: IDLUnitInfo);

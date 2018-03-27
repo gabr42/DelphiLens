@@ -5,8 +5,13 @@ interface
 uses
   DelphiLensUI.Error;
 
+type
+  TDLLogger = procedure (projectID: integer; const msg: PChar); stdcall;
+
 procedure DLUIInitialize;
 procedure DLUIFinalize;
+
+procedure DLUISetLogHook(const hook: TDLLogger); stdcall;
 
 /// After DLUIOpenProject caller should next call DLUISetProjectConfig followed by DLUIRescanProject.
 
@@ -238,5 +243,10 @@ begin
   FreeAndNil(GDLEngineWorkers);
   FreeAndNil(GDLEngineErrors);
 end; { DLUIFinalize }
+
+procedure DLUISetLogHook(const hook:  TDLLogger);
+begin
+  GLogHook := hook;
+end; { DLUISetLogHook }
 
 end.

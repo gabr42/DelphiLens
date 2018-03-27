@@ -12,6 +12,7 @@ object frmDLUITestMain: TfrmDLUITestMain
   Font.Style = []
   OldCreateOrder = False
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   DesignSize = (
     764
     497)
@@ -92,7 +93,7 @@ object frmDLUITestMain: TfrmDLUITestMain
     Left = 160
     Top = 144
     Width = 589
-    Height = 337
+    Height = 257
     Anchors = [akLeft, akTop, akRight, akBottom]
     ScrollBars = ssBoth
     TabOrder = 7
@@ -101,7 +102,7 @@ object frmDLUITestMain: TfrmDLUITestMain
     Left = 16
     Top = 144
     Width = 138
-    Height = 337
+    Height = 257
     Anchors = [akLeft, akTop, akBottom]
     ItemHeight = 13
     TabOrder = 5
@@ -116,6 +117,15 @@ object frmDLUITestMain: TfrmDLUITestMain
     Caption = 'Show UI'
     TabOrder = 6
     OnClick = btnShowUIClick
+  end
+  object lbLog: TListBox
+    Left = 16
+    Top = 407
+    Width = 733
+    Height = 74
+    Anchors = [akLeft, akRight, akBottom]
+    ItemHeight = 13
+    TabOrder = 8
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'

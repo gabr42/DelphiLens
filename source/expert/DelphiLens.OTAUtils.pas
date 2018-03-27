@@ -19,7 +19,7 @@ function ReplaceEnvVariables(const s: string): string;
 function ActivateTab(const fileName: string): boolean;
 
 type
-  TLogClass = (lcError, lcActiveProject, lcActivation);
+  TLogClass = (lcError, lcActiveProject, lcActivation, lcHook);
 
 procedure LogMessage(const s: string);
 procedure Log(logClass: TLogClass; const s: string); overload;

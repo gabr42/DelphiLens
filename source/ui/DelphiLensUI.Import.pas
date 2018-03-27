@@ -8,7 +8,13 @@ uses
 const
   DelphiLensUIDLL = 'DelphiLensUI';
 
+type
+  TDLLogger = procedure (projectID: integer; const msg: PChar); stdcall;
+
 function  IsDLUIAvailable: boolean; inline;
+
+procedure DLUISetLogHook(const hook: TDLLogger);
+  stdcall; external DelphiLensUIDLL delayed;
 
 function  DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
   stdcall; external DelphiLensUIDLL delayed;

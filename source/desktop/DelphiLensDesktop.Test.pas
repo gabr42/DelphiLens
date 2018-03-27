@@ -121,17 +121,14 @@ begin
     LStyle := StyleServices;
     if not Enabled then
       Button := tbPushButtonDisabled
+    else if IsDown then
+      Button := tbPushButtonPressed
+    else if FMouseInControl then
+      Button := tbPushButtonHot
+    else if FIsFocused or IsDefault then
+      Button := tbPushButtonDefaulted
     else
-      if IsDown then
-        Button := tbPushButtonPressed
-      else
-        if FMouseInControl then
-          Button := tbPushButtonHot
-        else
-          if FIsFocused or IsDefault then
-            Button := tbPushButtonDefaulted
-          else
-            Button := tbPushButtonNormal;
+      Button := tbPushButtonNormal;
 
     Details := LStyle.GetElementDetails(Button);
     // Parent background.

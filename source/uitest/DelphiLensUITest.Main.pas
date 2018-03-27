@@ -15,16 +15,17 @@ type
   TfrmDLUITestMain = class(TForm)
     btnRescan        : TButton;
     btnSelect        : TButton;
+    btnShowUI        : TButton;
     dlgOpenProject   : TFileOpenDialog;
     inpDefines       : TEdit;
     inpProject       : TEdit;
     inpSearchPath    : TEdit;
     lbFiles          : TListBox;
     lblDefines       : TLabel;
+    lbLog            : TListBox;
     lblProject       : TLabel;
     lblSearchPath    : TLabel;
     outSource        : TMemo;
-    btnShowUI: TButton;
     procedure btnRescanClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
@@ -32,6 +33,7 @@ type
     procedure inpProjectChange(Sender: TObject);
     procedure lbFilesClick(Sender: TObject);
     procedure SettingExit(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
   private const
     CSettingsKey = '\SOFTWARE\Gp\DelphiLens\DelphiLensDesktop';
     CSettingsProject            = 'Project';
@@ -71,6 +73,13 @@ uses
 
 {$R *.dfm}
 
+procedure LoggerHook(projectID: integer; const msg: PChar); stdcall;
+begin
+  frmDLUITestMain.lbLog.Items.Add(Format('[%d] %s', [projectID, string(msg)]));
+end; { LoggerHook }
+
+{ TfrmDLUITestMain }
+
 procedure TfrmDLUITestMain.btnRescanClick(Sender: TObject);
 begin
   CloseUIProject;
@@ -84,10 +93,18 @@ begin
     ShowMessage('Cannot find DelphiLensUI.dll');
     Application.Terminate;
     Exit;
-  end;
+  end
+  else
+    DLUISetLogHook(LoggerHook);
 
   FUnits := TCollections.CreateDictionary<string, string>(1000);
   LoadSettings;
+end;
+
+procedure TfrmDLUITestMain.FormDestroy(Sender: TObject);
+begin
+  if IsDLUIAvailable then
+    DLUISetLogHook(nil);
 end;
 
 procedure TfrmDLUITestMain.btnSelectClick(Sender: TObject);
@@ -125,7 +142,7 @@ begin
     ReportUIError('DLUIActivate')
   else if navToFile <> '' then begin
     navToUnit := ExtractFileName(string(navToFile).Split([#13])[0]);
-    if SameText(ExtractFileExt(navToUnit), '.pas') then
+    if DSiFileExtensionIs(navToUnit, ['.pas', '.dpk', '.dpr']) then
       navToUnit := ChangeFileExt(navToUnit, '');
     NavigateTo(navToUnit, navToLine, navToColumn);
   end;

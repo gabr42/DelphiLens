@@ -49,6 +49,9 @@ type
     procedure SetConfig(const config: TDLUIProjectConfig);
   end; { TDelphiLensUIProject }
 
+var
+  GLogHook: procedure (projectID: integer; const msg: PChar); stdcall; //TDLLogger;
+
 implementation
 
 uses
@@ -56,6 +59,7 @@ uses
   System.SysUtils,
   Vcl.Forms,
   Spring,
+  DSiWin32,
   OtlCommon,
   DelphiLens,
   DelphiLensUI.Main, DelphiLensUI.WorkerContext;
@@ -125,8 +129,9 @@ var
   unitName : string;
 begin
   //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
+
   unitName := ExtractFileName(fileName);
-  if SameText(ExtractFileExt(unitName), '.pas') then
+  if DSiFileExtensionIs(unitName, ['.pas', '.dpr', '.dpk']) then
     unitName := ChangeFileExt(unitName, '');
 
   oldCursor := Screen.Cursor;
@@ -307,4 +312,6 @@ begin
   Column := location.Column;
 end; { TDLUINavigationInfo.Create }
 
+initialization
+  GLogHook := nil;
 end.

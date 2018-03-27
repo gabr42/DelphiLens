@@ -55,7 +55,7 @@ var
   ndIntf    : TSyntaxNode;
   ndUnit    : TSyntaxNode;
   ndUses    : TSyntaxNode;
-  units: TDLUnitList;
+  units     : TDLUnitList;
 begin
   unitInfo := CreateDLUnitInfo;
   if not tree.FindFirst(ntUnit, ndUnit) then

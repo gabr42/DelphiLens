@@ -19,7 +19,6 @@ uses
   SysUtils,
   Forms,
   Windows,
-  GpConsole,
 //  WizardInterface,
   KeyboardBindingInterface,
   IDENotifierInterface,
@@ -126,32 +125,25 @@ with VersionInfo do
 {$ENDIF}
 
 finalization
-Console.Writeln('Expert shutting down:');
-Console.Writeln('  - wizard');
 // Remove Wizard Interface
 if iWizardIndex > iWizardFailState then
   (BorlandIDEServices as IOTAWizardServices).RemoveWizard(iWizardIndex);
 {$IFDEF D2005}
-Console.Writeln('  - about');
 // Remove Aboutbox Plugin Interface
 if iAboutPluginIndex > iWizardFailState then
   (BorlandIDEServices as IOTAAboutBoxServices)
     .RemovePluginInfo(iAboutPluginIndex);
 {$ENDIF}
-Console.Writeln('  - keyboard');
 // Remove Keyboard Binding Interface
 if iKeyBindingIndex > iWizardFailState then
   (BorlandIDEServices as IOTAKeyboardServices).RemoveKeyboardBinding
     (iKeyBindingIndex);
-Console.Writeln('  - IDE notifier');
 // Remove IDE Notifier Interface
 if iIDENotfierIndex > iWizardFailState then
   (BorlandIDEServices as IOTAServices).RemoveNotifier(iIDENotfierIndex);
 {$IFDEF D2005}
-Console.Writeln('  - editor notifier');
 // Remove Editor Notifier Interface
 if iEditorIndex <> iWizardFailState then
   (BorlandIDEServices as IOTAEditorServices).RemoveNotifier(iEditorIndex);
 {$ENDIF}
-Console.Writeln('All done!');
 end.

@@ -23,7 +23,6 @@ uses
   System.Win.Registry,
   System.SysUtils, System.Classes, System.Math,
   ToolsAPI, DCCStrs,
-  GpConsole,
   UtilityFunctions,
   DSiWin32,
   DelphiLens.OTAUtils,
@@ -50,6 +49,7 @@ type
     procedure CloseProject;
     procedure SetCursorPosition(line, column: integer);
   public
+    constructor Create;
     destructor  Destroy; override;
     procedure Activate;
     procedure FileActivated(const fileName: string);
@@ -60,7 +60,27 @@ type
     procedure SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
   end; { TDelphiLensProxy }
 
+procedure LoggerHook(projectID: integer; const msg: PChar); stdcall;
+begin
+  Log(lcHook, string(msg));
+end; { LoggerHook }
+
 { TDelphiLensProxy }
+
+constructor TDelphiLensProxy.Create;
+begin
+  inherited Create;
+  if IsDLUIAvailable then
+    DLUISetLogHook(LoggerHook);
+end; { TDelphiLensProxy.Create }
+
+destructor TDelphiLensProxy.Destroy;
+begin
+  CloseProject;
+  if IsDLUIAvailable then
+    DLUISetLogHook(nil);
+  inherited;
+end; { TDelphiLensProxy.Destroy }
 
 procedure TDelphiLensProxy.Activate;
 var
@@ -113,12 +133,6 @@ begin
       Log(lcError, 'TDelphiLensProxy.Activate', E);
   end;
 end; { TDelphiLensProxy.Activate }
-
-destructor TDelphiLensProxy.Destroy;
-begin
-  CloseProject;
-  inherited;
-end; { TDelphiLensProxy.Destroy }
 
 function TDelphiLensProxy.ActivateTabs(const fileNames: string): boolean;
 var
@@ -279,7 +293,5 @@ initialization
     Log(lcError, '%s.dll not found!', [DelphiLensUIDLL]);
   DLProxy := TDelphiLensProxy.Create;
 finalization
-  Console.Writeln('Destroying DLProxy');
   DLProxy := nil;
-  Console.Writeln('DLProxy destroyed');
 end.

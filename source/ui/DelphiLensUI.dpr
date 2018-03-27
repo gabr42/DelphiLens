@@ -10,6 +10,7 @@ uses
 
 exports
   DLUIGetLastError,
+  DLUISetLogHook,
   DLUIOpenProject,
   DLUICloseProject,
   DLUIProjectModified,

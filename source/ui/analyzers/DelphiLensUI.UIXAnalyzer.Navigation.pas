@@ -71,7 +71,7 @@ begin
     if FDLUnitInfo.Sections[sntContains].IsValid then
       AddNavigation('"&contains"', FDLUnitInfo.Sections[sntContains], false)
     else
-      AddNavigation('"&uses"', FDLUnitInfo.Sections[sntInterface], false);
+      AddNavigation('"&uses"', FDLUnitInfo.Sections[sntInterfaceUses], false);
 
     if FDLUnitInfo.InterfaceTypes.Count >  0 then begin
       GetFirstLastCoordinate(FDLUnitInfo.InterfaceTypes, range);

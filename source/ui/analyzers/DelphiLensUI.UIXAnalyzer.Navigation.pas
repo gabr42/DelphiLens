@@ -106,13 +106,15 @@ begin
     end;
   end;
 
-  frame.CreateAction(
-    CreateOpenAnalyzerAction('&Sections',
-      CreateListSelector('Sections', locations)));
+  if locations.Count > 0 then
+    frame.CreateAction(
+      CreateOpenAnalyzerAction('&Sections',
+        CreateListSelector('Sections', locations)));
 
-  frame.CreateAction(
-    CreateOpenAnalyzerAction('&Classes',
-      CreateClassSelector(FDLUnitInfo.InterfaceTypes, FDLUnitInfo.ImplementationTypes)));
+  if (FDLUnitInfo.InterfaceTypes.Count + FDLUnitInfo.ImplementationTypes.Count) > 0 then
+    frame.CreateAction(
+      CreateOpenAnalyzerAction('&Classes',
+        CreateClassSelector(FDLUnitInfo.InterfaceTypes, FDLUnitInfo.ImplementationTypes)));
 end; { TDLUIXNavigationAnalyzer.BuildFrame }
 
 function TDLUIXNavigationAnalyzer.CanHandle(const context: IDLUIWorkerContext): boolean;

@@ -5,7 +5,7 @@ interface
 uses
   DelphiLensUI.UIXEngine.Intf;
 
-//TODO: Also overlap location list
+//TODO: Also overlap history location list
 //TODO: Lists should change width according to the item
 //TODO: Nicer buttons with icons ... Derive from TBitBtn and reimplement CN_DRAWITEM?
 

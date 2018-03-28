@@ -35,7 +35,7 @@ function  DLUIFileModified(projectID: integer; fileName: PChar): integer;
 function  DLUICloseProject(projectID: integer): integer;
   stdcall; external DelphiLensUIDLL delayed;
 
-function  DLUIActivate(projectID: integer; unitName: PChar; line, column: integer;
+function  DLUIActivate(monitorNum, projectID: integer; unitName: PChar; line, column: integer;
   var navigateToFile: PChar; var navigateToLine, navigateToColumn: integer): integer;
   stdcall; external DelphiLensUIDLL delayed;
 

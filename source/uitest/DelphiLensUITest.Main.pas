@@ -135,7 +135,7 @@ begin
   else
     navToUnit := lbFiles.Items[lbFiles.ItemIndex];
 
-  if DLUIActivate(FUIProject, PChar(navToUnit),
+  if DLUIActivate(Monitor.MonitorNum, FUIProject, PChar(navToUnit),
        outSource.CaretPos.Y + 1, outSource.CaretPos.X + 1,
        navToFile, navToLine, navToColumn) <> 0
   then

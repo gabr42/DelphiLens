@@ -163,7 +163,7 @@ begin
     if assigned(parentFrame) then
       parentFrame.MarkActive(false);
 
-    frame.Show(parentAction);
+    frame.Show(FUIContext.MonitorNum, parentAction);
 
     if assigned(parentFrame) then begin
       if assigned(FExecuteAction) then

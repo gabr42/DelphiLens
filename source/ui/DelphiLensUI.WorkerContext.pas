@@ -11,6 +11,7 @@ uses
 
 type
   IDLUIWorkerContext = interface ['{D27B5BBF-B172-49ED-86BE-FCBC2CB80AFA}']
+    function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
     function  GetSource: TDLUIXLocation;
@@ -19,6 +20,7 @@ type
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   //
+    property MonitorNum: integer read GetMonitorNum;
     property Storage: IDLUIXStorage read GetStorage;
     property Project: IDLScanResult read GetProject;
     property Source: TDLUIXLocation read GetSource;
@@ -28,7 +30,8 @@ type
   end; { IDLUIWorkerContext }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage;
-  const AProject: IDLScanResult; const ASource: TDLUIXLocation): IDLUIWorkerContext;
+  const AProject: IDLScanResult; const ASource: TDLUIXLocation;
+  AMonitorNum: integer): IDLUIWorkerContext;
 
 implementation
 
@@ -39,6 +42,7 @@ uses
 type
   TDLUIWorkerContext = class(TInterfacedObject, IDLUIWorkerContext)
   strict private
+    FMonitorNum     : integer;
     FNamedSyntaxNode: TSyntaxNode;
     FProject        : IDLScanResult;
     FSource         : TDLUIXLocation;
@@ -46,6 +50,7 @@ type
     FSyntaxNode     : TSyntaxNode;
     FTarget         : Nullable<TDLUIXLocation>;
   strict protected
+    function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
     function  GetSyntaxNode: TSyntaxNode;
@@ -55,7 +60,8 @@ type
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   public
     constructor Create(const AStorage: IDLUIXStorage; const AProject: IDLScanResult;
-      const ASource: TDLUIXLocation);
+      const ASource: TDLUIXLocation; AMonitorNum: integer);
+    property MonitorNum: integer read GetMonitorNum;
     property Storage: IDLUIXStorage read GetStorage;
     property Project: IDLScanResult read GetProject;
     property Source: TDLUIXLocation read GetSource;
@@ -67,21 +73,24 @@ type
 { exports }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProject:
-  IDLScanResult; const ASource: TDLUIXLocation): IDLUIWorkerContext;
+  IDLScanResult; const ASource: TDLUIXLocation;
+  AMonitorNum: integer): IDLUIWorkerContext;
 begin
-  Result := TDLUIWorkerContext.Create(AStorage, AProject, ASource);
+  Result := TDLUIWorkerContext.Create(AStorage, AProject, ASource, AMonitorNum);
 end; { CreateWorkerContext }
 
 { TDLUIXContext }
 
 constructor TDLUIWorkerContext.Create(const AStorage: IDLUIXStorage; const AProject:
-  IDLScanResult; const ASource: TDLUIXLocation);
+  IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
 var
   unitInfo: TProjectIndexer.TUnitInfo;
 begin
   FStorage := AStorage;
   FProject := AProject;
   FSource := ASource;
+  FMonitorNum := AMonitorNum;
+
   if AProject.ParsedUnits.Find(ASource.UnitName, unitInfo)
      and assigned(unitInfo.SyntaxTree)
   then
@@ -89,6 +98,11 @@ begin
   if assigned(FSyntaxNode) then
     FNamedSyntaxNode := FSyntaxNode.FindParentWithName;
 end; { TDLUIWorkerContext.Create }
+
+function TDLUIWorkerContext.GetMonitorNum: integer;
+begin
+  Result := FMonitorNum;
+end; { TDLUIWorkerContext.GetMonitorNum }
 
 function TDLUIWorkerContext.GetNamedSyntaxNode: TSyntaxNode;
 begin

@@ -160,7 +160,7 @@ type
       options: TDLUIXFrameActionOptions = []);
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
-    procedure Show(const parentAction: IDLUIXAction);
+    procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { TDLUIXVCLFloatingFrame }
@@ -761,7 +761,7 @@ begin
   FOnAction := value;
 end; { TDLUIXVCLFloatingFrame.SetOnAction }
 
-procedure TDLUIXVCLFloatingFrame.Show(const parentAction: IDLUIXAction);
+procedure TDLUIXVCLFloatingFrame.Show(monitorNum: integer; const parentAction: IDLUIXAction);
 var
   analyzerAction: IDLUIXOpenAnalyzerAction;
   isBack        : boolean;
@@ -769,11 +769,15 @@ var
   rect          : TRect;
   button: TButton;
 begin
-  if not assigned(FParent) then
-    FForm.Position := poScreenCenter
+  FForm.Position := poDesigned;
+  if not assigned(FParent) then begin
+    rect := Screen.Monitors[monitorNum].BoundsRect;
+    FForm.Left := rect.Left + (rect.Width - FForm.Width) div 2;
+    FForm.Top := rect.Top + (rect.Height - FForm.Height) div 2;
+  end
   else begin
-    FForm.Position := poDesigned;
     rect := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(parentAction);
+
     isBack := false;
     if Supports(parentAction, IDLUIXOpenAnalyzerAction, analyzerAction) then
       isBack := TType.GetType((analyzerAction.Analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
@@ -784,10 +788,12 @@ begin
       FForm.Left := rect.Left + CFrameSpacing;
     FForm.Top := rect.Top + (rect.Height - FForm.Height) div 2;
   end;
+
   for proc in FOnShowProc do
     proc();
   FForm.UpdateMask;
 
+  //TODO : remove this hack when owner-draw buttons are implemented
   for button in FForm.EnumControls<TButton> do
     if string(button.Caption).StartsWith('  ') then
       SetWindowLong(button.Handle, GWL_STYLE, GetWindowLong(button.Handle, GWL_STYLE) OR BS_LEFT);

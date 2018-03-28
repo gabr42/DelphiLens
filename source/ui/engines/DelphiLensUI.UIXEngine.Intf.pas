@@ -60,7 +60,7 @@ type
     procedure CreateAction(const action: IDLUIXAction; options: TDLUIXFrameActionOptions = []);
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
-    procedure Show(const parentAction: IDLUIXAction);
+    procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { IDLUIXFrame }

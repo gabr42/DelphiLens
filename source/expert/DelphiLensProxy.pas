@@ -22,6 +22,7 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.Win.Registry,
   System.SysUtils, System.Classes, System.Math,
+  Vcl.Forms,
   ToolsAPI, DCCStrs,
   UtilityFunctions,
   DSiWin32,
@@ -118,8 +119,8 @@ begin
       Log(lcActivation, 'Activate in %s @ %d,%d', [filePath, line, col]);
     end;
 
-    apiRes := DLUIActivate(FDLUIProjectID,
-      PChar(filePath), line, col,
+    apiRes := DLUIActivate(Application.MainForm.Monitor.MonitorNum,
+      FDLUIProjectID, PChar(filePath), line, col,
       navToFile, navToLine, navToColumn);
 
     if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTabs(string(navToFile)) then

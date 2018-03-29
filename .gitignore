@@ -65,3 +65,5 @@ __history/
 *.dll__
 
 source/desktop/bitmaps\.res
+
+source/ui/bitmaps\.res

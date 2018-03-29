@@ -1,5 +1,7 @@
 library DelphiLensUI;
 
+{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+
 uses
   Winapi.Windows,
   System.SysUtils,

@@ -17,9 +17,10 @@ uses
   Winapi.Windows, Winapi.Messages,
   System.Types, System.RTTI, System.SysUtils, System.StrUtils, System.Classes, System.Math,
   System.RegularExpressions,
-  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls,
+  Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls, Vcl.Buttons,
+  Vcl.Themes, Vcl.Graphics, Vcl.Imaging.Pngimage,
   Spring, Spring.Collections, Spring.Reflection,
-  GpStuff, GpEasing, GpVCL,
+  GpStuff, GpEasing, GpVCL, GpVCL.OwnerDrawBitBtn,
   DelphiLens.UnitInfo,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
   DelphiLensUI.UIXEngine.Actions;
@@ -83,6 +84,8 @@ type
   strict private const
     CAlphaBlendActive         = 255;
     CAlphaBlendInactive       =  64;
+    CButtonFontSize           =  13;
+    CButtonFontSizeSmall      =  11;
     CButtonHeight             =  81;
     CButtonHeight2nd          =  53;
     CButtonHeightSmall        =  33;
@@ -99,17 +102,29 @@ type
     CListButtonWidth          = 254;
     CSearchBoxHeight          =  21;
     CSearchToListBoxSeparator =   1;
+    CResourceImageAngleLeft   = 'IDD_ANGLE_LEFT';
+    CResourceImageAngleRight  = 'IDD_ANGLE_RIGHT';
+    CResourceImageShare       = 'IDD_SHARE';
+  type
+    TButtonDrawInfo = record
+      ResourceName  : string;
+      PositionRight : boolean;
+      TextLeftOffset: integer;
+      constructor Create(const AResourceName: string; APositionRight: boolean;
+        ATextLeftOffset: integer);
+    end; { TButtonDrawInfo }
   var
-    [Managed(false)] FActionMap: IBidiDictionary<TObject, IDLUIXAction>;
-    [Managed(false)] FForm     : TVCLFloatingForm;
-    [Managed(false)] FListMap  : IDictionary<TComponent, IDLUIXVCLListStorage>;
+    [Managed(false)] FActionMap : IBidiDictionary<TObject, IDLUIXAction>;
+    [Managed(false)] FForm      : TVCLFloatingForm;
+    [Managed(false)] FListMap   : IDictionary<TComponent, IDLUIXVCLListStorage>;
+    [Managed(false)] FButtonDraw: IDictionary<TBitBtn, TButtonDrawInfo>;
   var
     FColumnTop     : integer;
     FColumnLeft    : integer;
     FEasing        : IEasing;
     FEasingPos     : IEasing;
     FForceNewColumn: boolean;
-    FHistoryButton : TButton;
+    FHistoryButton : TBitBtn;
     FOnAction      : TDLUIXFrameAction;
     FOnShowProc    : IQueue<TProc>;
     FOriginalLeft  : Nullable<integer>;
@@ -124,6 +139,8 @@ type
     function  BuildList(const listNavigation: IDLUIXListNavigationAction;
       options: TDLUIXFrameActionOptions): TRect;
     function  CollectNames(listBox: TListBox): string;
+    procedure DrawCustomButton(button: TOwnerDrawBitBtn; canvas: TCanvas;
+      drawRect: TRect; buttonState: TThemedButton);
     procedure EaseAlphaBlend(start, stop: integer);
     procedure EaseLeft(start, stop: integer);
     procedure EnableActions(const actions: IDLUIXManagedActions; numSelected: integer);
@@ -143,9 +160,11 @@ type
       shift: TShiftState);
     procedure HandleSearchBoxTimer(Sender: TObject);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
+    function  MakeRes(const resourceName: string): string;
     procedure NewColumn;
     function  NumItems(listBox: TListBox): integer;
     procedure PrepareNewColumn;
+    function  ResourceSize: integer;
     procedure QueueOnShow(proc: TProc);
     procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
     procedure SetOnAction(const value: TDLUIXFrameAction);
@@ -254,6 +273,16 @@ begin
   end;
 end; { TVCLFloatingForm.UpdateMask }
 
+{ TDLUIXVCLFloatingFrame.TButtonDrawInfo }
+
+constructor TDLUIXVCLFloatingFrame.TButtonDrawInfo.Create(const AResourceName: string;
+  APositionRight: boolean; ATextLeftOffset: integer);
+begin
+  ResourceName := AResourceName;
+  PositionRight := APositionRight;
+  TextLeftOffset := ATextLeftOffset;
+end; { TDLUIXVCLFloatingFrame.TButtonDrawInfo.Create }
+
 { TDLUIXVCLFloatingFrame }
 
 constructor TDLUIXVCLFloatingFrame.Create(const parentFrame: IDLUIXFrame);
@@ -261,6 +290,7 @@ begin
   inherited Create;
   FActionMap := TCollections.CreateBidiDictionary<TObject, IDLUIXAction>;
   FListMap := TCollections.CreateDictionary<TComponent, IDLUIXVCLListStorage>;
+  FButtonDraw := TCollections.CreateDictionary<TBitBtn, TButtonDrawInfo>;
   FOnShowProc := TCollections.CreateQueue<TProc>;
   FParent := parentFrame;
   FForm := TVCLFloatingForm.CreateNew(Application);
@@ -282,17 +312,18 @@ procedure TDLUIXVCLFloatingFrame.ApplyOptions(control: TControl;
   options: TDLUIXFrameActionOptions);
 begin
   control.Enabled := not (faoDisabled in options);
-  if (control is TButton) and (faoDefault in options) then
-    TButton(control).Default := true;
+  if (control is TBitBtn) and (faoDefault in options) then
+    TBitBtn(control).Default := true;
 end; { TDLUIXVCLFloatingFrame.ApplyOptions }
 
 function TDLUIXVCLFloatingFrame.BuildButton(const action: IDLUIXAction;
   options: TDLUIXFrameActionOptions): TRect;
 var
-  button      : TButton;
-  openAnalyzer: IDLUIXOpenAnalyzerAction;
+  button          : TBitBtn;
+  navigateAnalyzer: IDLUIXNavigationAction;
+  openAnalyzer    : IDLUIXOpenAnalyzerAction;
 begin
-  button := TButton.Create(FForm);
+  button := TBitBtn.Create(FForm);
   button.Parent := FForm;
   button.Width := CButtonWidth;
   button.Height := IFF(faoSmall in options, CButtonHeightSmall,
@@ -300,21 +331,34 @@ begin
   button.Left := FColumnLeft;
   button.Top := FColumnTop + IFF(FColumnTop = 0, 0,
     IFF((faoSmall in options) and (faoSmall in FPrevOptions), CButtonSpacingSmall, CButtonSpacing));
-
+  button.Caption := action.Name;
   if not assigned(FParent) then
-    button.Font.Size := 11;
+    button.Font.Size := CButtonFontSize
+  else
+    button.Font.Size := CButtonFontSizeSmall;
 
   if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then begin
     if not IsHistoryAnalyzer(openAnalyzer.Analyzer) then
-      button.Caption := action.Name + ' >'
+      FButtonDraw.AddOrSetValue(button,
+        TButtonDrawInfo.Create(MakeRes(CResourceImageAngleRight),
+          true, IFF(button.Height = CButtonHeight, ResourceSize, 0)))
     else begin
-      button.Caption := '< ' + action.Name;
+      FButtonDraw.AddOrSetValue(button,
+        TButtonDrawInfo.Create(MakeRes(CResourceImageAngleLeft),
+          false, IFF(button.Height = CButtonHeight, ResourceSize, 0)));
       FHistoryButton := button;
     end;
   end
+  else if Supports(action, IDLUIXNavigationAction, navigateAnalyzer) then
+    FButtonDraw.AddOrSetValue(button,
+      TButtonDrawInfo.Create(MakeRes(CResourceImageShare),
+        true, IFF(button.Height = CButtonHeight, ResourceSize, 0)))
   else
-    button.Caption := action.Name;
+    FButtonDraw.AddOrSetValue(button,
+      TButtonDrawInfo.Create('', true, IFF(button.Height = CButtonHeight, ResourceSize, 0)));
+
   button.OnClick := ForwardAction;
+  button.OnOwnerDraw := DrawCustomButton;
 
   ApplyOptions(button, options);
   FActionMap.Add(button, action);
@@ -387,7 +431,7 @@ function TDLUIXVCLFloatingFrame.BuildList(
   const listNavigation: IDLUIXListNavigationAction;
   options: TDLUIXFrameActionOptions): TRect;
 var
-  button    : TButton;
+  button    : TBitBtn;
   hasHotkey : TRegEx;
   hotkey    : string;
   navigation: IDLUIXNavigationAction;
@@ -407,7 +451,7 @@ begin
     end;
 
   for navigation in listNavigation.Locations do begin
-    button := TButton.Create(FForm);
+    button := TBitBtn.Create(FForm);
     button.Parent := FForm;
     button.Width := CListButtonWidth;
     button.Height := CListButtonHeight;
@@ -415,6 +459,7 @@ begin
     button.Top := nextTop;
     button.Caption := '  ' + IFF(hotkey = '', '  ', '&' + hotkey + ' ') + navigation.Name;
     button.OnClick := ForwardAction;
+    button.OnOwnerDraw := DrawCustomButton;
     ApplyOptions(button, options);
 
     FActionMap.Add(button, navigation);
@@ -464,6 +509,36 @@ begin
     UpdateClientSize(BuildButton(action, options));
   FPrevOptions := options;
 end; { TDLUIXVCLFloatingFrame.CreateAction }
+
+procedure TDLUIXVCLFloatingFrame.DrawCustomButton(button: TOwnerDrawBitBtn;
+  canvas: TCanvas; drawRect: TRect; buttonState: TThemedButton);
+var
+  drawInfo: TButtonDrawInfo;
+  imgX    : integer;
+  png     : TPngImage;
+begin
+  if not FButtonDraw.TryGetValue(TBitBtn(button), drawInfo) then
+    drawInfo := TButtonDrawInfo.Create('', true, 0);
+
+  if drawInfo.ResourceName <> '' then begin
+    png := TPngImage.Create;
+    try
+      png.LoadFromResourceName(HInstance, drawInfo.ResourceName);
+      if drawInfo.PositionRight then begin
+        imgX := drawRect.Right - ResourceSize - png.Width;
+        if png.Width > ResourceSize then
+          imgX := imgX + ResourceSize div 2;
+      end
+      else
+        imgX := drawRect.Left + ResourceSize;
+      canvas.Draw(imgX, drawRect.Top + (drawRect.Height - png.Height) div 2, png);
+    finally FreeAndNil(png); end;
+  end;
+
+  drawRect.Left := drawRect.Left + ResourceSize + drawInfo.TextLeftOffset;
+  drawRect.Bottom := drawRect.Bottom - 2; // looks better
+  button.DrawText(button.Caption, drawRect, DT_NOCLIP or DT_LEFT or DT_VCENTER or DT_SINGLELINE)
+end; { TDLUIXVCLFloatingFrame.DrawCustomButton }
 
 procedure TDLUIXVCLFloatingFrame.EaseAlphaBlend(start, stop: integer);
 begin
@@ -683,6 +758,11 @@ begin
   Result := TType.GetType((analyzer as TObject).ClassType).HasCustomAttribute<TBackNavigationAttribute>;
 end; { TDLUIXVCLFloatingFrame.IsHistoryAnalyzer }
 
+function TDLUIXVCLFloatingFrame.MakeRes(const resourceName: string): string;
+begin
+  Result := Format('%s_%d', [resourceName, ResourceSize]);
+end; { TDLUIXVCLFloatingFrame.MakeRes }
+
 procedure TDLUIXVCLFloatingFrame.MarkActive(isActive: boolean);
 begin
   EaseAlphaBlend(FForm.AlphaBlendValue, IFF(isActive, CAlphaBlendActive, CAlphaBlendInactive));
@@ -723,6 +803,12 @@ procedure TDLUIXVCLFloatingFrame.QueueOnShow(proc: TProc);
 begin
   FOnShowProc.Enqueue(proc);
 end; { TDLUIXVCLFloatingFrame.QueueOnShow }
+
+function TDLUIXVCLFloatingFrame.ResourceSize: integer;
+begin
+  //TODO: Make DPI-dependent
+  Result := 16;
+end; { TDLUIXVCLFloatingFrame.ResourceSize }
 
 procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
 var
@@ -767,7 +853,6 @@ var
   isBack        : boolean;
   proc          : TProc;
   rect          : TRect;
-  button: TButton;
 begin
   FForm.Position := poDesigned;
   if not assigned(FParent) then begin
@@ -792,11 +877,6 @@ begin
   for proc in FOnShowProc do
     proc();
   FForm.UpdateMask;
-
-  //TODO : remove this hack when owner-draw buttons are implemented
-  for button in FForm.EnumControls<TButton> do
-    if string(button.Caption).StartsWith('  ') then
-      SetWindowLong(button.Handle, GWL_STYLE, GetWindowLong(button.Handle, GWL_STYLE) OR BS_LEFT);
 
   FForm.ShowModal;
 end; { TDLUIXVCLFloatingFrame.Show }

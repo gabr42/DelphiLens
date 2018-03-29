@@ -9,7 +9,7 @@ uses
   Spring.Collections,
   DelphiAST.Classes,
   DelphiLens.DelphiASTHelpers,
-  DelphiLens.Intf, DelphiLens.UnitInfo;
+  DelphiLens.Intf, DelphiLens.UnitInfo, Vcl.Buttons;
 
 type
   TfrmDLMain = class(TForm)
@@ -43,7 +43,7 @@ type
     lblWhatIsShowing : TLabel;
     outLog           : TMemo;
     lblNodeName      : TLabel;
-    btnTestForm: TButton;
+    btnTestForm      : TBitBtn;
     procedure actAnalysisExecute(Sender: TObject);
     procedure actFindSyntaxNodeExecute(Sender: TObject);
     procedure actFindSyntaxNodeUpdate(Sender: TObject);

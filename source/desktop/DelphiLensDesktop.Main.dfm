@@ -204,7 +204,7 @@ object frmDLMain: TfrmDLMain
     Action = actFindSyntaxNode
     TabOrder = 14
   end
-  object btnTestForm: TButton
+  object btnTestForm: TBitBtn
     Left = 674
     Top = 144
     Width = 75

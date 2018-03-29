@@ -1,5 +1,9 @@
 program DelphiLensDesktop;
 
+
+
+{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+
 uses
   FastMM4,
   Vcl.Forms,

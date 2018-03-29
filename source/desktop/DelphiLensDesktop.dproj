@@ -110,6 +110,7 @@
         <AppEnableHighDPI>true</AppEnableHighDPI>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
         <DCC_Define>FullDebugMode;$(DCC_Define)</DCC_Define>
+        <BRCC_CompilerToUse>rc</BRCC_CompilerToUse>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win64)'!=''">
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
@@ -135,12 +136,14 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <RcCompile Include="..\res\bitmaps.rc">
+            <Form>bitmaps.res</Form>
+        </RcCompile>
         <DCCReference Include="DelphiLensDesktop.Main.pas">
             <Form>frmDLMain</Form>
         </DCCReference>
         <DCCReference Include="DelphiLensDesktop.Test.pas">
             <Form>frmTest</Form>
-            <FormType>dfm</FormType>
         </DCCReference>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
@@ -163,8 +166,6 @@
                     <Source Name="MainSource">DelphiLensDesktop.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="H:\RAZVOJ\DelphiLens\bin\DelphiLensExpertPackage.bpl">DelphiLens Expert</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\MobileWizardExpert250.bpl">Embarcadero Mobile Wizard Help</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>

@@ -63,3 +63,5 @@ __history/
 *.dll_
 
 *.dll__
+
+source/desktop/bitmaps\.res

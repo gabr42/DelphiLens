@@ -20,6 +20,7 @@ uses
   DelphiLensUI.UIXAnalyzer.Intf,
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXAnalyzer.UnitBrowser,
+  DelphiLensUI.UIXAnalyzer.FindSymbol,
   DelphiLensUI.UIXAnalyzer.History,
   DelphiLensUI.UIXEngine.Actions,
   DelphiLensUI.UIXEngine.VCLFloating;
@@ -60,6 +61,7 @@ begin
   analyzers := TCollections.CreateList<TDLAnalyzerInfo>;
   analyzers.Add(TDLAnalyzerInfo.Create('&Navigation', CreateNavigationAnalyzer));
   analyzers.Add(TDLAnalyzerInfo.Create('&Units', CreateUnitBrowser));
+  analyzers.Add(TDLAnalyzerInfo.Create('&Find', CreateFindSymbol));
   analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer));
 
   ui := TDLUserInterface.Create(CreateUIXEngine, analyzers, workerContext);
@@ -132,7 +134,7 @@ begin
       analyzer: TDLAnalyzerInfo;
     begin
       for analyzer in FUIXAnalyzers do
-        if analyzer.Value.CanHandle(FUIContext) then
+        if assigned(analyzer.Value) and analyzer.Value.CanHandle(FUIContext) then
           frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
     end);
   FUIContext.Project.ReleaseAnalyzers;

@@ -196,8 +196,9 @@ begin
     else begin
       logClasses := PLogClasses(@logLevelInt)^;
       if logClasses <> GLogClasses then begin
+        if GLogClasses <> [lcError] then //lcError is enforced
+          LogMessage(Format('Logging level set to %d', [logLevelInt]));
         GLogClasses := logClasses;
-        LogMessage(Format('Logging level set to %d', [logLevelInt]));
       end;
       Include(GLogClasses, lcError);
     end;

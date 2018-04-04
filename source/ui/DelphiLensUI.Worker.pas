@@ -32,6 +32,7 @@ type
   TDelphiLensUIProject = class
   strict private
     FNavigationInfo: TDLUINavigationInfo;
+    FProjectName   : string;
     FScanLock      : IOmniCriticalSection;
     FScanResult    : IDLScanResult;
     FUIXStorage    : IDLUIXStorage;
@@ -103,6 +104,7 @@ end; { TDLUIProjectConfig.Create }
 constructor TDelphiLensUIProject.Create(const projectName: string);
 begin
   inherited Create;
+  FProjectName := projectName;
   FScanLock := CreateOmniCriticalSection;
   FWorker := CreateTask(TDelphiLensUIWorker.Create(), 'DelphiLens engine for ' + projectName)
                .SetParameter('owner', Self)
@@ -148,7 +150,7 @@ begin
       //TODO: Report error
 //      Console.Writeln('Activate: Project = nil')
     else begin
-      context := CreateWorkerContext(FUIXStorage, FScanResult,
+      context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
         TDLUIXLocation.Create(fileName, unitName, line, column),
         monitorNum);
       DLUIShowUI(context);

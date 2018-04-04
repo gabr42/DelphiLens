@@ -119,6 +119,7 @@ type
     [Managed(false)] FListMap   : IDictionary<TComponent, IDLUIXVCLListStorage>;
     [Managed(false)] FButtonDraw: IDictionary<TBitBtn, TButtonDrawInfo>;
   var
+    FCaptionPanel  : TPanel;
     FColumnTop     : integer;
     FColumnLeft    : integer;
     FEasing        : IEasing;
@@ -146,6 +147,7 @@ type
     procedure EnableActions(const actions: IDLUIXManagedActions; numSelected: integer);
     procedure FilterListBox(Sender: TObject);
     procedure ForwardAction(Sender: TObject);
+    function  GetCaption: string;
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
@@ -166,6 +168,7 @@ type
     procedure PrepareNewColumn;
     function  ResourceSize: integer;
     procedure QueueOnShow(proc: TProc);
+    procedure SetCaption(const value: string);
     procedure SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
     procedure SetOnAction(const value: TDLUIXFrameAction);
     procedure UpdateClientSize(const rect: TRect);
@@ -180,6 +183,7 @@ type
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
+    property Caption: string read GetCaption write SetCaption;
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { TDLUIXVCLFloatingFrame }
@@ -646,6 +650,14 @@ begin
     Result.Offset(FTargetLeft.Value - Result.Left, 0);
 end; { TDLUIXVCLFloatingFrame.GetBounds_Screen }
 
+function TDLUIXVCLFloatingFrame.GetCaption: string;
+begin
+  if assigned(FCaptionPanel) then
+    Result := FCaptionPanel.Caption
+  else
+    Result := '';
+end; { TDLUIXVCLFloatingFrame.GetCaption }
+
 function TDLUIXVCLFloatingFrame.GetOnAction: TDLUIXFrameAction;
 begin
   Result := FOnAction;
@@ -809,6 +821,23 @@ begin
   //TODO: Make DPI-dependent
   Result := 16;
 end; { TDLUIXVCLFloatingFrame.ResourceSize }
+
+procedure TDLUIXVCLFloatingFrame.SetCaption(const value: string);
+begin
+  Exit; //Caption panel is currently disabled
+  if not assigned(FCaptionPanel) then begin
+    FCaptionPanel := TPanel.Create(FForm);
+    FCaptionPanel.Parent := FForm;
+    FCaptionPanel.Width := CButtonWidth;
+    FCaptionPanel.Height := CButtonHeightSmall;
+    FCaptionPanel.Font.Size := CButtonFontSizeSmall;
+    FCaptionPanel.Left := FColumnLeft;
+    FCaptionPanel.Top := FColumnTop;
+    FCaptionPanel.BevelOuter := bvNone;
+    UpdateClientSize(FCaptionPanel.BoundsRect);
+  end;
+  FCaptionPanel.Caption := value;
+end; { TDLUIXVCLFloatingFrame.SetCaption }
 
 procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: boolean);
 var

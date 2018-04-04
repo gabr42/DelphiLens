@@ -20,7 +20,6 @@ type
   strict protected
     function GetUnits: IDLUnitAnalyzer;
   public
-    //TODO: Spring inject scanResult
     constructor Create(const scanResult: IDLScanResult);
     property Units: IDLUnitAnalyzer read GetUnits;
   end; { TDLAnalyzers }
@@ -29,7 +28,6 @@ type
 
 function CreateDLAnalyzers(const scanResult: IDLScanResult): IDLAnalyzers;
 begin
-  //TODO: Use Spring Lazy<T>
   Result := TDLAnalyzers.Create(scanResult);
 end; { CreateDLAnalyzers }
 
@@ -43,7 +41,6 @@ end; { TDLAnalyzers.Create }
 
 function TDLAnalyzers.GetUnits: IDLUnitAnalyzer;
 begin
-  //TODO: Use Spring Lazy<T>
   if not assigned(FUnitAnalyzer) then
     FUnitAnalyzer := CreateDLUnitAnalyzer(FScanResult);
   Result := FUnitAnalyzer;

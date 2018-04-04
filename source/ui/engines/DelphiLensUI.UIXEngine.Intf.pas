@@ -52,8 +52,10 @@ type
   TDLUIXFrameActionOptions = set of TDLUIXFrameActionOption;
 
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']
+    function  GetCaption: string;
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
+    procedure SetCaption(const value: string);
     procedure SetOnAction(const value: TDLUIXFrameAction);
   //
     procedure Close;
@@ -61,6 +63,7 @@ type
     function  IsEmpty: boolean;
     procedure MarkActive(isActive: boolean);
     procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
+    property Caption: string read GetCaption write SetCaption;
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { IDLUIXFrame }

@@ -148,6 +148,8 @@ var
   openAnalyzer: IDLUIXOpenAnalyzerAction;
 begin
   frame := FUIXEngine.CreateFrame(parentFrame);
+  if not assigned(parentFrame) then
+    frame.Caption := ChangeFileExt(ExtractFileName(FUIContext.ProjectName), '');
   frame.OnAction :=
     procedure (const frame: IDLUIXFrame; const action: IDLUIXAction)
     begin

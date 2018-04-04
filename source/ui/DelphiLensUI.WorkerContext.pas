@@ -14,6 +14,7 @@ type
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
+    function  GetProjectName: string;
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
     function  GetSyntaxNode: TSyntaxNode;
@@ -23,13 +24,14 @@ type
     property MonitorNum: integer read GetMonitorNum;
     property Storage: IDLUIXStorage read GetStorage;
     property Project: IDLScanResult read GetProject;
+    property ProjectName: string read GetProjectName;
     property Source: TDLUIXLocation read GetSource;
     property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
     property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
   end; { IDLUIWorkerContext }
 
-function CreateWorkerContext(const AStorage: IDLUIXStorage;
+function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
   const AProject: IDLScanResult; const ASource: TDLUIXLocation;
   AMonitorNum: integer): IDLUIWorkerContext;
 
@@ -45,11 +47,13 @@ type
     FMonitorNum     : integer;
     FNamedSyntaxNode: TSyntaxNode;
     FProject        : IDLScanResult;
+    FProjectName    : string;
     FSource         : TDLUIXLocation;
     FStorage        : IDLUIXStorage;
     FSyntaxNode     : TSyntaxNode;
     FTarget         : Nullable<TDLUIXLocation>;
   strict protected
+    function  GetProjectName: string;
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
@@ -59,11 +63,12 @@ type
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   public
-    constructor Create(const AStorage: IDLUIXStorage; const AProject: IDLScanResult;
-      const ASource: TDLUIXLocation; AMonitorNum: integer);
+    constructor Create(const AStorage: IDLUIXStorage; const AProjectName: string;
+      const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
     property MonitorNum: integer read GetMonitorNum;
     property Storage: IDLUIXStorage read GetStorage;
     property Project: IDLScanResult read GetProject;
+    property ProjectName: string read GetProjectName;
     property Source: TDLUIXLocation read GetSource;
     property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
@@ -72,21 +77,22 @@ type
 
 { exports }
 
-function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProject:
-  IDLScanResult; const ASource: TDLUIXLocation;
+function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
+  const AProject: IDLScanResult; const ASource: TDLUIXLocation;
   AMonitorNum: integer): IDLUIWorkerContext;
 begin
-  Result := TDLUIWorkerContext.Create(AStorage, AProject, ASource, AMonitorNum);
+  Result := TDLUIWorkerContext.Create(AStorage, AProjectName, AProject, ASource, AMonitorNum);
 end; { CreateWorkerContext }
 
 { TDLUIXContext }
 
-constructor TDLUIWorkerContext.Create(const AStorage: IDLUIXStorage; const AProject:
-  IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+constructor TDLUIWorkerContext.Create(const AStorage: IDLUIXStorage; const AProjectName: string;
+  const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
 var
   unitInfo: TProjectIndexer.TUnitInfo;
 begin
   FStorage := AStorage;
+  FProjectName := AProjectName;
   FProject := AProject;
   FSource := ASource;
   FMonitorNum := AMonitorNum;
@@ -113,6 +119,11 @@ function TDLUIWorkerContext.GetProject: IDLScanResult;
 begin
   Result := FProject;
 end; { TDLUIWorkerContext.GetProject }
+
+function TDLUIWorkerContext.GetProjectName: string;
+begin
+  Result := FProjectName;
+end; { TDLUIWorkerContext.GetProjectName }
 
 function TDLUIWorkerContext.GetSource: TDLUIXLocation;
 begin

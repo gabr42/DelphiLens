@@ -18,6 +18,9 @@
         <Projects Include="desktop\DelphiLensDesktop.dproj">
             <Dependencies/>
         </Projects>
+        <Projects Include="server\DelphiLensServer.dproj">
+            <Dependencies/>
+        </Projects>
     </ItemGroup>
     <ProjectExtensions>
         <Borland.Personality>Default.Personality.12</Borland.Personality>
@@ -71,14 +74,23 @@
     <Target Name="DelphiLensDesktop:Make">
         <MSBuild Projects="desktop\DelphiLensDesktop.dproj" Targets="Make"/>
     </Target>
+    <Target Name="DelphiLensServer">
+        <MSBuild Projects="server\DelphiLensServer.dproj"/>
+    </Target>
+    <Target Name="DelphiLensServer:Clean">
+        <MSBuild Projects="server\DelphiLensServer.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DelphiLensServer:Make">
+        <MSBuild Projects="server\DelphiLensServer.dproj" Targets="Make"/>
+    </Target>
     <Target Name="Build">
-        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensUI;DelphiLensUITest;DelphiLensDesktop"/>
+        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensUI;DelphiLensUITest;DelphiLensDesktop;DelphiLensServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensUI:Clean;DelphiLensUITest:Clean;DelphiLensDesktop:Clean"/>
+        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensUI:Clean;DelphiLensUITest:Clean;DelphiLensDesktop:Clean;DelphiLensServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensUI:Make;DelphiLensUITest:Make;DelphiLensDesktop:Make"/>
+        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensUI:Make;DelphiLensUITest:Make;DelphiLensDesktop:Make;DelphiLensServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

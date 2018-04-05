@@ -43,8 +43,16 @@ object frmDelphiLensServer: TfrmDelphiLensServer
         Description.Strings = (
           'Sets parameters for currently open project. Possible parameters:'
           ''
-          '  SEARCHPATH=search_path'
-          '  CONDITIONALS=conditional_symbols')
+          
+            'SET SEARCHPATH=search_path           ... sets search path to be ' +
+            'used when '
+          '                                         next project is opened'
+          
+            'SET CONDITIONALS=conditional_symbols ... sets conditional symbol' +
+            's to be '
+          
+            '                                         defined when next proje' +
+            'ct is opened')
         Disconnect = False
         Name = 'CmdSet'
         NormalReply.Code = '200'
@@ -57,7 +65,9 @@ object frmDelphiLensServer: TfrmDelphiLensServer
         CmdDelimiter = ' '
         Command = 'OPEN'
         Description.Strings = (
-          'Opens Delphi project')
+          'Opens Delphi project'
+          ''
+          'OPEN <project.dpr>')
         Disconnect = False
         Name = 'CmdOpen'
         NormalReply.Code = '200'
@@ -69,6 +79,18 @@ object frmDelphiLensServer: TfrmDelphiLensServer
       item
         CmdDelimiter = ' '
         Command = 'SHOW'
+        Description.Strings = (
+          'Shows general information about the project'
+          ''
+          
+            'SHOW UNITS [<selector>] ... shows parsed units, optionally filte' +
+            'ring '
+          '                            to a <selector>'
+          'SHOW MISSING            ... shows units that were not found'
+          'SHOW INCLUDES           ... shows include files'
+          
+            'SHOW PROBLEMS           ... shows problems that occurred during ' +
+            'parsing')
         Disconnect = False
         Name = 'CmdShow'
         NormalReply.Code = '200'
@@ -79,9 +101,30 @@ object frmDelphiLensServer: TfrmDelphiLensServer
       end
       item
         CmdDelimiter = ' '
+        Command = 'UNIT'
+        Description.Strings = (
+          'Provides various information about one unit.'
+          ''
+          'UNIT <unitname> USES ... shows '#39'uses'#39' list for that unit'
+          'UNIT <unitname> USEDIN ... shows all units that use that unit'
+          
+            'UNIT <unitname> CLASSES ... lists all classes declared in that u' +
+            'nit')
+        Disconnect = False
+        Name = 'CmdUnit'
+        NormalReply.Code = '200'
+        ParamDelimiter = ' '
+        ParseParams = True
+        Tag = 0
+        OnCommand = CmdUnit
+      end
+      item
+        CmdDelimiter = ' '
         Command = 'CLOSE'
         Description.Strings = (
-          'Closes currently open project')
+          'Closes currently open project'
+          ''
+          'CLOSE')
         Disconnect = False
         Name = 'CmdClose'
         NormalReply.Code = '200'
@@ -94,7 +137,9 @@ object frmDelphiLensServer: TfrmDelphiLensServer
         CmdDelimiter = ' '
         Command = 'QUIT'
         Description.Strings = (
-          'Closes TCP/IP connection')
+          'Closes TCP/IP connection'
+          ''
+          'QUIT')
         Disconnect = False
         Name = 'CmdQuit'
         NormalReply.Code = '200'

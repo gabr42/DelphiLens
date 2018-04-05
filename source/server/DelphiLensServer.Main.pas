@@ -1,5 +1,18 @@
 unit DelphiLensServer.Main;
 
+(* Test protocol:
+
+SET SEARCHPATH=analyzers;engines;..\base;..\..\GpDelphiUnits\src;..\..\DelphiAST\Project indexer;..\..\DelphiAST\source;..\..\DelphiAST\source\SimpleParser;..\..\OmniThreadLibrary;..\..\Spring4D\Source\Base;..\..\Spring4D\Source\Base\Collections;..\..\Spring4D\Source
+OPEN h:\RAZVOJ\DelphiLens\source\ui\DelphiLensUI.dpr
+SHOW UNITS UIXEngine
+UNIT DelphiLensUI.UIXEngine.Intf USES
+UNIT DelphiLensUI.UIXEngine.Intf USEDIN
+UNIT DelphiLensUI.UIXEngine.Intf CLASSES
+AT DelphiLensUI.UIXEngine.Intf 104 21
+CLOSE
+QUIT
+*)
+
 interface
 
 uses
@@ -19,6 +32,8 @@ type
     FScanResult  : IDLScanResult;
     FSearchPath  : string;
   public
+    destructor Destroy; override;
+    procedure Close;
     property Conditionals: string read FConditionals write FConditionals;
     property DelphiLens: IDelphiLens read FDelphiLens write FDelphiLens;
     property ScanResult: IDLScanResult read FScanResult write FScanResult;
@@ -36,12 +51,15 @@ type
     procedure CmdClose(ASender: TIdCommand);
     procedure CmdSet(ASender: TIdCommand);
     procedure CmdShow(ASender: TIdCommand);
+    procedure CmdUnit(ASender: TIdCommand);
   private
     FConnections: IDictionary<TIdTCPConnection,TConnectionData>;
   protected
+    procedure CloseConnection(connection: TIdTCPConnection);
     function MakeIncludeList(includes: TIncludeFiles): string;
     function MakeProblemList(problems: TProblems): string;
-    function MakeUnitList(units: TParsedUnits): string;
+    function MakeUnitList(units: TParsedUnits; const substring: string): string;
+    function UnitClasses(connData: TConnectionData; const unitName: string): string;
   public
   end;
 
@@ -51,20 +69,41 @@ var
 implementation
 
 uses
+  System.StrUtils,
   DelphiAST.ProjectIndexer,
   DelphiLens;
 
 {$R *.dfm}
 
-procedure TfrmDelphiLensServer.CmdClose(ASender: TIdCommand);
+{ TConnectionData }
+
+procedure TConnectionData.Close;
+begin
+  if assigned(FScanResult) then
+    FScanResult.ReleaseAnalyzers;
+  FScanResult := nil;
+  FDelphiLens := nil;
+end;
+
+destructor TConnectionData.Destroy;
+begin
+  Close;
+  inherited;
+end;
+
+{ TfrmDelphiLensServer }
+
+procedure TfrmDelphiLensServer.CloseConnection(connection: TIdTCPConnection);
 var
   connData: TConnectionData;
 begin
-  connData := FConnections[ASender.Context.Connection];
-  if assigned(connData.ScanResult) then
-    connData.ScanResult.ReleaseAnalyzers;
-  connData.ScanResult := nil;
-  connData.DelphiLens := nil;
+  if FConnections.TryGetValue(connection, connData) then
+    connData.Close;
+end;
+
+procedure TfrmDelphiLensServer.CmdClose(ASender: TIdCommand);
+begin
+  CloseConnection(ASender.Context.Connection);
 end;
 
 procedure TfrmDelphiLensServer.CmdOpen(ASender: TIdCommand);
@@ -75,7 +114,14 @@ begin
     ASender.Reply.SetReply(400, 'Expected: OPEN <project>')
   else begin
     connData := FConnections[ASender.Context.Connection];
-    connData.DelphiLens := CreateDelphiLens(ASender.Params[0]);
+    try
+      connData.DelphiLens := CreateDelphiLens(ASender.Params[0]);
+    except
+      on E: Exception do begin
+        ASender.Reply.SetReply(400, E.Message);
+        Exit;
+      end;
+    end;
     connData.DelphiLens.ConditionalDefines := connData.Conditionals;
     connData.DelphiLens.SearchPath := connData.SearchPath;
     connData.ScanResult := connData.DelphiLens.Rescan;
@@ -96,7 +142,7 @@ procedure TfrmDelphiLensServer.CmdSet(ASender: TIdCommand);
 begin
   if ASender.Params.Count <> 2 then
     ASender.Reply.SetReply(400, 'Expected: SET parameter=value')
-  else if not assigned(FConnections[ASender.Context.Connection].DelphiLens) then
+  else if assigned(FConnections[ASender.Context.Connection].DelphiLens) then
     ASender.Reply.SetReply(400, 'Project is already open')
   else if SameText(ASender.Params[0], 'SEARCHPATH') then
     FConnections[ASender.Context.Connection].SearchPath := ASender.Params[1]
@@ -109,12 +155,16 @@ end;
 procedure TfrmDelphiLensServer.CmdShow(ASender: TIdCommand);
 var
   connData: TConnectionData;
+  param2  : string;
 begin
   connData := FConnections[ASender.Context.Connection];
-  if not assigned(connData.DelphiLens) then
+  param2 := '';
+  if ASender.Params.Count >= 2 then
+    param2 := ASender.Params[1];
+  if not assigned(connData.ScanResult) then
     ASender.Reply.SetReply(400, 'Project is not open')
   else if SameText(ASender.Params[0], 'UNITS') then
-    ASender.Reply.SetReply(200, MakeUnitList(connData.ScanResult.ParsedUnits))
+    ASender.Reply.SetReply(200, MakeUnitList(connData.ScanResult.ParsedUnits, param2))
   else if SameText(ASender.Params[0], 'MISSING') then
     ASender.Reply.SetReply(200, connData.ScanResult.NotFoundUnits.Text)
   else if SameText(ASender.Params[0], 'INCLUDES') then
@@ -123,6 +173,30 @@ begin
     ASender.Reply.SetReply(200, MakeProblemList(connData.ScanResult.Problems))
   else
     ASender.Reply.SetReply(400, 'Expected: SHOW UNITS|MISSING|INCLUDES|PROBLEMS');
+end;
+
+procedure TfrmDelphiLensServer.CmdUnit(ASender: TIdCommand);
+var
+  connData: TConnectionData;
+begin
+  connData := FConnections[ASender.Context.Connection];
+  if ASender.Params.Count < 2 then begin
+    ASender.Reply.SetReply(400, 'Expected: UNIT unit_name command');
+    Exit;
+  end;
+  if not assigned(connData.ScanResult) then
+    ASender.Reply.SetReply(400, 'Project is not open')
+  else if SameText(ASender.Params[1], 'USES') then
+    ASender.Reply.SetReply(200,
+      string.Join(#13#10, connData.ScanResult.Analyzers.Units.UnitUses(ASender.Params[0]).ToArray))
+  else if SameText(ASender.Params[1], 'USEDIN') then
+    ASender.Reply.SetReply(200,
+      string.Join(#13#10, connData.ScanResult.Analyzers.Units.UnitUsedBy(ASender.Params[0]).ToArray))
+  else if SameText(ASender.Params[1], 'CLASSES') then
+//    ASender.Reply.SetReply(200, UnitClasses(connData, ASender.Params[0]))
+    ASender.Reply.SetReply(500, 'Not implemented')
+  else
+    ASender.Reply.SetReply(400, 'Expected: UNIT unit_name USES|USEDIN|CLASSES');
 end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);
@@ -162,15 +236,22 @@ begin
   Result := string.Join(#13#10, problemList.ToArray);
 end;
 
-function TfrmDelphiLensServer.MakeUnitList(units: TParsedUnits): string;
+function TfrmDelphiLensServer.MakeUnitList(units: TParsedUnits; const substring: string): string;
 var
   unitInfo: TUnitInfo;
   unitList: IList<string>;
 begin
   unitList := TCollections.CreateList<string>;
   for unitInfo in units do
-    unitList.Add(unitInfo.Name);
+    if (substring = '') or ContainsText(unitInfo.Name, substring) then
+      unitList.Add(unitInfo.Name);
   Result := string.Join(#13#10, unitList.ToArray);
+end;
+
+function TfrmDelphiLensServer.UnitClasses(connData: TConnectionData;
+  const unitName: string): string;
+begin
+
 end;
 
 end.

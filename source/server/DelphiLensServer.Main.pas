@@ -9,10 +9,22 @@ uses
   IdContext, IdBaseComponent, IdComponent, IdTCPConnection, IdCommandHandlers,
   IdCustomTCPServer, IdTCPServer, IdCmdTCPServer,
   Spring, Spring.Collections,
-  DelphiLens.Intf,
-  DelphiLensServer.Connection;
+  DelphiLens.Intf;
 
 type
+  TConnectionData = class
+  strict private
+    FConditionals: string;
+    FDelphiLens  : IDelphiLens;
+    FScanResult  : IDLScanResult;
+    FSearchPath  : string;
+  public
+    property Conditionals: string read FConditionals write FConditionals;
+    property DelphiLens: IDelphiLens read FDelphiLens write FDelphiLens;
+    property ScanResult: IDLScanResult read FScanResult write FScanResult;
+    property SearchPath: string read FSearchPath write FSearchPath;
+  end;
+
   TfrmDelphiLensServer = class(TForm)
     IdCmdTCPServer1: TIdCmdTCPServer;
     lbLog: TListBox;
@@ -101,8 +113,6 @@ begin
   connData := FConnections[ASender.Context.Connection];
   if not assigned(connData.DelphiLens) then
     ASender.Reply.SetReply(400, 'Project is not open')
-  else if ASender.Params.Count <> 1 then
-    ASender.Reply.SetReply(400, 'Expected: SHOW UNITS|MISSING|INCLUDES|PROBLEMS')
   else if SameText(ASender.Params[0], 'UNITS') then
     ASender.Reply.SetReply(200, MakeUnitList(connData.ScanResult.ParsedUnits))
   else if SameText(ASender.Params[0], 'MISSING') then

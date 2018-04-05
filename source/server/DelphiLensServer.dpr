@@ -2,8 +2,7 @@ program DelphiLensServer;
 
 uses
   Vcl.Forms,
-  DelphiLensServer.Main in 'DelphiLensServer.Main.pas' {frmDelphiLensServer},
-  DelphiLensServer.Connection in 'DelphiLensServer.Connection.pas';
+  DelphiLensServer.Main in 'DelphiLensServer.Main.pas' {frmDelphiLensServer};
 
 {$R *.res}
 

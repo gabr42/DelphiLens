@@ -108,7 +108,6 @@
             <Form>frmDelphiLensServer</Form>
             <FormType>dfm</FormType>
         </DCCReference>
-        <DCCReference Include="DelphiLensServer.Connection.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>
@@ -136,7 +135,7 @@
                 </Excluded_Packages>
             </Delphi.Personality>
             <Deployment Version="3">
-                <DeployFile LocalName="Win32\Debug\DelphiLensServer.exe" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\..\bin\DelphiLensServer.exe" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>DelphiLensServer.exe</RemoteName>
                         <Overwrite>true</Overwrite>

@@ -89,8 +89,8 @@
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
         <Manifest_File>..\engine\(None)</Manifest_File>
         <VerInfo_Locale>1033</VerInfo_Locale>
-        <DCC_DcuOutput>H:\RAZVOJ\DelphiLens\bin\dcu\</DCC_DcuOutput>
-        <DCC_ExeOutput>H:\RAZVOJ\DelphiLens\bin\</DCC_ExeOutput>
+        <DCC_DcuOutput>..\..\bin\dcu</DCC_DcuOutput>
+        <DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
         <DCC_RemoteDebug>false</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_2)'!=''">
@@ -132,7 +132,6 @@
                     <Source Name="MainSource">DelphiLensUI.dpr</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="H:\RAZVOJ\DelphiLens\bin\DelphiLensExpertPackage.bpl">DelphiLens Expert</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>

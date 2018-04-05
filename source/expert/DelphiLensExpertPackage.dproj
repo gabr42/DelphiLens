@@ -2,7 +2,7 @@
     <PropertyGroup>
         <ProjectGuid>{C7526D55-AEE7-451C-AA39-1869BC01197F}</ProjectGuid>
         <MainSource>DelphiLensExpertPackage.dpk</MainSource>
-        <ProjectVersion>18.3</ProjectVersion>
+        <ProjectVersion>18.4</ProjectVersion>
         <FrameworkType>None</FrameworkType>
         <Base>True</Base>
         <Config Condition="'$(Config)'==''">Debug</Config>
@@ -73,8 +73,8 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <DCC_BplOutput>H:\RAZVOJ\DelphiLens\bin\</DCC_BplOutput>
-        <DCC_DcuOutput>H:\RAZVOJ\DelphiLens\bin\dcu\</DCC_DcuOutput>
+        <DCC_BplOutput>..\..\bin</DCC_BplOutput>
+        <DCC_DcuOutput>..\..\bin\dcu</DCC_DcuOutput>
         <DCC_UnitSearchPath>..\base;..\ui;..\..\GpDelphiUnits\src;..\..\DelphiAST\Project indexer;..\..\DelphiAST\source;..\..\DelphiAST\source\SimpleParser;..\..\OmniThreadLibrary;..\..\Spring4D\Source\Base;..\..\Spring4D\Source\Base\Collections;..\..\Spring4D\Source;$(DCC_UnitSearchPath)</DCC_UnitSearchPath>
         <DCC_Description>DelphiLens Expert</DCC_Description>
         <VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
@@ -123,7 +123,6 @@
                     <Source Name="MainSource">DelphiLensExpertPackage.dpk</Source>
                 </Source>
                 <Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\MobileWizardExpert250.bpl">Embarcadero Mobile Wizard Help</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>
@@ -514,7 +513,6 @@
                 <ProjectRoot Platform="iOSSimulator" Name="$(PROJECTNAME).app"/>
             </Deployment>
             <Platforms>
-                <Platform value="Linux64">False</Platform>
                 <Platform value="Win32">True</Platform>
                 <Platform value="Win64">False</Platform>
             </Platforms>

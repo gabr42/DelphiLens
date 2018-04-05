@@ -7,8 +7,8 @@ OPEN h:\RAZVOJ\DelphiLens\source\ui\DelphiLensUI.dpr
 SHOW UNITS UIXEngine
 UNIT DelphiLensUI.UIXEngine.Intf USES
 UNIT DelphiLensUI.UIXEngine.Intf USEDIN
-UNIT DelphiLensUI.UIXEngine.Intf CLASSES
-AT DelphiLensUI.UIXEngine.Intf 104 21
+UNIT DelphiLensUI.UIXEngine.Intf TYPES
+FIND TDLCoordinate
 CLOSE
 QUIT
 *)
@@ -59,7 +59,8 @@ type
     function MakeIncludeList(includes: TIncludeFiles): string;
     function MakeProblemList(problems: TProblems): string;
     function MakeUnitList(units: TParsedUnits; const substring: string): string;
-    function UnitClasses(connData: TConnectionData; const unitName: string): string;
+    function UnitTypes(const scanResult: IDLScanResult;
+      const unitName: string): string;
   public
   end;
 
@@ -71,7 +72,7 @@ implementation
 uses
   System.StrUtils,
   DelphiAST.ProjectIndexer,
-  DelphiLens;
+  DelphiLens, DelphiLens.UnitInfo;
 
 {$R *.dfm}
 
@@ -192,11 +193,10 @@ begin
   else if SameText(ASender.Params[1], 'USEDIN') then
     ASender.Reply.SetReply(200,
       string.Join(#13#10, connData.ScanResult.Analyzers.Units.UnitUsedBy(ASender.Params[0]).ToArray))
-  else if SameText(ASender.Params[1], 'CLASSES') then
-//    ASender.Reply.SetReply(200, UnitClasses(connData, ASender.Params[0]))
-    ASender.Reply.SetReply(500, 'Not implemented')
+  else if SameText(ASender.Params[1], 'TYPES') then
+    ASender.Reply.SetReply(200, UnitTypes(connData.ScanResult, ASender.Params[0]))
   else
-    ASender.Reply.SetReply(400, 'Expected: UNIT unit_name USES|USEDIN|CLASSES');
+    ASender.Reply.SetReply(400, 'Expected: UNIT unit_name USES|USEDIN|TYPES');
 end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);
@@ -248,10 +248,24 @@ begin
   Result := string.Join(#13#10, unitList.ToArray);
 end;
 
-function TfrmDelphiLensServer.UnitClasses(connData: TConnectionData;
+function TfrmDelphiLensServer.UnitTypes(const scanResult: IDLScanResult;
   const unitName: string): string;
+var
+  classes : IList<string>;
+  typeInfo: TDLTypeInfo;
+  unitInfo: IDLUnitInfo;
 begin
+  if not scanResult.Analysis.Find(unitName, unitInfo) then
+    Exit('');
 
+  classes := TCollections.CreateList<string>;
+  for typeInfo in unitInfo.InterfaceTypes do
+    classes.Add(typeInfo.Name);
+  for typeInfo in unitInfo.ImplementationTypes do
+    classes.Add(typeInfo.Name);
+  classes.Sort;
+
+  Result := string.Join(#13#10, classes.ToArray);
 end;
 
 end.

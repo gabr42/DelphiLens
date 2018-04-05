@@ -108,7 +108,7 @@ object frmDelphiLensServer: TfrmDelphiLensServer
           'UNIT <unitname> USES ... shows '#39'uses'#39' list for that unit'
           'UNIT <unitname> USEDIN ... shows all units that use that unit'
           
-            'UNIT <unitname> CLASSES ... lists all classes declared in that u' +
+            'UNIT <unitname> TYPES   ... lists all classes declared in that u' +
             'nit')
         Disconnect = False
         Name = 'CmdUnit'

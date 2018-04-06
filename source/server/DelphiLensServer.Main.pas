@@ -74,7 +74,7 @@ implementation
 uses
   System.StrUtils,
   DelphiAST.ProjectIndexer,
-  DelphiLens, DelphiLens.UnitInfo;
+  DelphiLens, DelphiLens.UnitInfo, DelphiLens.Analyzers.Intf;
 
 {$R *.dfm}
 
@@ -119,7 +119,7 @@ begin
   else if not assigned(connData.ScanResult) then
     ASender.Reply.SetReply(400, 'Project is not open')
   else
-    ASender.Reply.SetReply(200, FindIdentifier(connData.ScanResult, ASender.Params[1]));
+    ASender.Reply.SetReply(200, FindIdentifier(connData.ScanResult, ASender.Params[0]));
 end;
 
 procedure TfrmDelphiLensServer.CmdOpen(ASender: TIdCommand);
@@ -216,8 +216,10 @@ end;
 
 function TfrmDelphiLensServer.FindIdentifier(const scanResult: IDLScanResult;
   const ident: string): string;
+var
+  finder: IDLFindAnalyzer;
 begin
-!
+  finder := scanResult.Analyzers.Find;
 end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);

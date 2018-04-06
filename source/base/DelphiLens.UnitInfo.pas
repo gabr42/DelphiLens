@@ -21,6 +21,11 @@ type
     function  ToString: string; inline;
   end; { TDLCoordinate }
 
+  TDLUnitCoordinates = record
+    UnitName   : string;
+    Coordinates: Vector<TDLCoordinate>;
+  end; { TDLUnitCoordinates }
+
   TDLRange = record
   public
     Start: TDLCoordinate;

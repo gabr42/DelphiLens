@@ -9,4 +9,11 @@ function CreateDLFindAnalyzer(const scanResult: IDLScanResult): IDLFindAnalyzer;
 
 implementation
 
+{ exports }
+
+function CreateDLFindAnalyzer(const scanResult: IDLScanResult): IDLFindAnalyzer;
+begin
+  Result := nil;
+end; { CreateDLFindAnalyzer }
+
 end.

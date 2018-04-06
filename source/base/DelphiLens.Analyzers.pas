@@ -10,17 +10,21 @@ function CreateDLAnalyzers(const scanResult: IDLScanResult): IDLAnalyzers;
 implementation
 
 uses
-  DelphiLens.Analyzers.Units;
+  DelphiLens.Analyzers.Find, DelphiLens.Analyzers.Units;
 
 type
   TDLAnalyzers = class(TInterfacedObject, IDLAnalyzers)
   strict private
     [weak] FScanResult: IDLScanResult;
+    FFindAnalyzer     : IDLFindAnalyzer;
     FUnitAnalyzer     : IDLUnitAnalyzer;
-  strict protected
+  strict
+  private
+    function GetFind: IDLFindAnalyzer; protected
     function GetUnits: IDLUnitAnalyzer;
   public
     constructor Create(const scanResult: IDLScanResult);
+    property Find: IDLFindAnalyzer read GetFind;
     property Units: IDLUnitAnalyzer read GetUnits;
   end; { TDLAnalyzers }
 
@@ -38,6 +42,13 @@ begin
   inherited Create;
   FScanResult := scanResult;
 end; { TDLAnalyzers.Create }
+
+function TDLAnalyzers.GetFind: IDLFindAnalyzer;
+begin
+  if not assigned(FFindAnalyzer) then
+    FFindAnalyzer := CreateDLFindAnalyzer(FScanResult);
+  Result := FFindAnalyzer;
+end; { TDLAnalyzers.GetFind }
 
 function TDLAnalyzers.GetUnits: IDLUnitAnalyzer;
 begin

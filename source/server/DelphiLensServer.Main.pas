@@ -217,9 +217,20 @@ end;
 function TfrmDelphiLensServer.FindIdentifier(const scanResult: IDLScanResult;
   const ident: string): string;
 var
-  finder: IDLFindAnalyzer;
+  coord    : TDLCoordinate;
+  oneFile  : IList<string>;
+  output   : IList<string>;
+  unitCoord: TDLUnitCoordinates;
 begin
-  finder := scanResult.Analyzers.Find;
+  output := TCollections.CreateList<string>;
+  oneFile := TCollections.CreateList<string>;
+  for unitCoord in scanResult.Analyzers.Find.All(ident) do begin
+    oneFile.Clear;
+    for coord in unitCoord.Coordinates do
+      oneFile.Add(coord.Line.ToString + ',' + coord.Column.ToString);
+    output.Add(unitCoord.UnitName + ' ' + string.Join('/', oneFile.ToArray));
+  end;
+  Result := string.Join(#13#10, output.ToArray);
 end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);

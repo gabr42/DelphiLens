@@ -15,12 +15,14 @@ type
     FCanGoDeeper : boolean;
     FChildrenOnly: boolean;
     FCurrentNode : TSyntaxNode;
+    FExitOnFirst : boolean;
     FNodeTypes   : TSyntaxNodeTypes;
     [Managed] FUnVisited: TStack<TSyntaxNode>;
   strict protected
     procedure PushChildrenOnStack(node: TSyntaxNode);
   public
-    constructor Create(parentNode: TSyntaxNode; childTypes: TSyntaxNodeTypes; childrenOnly: boolean);
+    constructor Create(parentNode: TSyntaxNode; childTypes: TSyntaxNodeTypes; childrenOnly: boolean); overload;
+    constructor Create(parentNode: TSyntaxNode; childrenOnly: boolean); overload;
     function  GetEnumerator: TSyntaxTreeEnumerator;
     function  GetCurrent: TSyntaxNode; inline;
     function  MoveNext: boolean;
@@ -35,6 +37,7 @@ type
     function  GetTypeName: string;
   public
     class constructor Create;
+    function  All(childrenOnly: boolean = false): TSyntaxTreeEnumerator;
     function  FindAll(nodeType: TSyntaxNodeType; childrenOnly: boolean = true): TSyntaxTreeEnumerator; overload;
     function  FindAll(nodeTypes: TSyntaxNodeTypes; childrenOnly: boolean = true): TSyntaxTreeEnumerator; overload;
     function  FindFirst(nodeType: TSyntaxNodeType): TSyntaxNode; overload;
@@ -65,7 +68,17 @@ begin
   FNodeTypes := childTypes;
   FChildrenOnly := childrenOnly;
   FCanGoDeeper := true;
+  FExitOnFirst := true;
   FUnvisited.Push(parentNode);
+end; { TSyntaxTreeEnumerator.Create }
+
+constructor TSyntaxTreeEnumerator.Create(parentNode: TSyntaxNode;
+  childrenOnly: boolean);
+var
+  nodeTypes: TSyntaxNodeTypes;
+begin
+  Create(parentNode, [Low(TSyntaxNodeType)..High(TSyntaxNodeType)], childrenOnly);
+  FExitOnFirst := false;
 end; { TSyntaxTreeEnumerator.Create }
 
 function TSyntaxTreeEnumerator.GetCurrent: TSyntaxNode;
@@ -84,8 +97,12 @@ begin
   while FUnvisited.Count > 0 do begin
     FCurrentNode := FUnvisited.Pop;
     if FCurrentNode.Typ in FNodeTypes then
-      Exit(true);
+      Result := true;
+    if Result and FExitOnFirst then
+      Exit;
     PushChildrenOnStack(FCurrentNode);
+    if Result then
+      Exit;
   end;
 end; { TSyntaxTreeEnumerator.MoveNext }
 
@@ -111,6 +128,11 @@ begin
   for nodeType := Low(TSyntaxNodeType) to High(TSyntaxNodeType) do
     FNodeTypeNames[nodeType] := TRttiEnumerationType.GetName<TSyntaxNodeType>(nodeType);
 end; { TSyntaxNodeHelper.Create }
+
+function TSyntaxNodeHelper.All(childrenOnly: boolean): TSyntaxTreeEnumerator;
+begin
+  Result := TSyntaxTreeEnumerator.Create(Self, childrenOnly);
+end; { TSyntaxNodeHelper.All }
 
 function TSyntaxNodeHelper.FindAll(nodeType: TSyntaxNodeType; childrenOnly: boolean): TSyntaxTreeEnumerator;
 begin

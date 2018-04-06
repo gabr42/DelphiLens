@@ -52,10 +52,12 @@ type
     procedure CmdSet(ASender: TIdCommand);
     procedure CmdShow(ASender: TIdCommand);
     procedure CmdUnit(ASender: TIdCommand);
+    procedure CmdFind(ASender: TIdCommand);
   private
     FConnections: IDictionary<TIdTCPConnection,TConnectionData>;
   protected
     procedure CloseConnection(connection: TIdTCPConnection);
+    function FindIdentifier(const scanResult: IDLScanResult; const ident: string): string;
     function MakeIncludeList(includes: TIncludeFiles): string;
     function MakeProblemList(problems: TProblems): string;
     function MakeUnitList(units: TParsedUnits; const substring: string): string;
@@ -105,6 +107,19 @@ end;
 procedure TfrmDelphiLensServer.CmdClose(ASender: TIdCommand);
 begin
   CloseConnection(ASender.Context.Connection);
+end;
+
+procedure TfrmDelphiLensServer.CmdFind(ASender: TIdCommand);
+var
+  connData: TConnectionData;
+begin
+  connData := FConnections[ASender.Context.Connection];
+  if ASender.Params.Count <> 1 then
+    ASender.Reply.SetReply(400, 'Expected: FIND identifier')
+  else if not assigned(connData.ScanResult) then
+    ASender.Reply.SetReply(400, 'Project is not open')
+  else
+    ASender.Reply.SetReply(200, FindIdentifier(connData.ScanResult, ASender.Params[1]));
 end;
 
 procedure TfrmDelphiLensServer.CmdOpen(ASender: TIdCommand);
@@ -197,6 +212,12 @@ begin
     ASender.Reply.SetReply(200, UnitTypes(connData.ScanResult, ASender.Params[0]))
   else
     ASender.Reply.SetReply(400, 'Expected: UNIT unit_name USES|USEDIN|TYPES');
+end;
+
+function TfrmDelphiLensServer.FindIdentifier(const scanResult: IDLScanResult;
+  const ident: string): string;
+begin
+!
 end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);

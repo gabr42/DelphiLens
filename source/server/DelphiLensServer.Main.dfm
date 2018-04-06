@@ -120,6 +120,21 @@ object frmDelphiLensServer: TfrmDelphiLensServer
       end
       item
         CmdDelimiter = ' '
+        Command = 'FIND'
+        Description.Strings = (
+          'Finds all instances of an identifier in the project'
+          ''
+          'FIND <identifier>')
+        Disconnect = False
+        Name = 'CmdFInd'
+        NormalReply.Code = '200'
+        ParamDelimiter = ' '
+        ParseParams = True
+        Tag = 0
+        OnCommand = CmdFind
+      end
+      item
+        CmdDelimiter = ' '
         Command = 'CLOSE'
         Description.Strings = (
           'Closes currently open project'

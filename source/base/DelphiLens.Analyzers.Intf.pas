@@ -12,9 +12,15 @@ type
     function UnitUses(const unitName: string): ICollection<string>;
   end; { IDLUnitAnalyzer }
 
+  IDLFindAnalyzer = interface ['{3E7D804D-6F80-48D1-B8BD-27B2547F74AF}']
+    function All(const ident: string): ICollection<TDLCoordinate>;
+  end; { IDLFindAnalyzer }
+
   IDLAnalyzers = interface ['{50F73F1A-6563-4405-95CA-A75E30F4D2BC}']
+    function  GetFind: IDLFindAnalyzer;
     function  GetUnits: IDLUnitAnalyzer;
   //
+    property Find: IDLFindAnalyzer read GetFind;
     property Units: IDLUnitAnalyzer read GetUnits;
   end; { IDLAnalyzers }
 

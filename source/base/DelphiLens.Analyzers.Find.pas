@@ -23,7 +23,7 @@ type
     function  FindIdent(syntaxTree: TSyntaxNode; const ident: string): Vector<TDLCoordinate>;
   public
     constructor Create(const scanResult: IDLScanResult);
-    function All(const ident: string): ICollection<TDLUnitCoordinates>;
+    function  All(const ident: string; progress: TFindProgressProc = nil): ICollection<TDLUnitCoordinates>;
   end; { TDLUnitAnalyzer }
 
 { exports }
@@ -41,13 +41,21 @@ begin
   FScanResult := scanResult;
 end; { TDLFindAnalyzer.Create }
 
-function TDLFindAnalyzer.All(const ident: string): ICollection<TDLUnitCoordinates>;
+function TDLFindAnalyzer.All(const ident: string;
+  progress: TFindProgressProc): ICollection<TDLUnitCoordinates>;
 var
+  abort          : boolean;
   unitCoordinates: TDLUnitCoordinates;
   unitInfo       : TUnitInfo;
 begin
   Result := TCollections.CreateList<TDLUnitCoordinates>;
-  for unitInfo  in FScanResult.ParsedUnits do
+  abort := false;
+  for unitInfo  in FScanResult.ParsedUnits do begin
+    if assigned(progress) then
+      progress(unitInfo.Name, abort);
+    if abort then
+      break; //for unitInfo
+
     if assigned(unitInfo.SyntaxTree) then begin
       unitCoordinates.Coordinates := FindIdent(unitInfo.SyntaxTree, ident);
       if unitCoordinates.Coordinates.Count > 0 then begin
@@ -55,6 +63,7 @@ begin
         Result.Add(unitCoordinates);
       end;
     end;
+  end;
 end; { TDLFindAnalyzer.All }
 
 function TDLFindAnalyzer.FindIdent(syntaxTree: TSyntaxNode;

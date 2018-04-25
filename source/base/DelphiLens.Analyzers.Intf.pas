@@ -13,8 +13,10 @@ type
     function UnitUses(const unitName: string): ICollection<string>;
   end; { IDLUnitAnalyzer }
 
+  TFindProgressProc = reference to procedure (const unitName: string; var abort: boolean);
+
   IDLFindAnalyzer = interface ['{3E7D804D-6F80-48D1-B8BD-27B2547F74AF}']
-    function All(const ident: string): ICollection<TDLUnitCoordinates>;
+    function All(const ident: string; progress: TFindProgressProc = nil): ICollection<TDLUnitCoordinates>;
   end; { IDLFindAnalyzer }
 
   IDLAnalyzers = interface ['{50F73F1A-6563-4405-95CA-A75E30F4D2BC}']

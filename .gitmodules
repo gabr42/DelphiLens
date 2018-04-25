@@ -13,3 +13,6 @@
 [submodule "FastMM4"]
 	path = FastMM4
 	url = https://github.com/pleriche/FastMM4
+[submodule "Virtual-TreeView"]
+	path = Virtual-TreeView
+	url = https://github.com/Virtual-TreeView/Virtual-TreeView.git

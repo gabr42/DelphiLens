@@ -137,6 +137,8 @@ type
     function  BuildButton(const action: IDLUIXAction; options: TDLUIXFrameActionOptions): TRect;
     function  BuildFilteredList(const filteredList: IDLUIXFilteredListAction;
       options: TDLUIXFrameActionOptions): TRect;
+    function  BuildSearch(const search: IDLUIXSearchAction;
+      options: TDLUIXFrameActionOptions): TRect;
     function  BuildList(const listNavigation: IDLUIXListNavigationAction;
       options: TDLUIXFrameActionOptions): TRect;
     function  CollectNames(listBox: TListBox): string;
@@ -481,6 +483,12 @@ begin
     Result := TRect.Empty;
 end; { TDLUIXVCLFloatingFrame.BuildList }
 
+function TDLUIXVCLFloatingFrame.BuildSearch(const search: IDLUIXSearchAction;
+  options: TDLUIXFrameActionOptions): TRect;
+begin
+
+end; { TDLUIXVCLFloatingFrame.BuildSearch }
+
 procedure TDLUIXVCLFloatingFrame.Close;
 begin
   FForm.Close;
@@ -503,12 +511,15 @@ procedure TDLUIXVCLFloatingFrame.CreateAction(const action: IDLUIXAction;
 var
   filterList : IDLUIXFilteredListAction;
   historyList: IDLUIXListNavigationAction;
+  search     : IDLUIXSearchAction;
 begin
   PrepareNewColumn;
   if Supports(action, IDLUIXListNavigationAction, historyList) then
     UpdateClientSize(BuildList(historyList, options))
   else if Supports(action, IDLUIXFilteredListAction, filterList) then
     UpdateClientSize(BuildFilteredList(filterList, options))
+  else if Supports(action, IDLUIXSearchAction, search) then
+    UpdateClientSize(BuildSearch(search, options))
   else
     UpdateClientSize(BuildButton(action, options));
   FPrevOptions := options;

@@ -47,21 +47,23 @@ type
     var unitName: string; var location: TDLCoordinate): boolean;
 
   IDLUIXFilteredListAction = interface(IDLUIXAction) ['{A74C5DBB-F0FA-4560-BAF1-41AB5E4E109F}']
-    function  GetDefaultAction: IDLUIXAction;
     function  GetList: IList<string>;
     function  GetLocationQuery: TDLUIXLocationQueryByName;
-    function  GetManagedActions: IDLUIXManagedActions;
     function  GetSelected: string;
-    procedure SetDefaultAction(const value: IDLUIXAction);
     procedure SetLocationQuery(const value: TDLUIXLocationQueryByName);
   //
     function  FilterLocation(const location: TDLUIXLocation): TDLUIXLocation;
     property List: IList<string> read GetList;
     property Selected: string read GetSelected;
-    property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
-    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
     property LocationQuery: TDLUIXLocationQueryByName read GetLocationQuery write SetLocationQuery;
   end; { IDLUIXFilteredListAction }
+
+  TDLUIXSearchProc = reference to function (const searchTerm: string): ICoordinates;
+
+  TDLUIXProgressCallback = reference to procedure (const unitName: string; var abort: boolean);
+
+  IDLUIXSearchAction = interface(IDLUIXAction) ['{922FC5DA-3781-44AE-94A1-4898D471246C}']
+  end; { IDLUIXSearchAction }
 
 function  CreateOpenAnalyzerAction(const name: string; const analyzer: IDLUIXAnalyzer): IDLUIXAction;
 function  CreateOpenUnitBrowserAction(const name: string; const analyzer: IDLUIXAnalyzer;
@@ -71,18 +73,27 @@ function  CreateNavigationAction(const name: string; const location: TDLUIXLocat
 function  CreateListNavigationAction(const name: string; const locations: IDLUIXNamedLocationList): IDLUIXAction;
 function  CreateFilteredListAction(const name: string; const list: IList<string>;
   const selected: string): IDLUIXAction;
+function  CreateSearchAction(const name: string; const searchProc: TDLUIXSearchProc;
+  const progressCallback: TDLUIXProgressCallback): IDLUIXSearchAction;
 
 implementation
 
 type
   TDLUIXAction = class(TInterfacedObject, IDLUIXAction)
   strict private
-    FName: string;
+    FDefaultAction : IDLUIXAction;
+    FManagedActions: IDLUIXManagedActions;
+    FName          : string;
   strict protected
-    function GetName: string;
+    function  GetDefaultAction: IDLUIXAction;
+    function  GetName: string;
+    function  GetManagedActions: IDLUIXManagedActions;
+    procedure SetDefaultAction(const value: IDLUIXAction);
   public
-    property Name: string read GetName;
     constructor Create(const name: string);
+    property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
+    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
+    property Name: string read GetName;
   end; { TDLUIXAction}
 
   TDLUIXOpenAnalyzerAction = class(TDLUIXAction, IDLUIXOpenAnalyzerAction)
@@ -137,16 +148,11 @@ type
 
   TDLUIXFilteredListAction = class(TDLUIXAction, IDLUIXFilteredListAction)
   strict private
-    FDefaultAction : IDLUIXAction;
-    FList          : IList<string>;
-    FLocationQuery : TDLUIXLocationQueryByName;
-    FManagedActions: IDLUIXManagedActions;
-    FSelected      : string;
+    FList         : IList<string>;
+    FLocationQuery: TDLUIXLocationQueryByName;
+    FSelected     : string;
   strict protected
-    function  GetDefaultAction: IDLUIXAction;
     function  GetLocationQuery: TDLUIXLocationQueryByName;
-    function  GetManagedActions: IDLUIXManagedActions;
-    procedure SetDefaultAction(const value: IDLUIXAction);
     procedure SetLocationQuery(const value: TDLUIXLocationQueryByName);
     function  GetList: IList<string>;
     function  GetSelected: string;
@@ -155,10 +161,17 @@ type
       const selected: string);
     function  FilterLocation(const location: TDLUIXLocation): TDLUIXLocation;
     property List: IList<string> read GetList;
-    property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
-    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
     property LocationQuery: TDLUIXLocationQueryByName read GetLocationQuery write SetLocationQuery;
   end; { TDLUIXFilteredListAction }
+
+  TDLUIXSearchAction = class(TDLUIXAction, IDLUIXSearchAction)
+  strict private
+    FProgressCallback: TDLUIXProgressCallback;
+    FSearchProc      : TDLUIXSearchProc;
+  public
+    constructor Create(const name: string; const searchProc: TDLUIXSearchProc;
+      const progressCallback: TDLUIXProgressCallback);
+  end; { TDLUIXSearchAction }
 
 { exports }
 
@@ -191,18 +204,40 @@ begin
   Result := TDLUIXFilteredListAction.Create(name, list, selected);
 end; { CreateFilteredListAction }
 
+function CreateSearchAction(const name: string; const searchProc: TDLUIXSearchProc;
+  const progressCallback: TDLUIXProgressCallback): IDLUIXSearchAction;
+begin
+  Result := TDLUIXSearchAction.Create(name, searchProc, progressCallback);
+end; { CreateSearchAction }
+
 { TDLUIXAction }
 
 constructor TDLUIXAction.Create(const name: string);
 begin
   inherited Create;
   FName := name;
+  FManagedActions := TCollections.CreateList<TDLUIXManagedAction>;
 end; { TDLUIXAction.Create }
+
+function TDLUIXAction.GetDefaultAction: IDLUIXAction;
+begin
+  Result := FDefaultAction;
+end;
+
+function TDLUIXAction.GetManagedActions: IDLUIXManagedActions;
+begin
+  Result := FManagedActions;
+end;
 
 function TDLUIXAction.GetName: string;
 begin
   Result := FName;
 end; { TDLUIXAction.GetName }
+
+procedure TDLUIXAction.SetDefaultAction(const value: IDLUIXAction);
+begin
+  FDefaultAction := value;
+end; { TDLUIXAction.SetDefaultAction }
 
 { TDLUIXOpenAnalyzerAction }
 
@@ -291,7 +326,6 @@ begin
   inherited Create(name);
   FList := list;
   FSelected := selected;
-  FManagedActions := TCollections.CreateList<TDLUIXManagedAction>;
 end; { TDLUIXFilteredListAction.Create }
 
 function TDLUIXFilteredListAction.FilterLocation(
@@ -308,11 +342,6 @@ begin
   end;
 end; { TDLUIXFilteredListAction.FilterLocation }
 
-function TDLUIXFilteredListAction.GetDefaultAction: IDLUIXAction;
-begin
-  Result := FDefaultAction;
-end; { TDLUIXFilteredListAction.GetDefaultAction }
-
 function TDLUIXFilteredListAction.GetList: IList<string>;
 begin
   Result := FList;
@@ -323,25 +352,26 @@ begin
   Result := FLocationQuery;
 end; { TDLUIXFilteredListAction.GetLocationQuery }
 
-function TDLUIXFilteredListAction.GetManagedActions: IDLUIXManagedActions;
-begin
-  Result := FManagedActions;
-end; { TDLUIXFilteredListAction.GetManagedActions }
-
 function TDLUIXFilteredListAction.GetSelected: string;
 begin
   Result := FSelected;
 end; { TDLUIXFilteredListAction.GetSelected }
-
-procedure TDLUIXFilteredListAction.SetDefaultAction(const value: IDLUIXAction);
-begin
-  FDefaultAction := value;
-end; { TDLUIXFilteredListAction.SetDefaultAction }
 
 procedure TDLUIXFilteredListAction.SetLocationQuery(
   const value: TDLUIXLocationQueryByName);
 begin
   FLocationQuery := value;
 end; { TDLUIXFilteredListAction.SetLocationQuery }
+
+{ TDLUIXSearchAction }
+
+constructor TDLUIXSearchAction.Create(const name: string;
+  const searchProc: TDLUIXSearchProc;
+  const progressCallback: TDLUIXProgressCallback);
+begin
+  inherited Create(name);
+  FSearchProc := searchProc;
+  FProgressCallback := progressCallback;
+end; { TDLUIXSearchAction.Create }
 
 end.

@@ -20,13 +20,7 @@ type
 
   IDLUIXLocationList = IList<TDLUIXLocation>;
 
-  IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
-    function GetName: string;
-  //
-    property Name: string read GetName;
-  end; { IDLUIXAction }
-
-  TDLUIXActions = TArray<IDLUIXAction>;
+  IDLUIXAction = interface;
 
   TDLUIXManagedActionTest = TFunc<integer, boolean>;
 
@@ -43,6 +37,19 @@ type
   end; { TDLUIXManagedAction }
 
   IDLUIXManagedActions = IList<TDLUIXManagedAction>;
+
+  IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
+    function  GetDefaultAction: IDLUIXAction;
+    function  GetManagedActions: IDLUIXManagedActions;
+    function  GetName: string;
+    procedure SetDefaultAction(const value: IDLUIXAction);
+  //
+    property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
+    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
+    property Name: string read GetName;
+  end; { IDLUIXAction }
+
+  TDLUIXActions = TArray<IDLUIXAction>;
 
   IDLUIXFrame = interface;
 

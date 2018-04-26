@@ -522,6 +522,11 @@ var
   treeData   : TDLUIXVCLTreeStorage;
   vt         : TVirtualStringTree;
 begin
+  search.ProgressCallback :=
+    procedure (const unitName: string; var abort: boolean)
+    begin
+    end;
+
   searchBox := TSearchBox.Create(FForm);
   searchBox.Parent := FForm;
   searchBox.Width := CLocationTreeWidth;

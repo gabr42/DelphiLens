@@ -63,6 +63,14 @@ type
   TDLUIXProgressCallback = reference to procedure (const unitName: string; var abort: boolean);
 
   IDLUIXSearchAction = interface(IDLUIXAction) ['{922FC5DA-3781-44AE-94A1-4898D471246C}']
+    function  GetInitialSearch: string;
+    function  GetProgressCallback: TDLUIXProgressCallback;
+    function  GetSearchProc: TDLUIXSearchProc;
+    procedure SetProgressCallback(const value: TDLUIXProgressCallback);
+  //
+    property InitialSearch: string read GetInitialSearch;
+    property ProgressCallback: TDLUIXProgressCallback read GetProgressCallback write SetProgressCallback;
+    property SearchProc: TDLUIXSearchProc read GetSearchProc;
   end; { IDLUIXSearchAction }
 
 function  CreateOpenAnalyzerAction(const name: string; const analyzer: IDLUIXAnalyzer): IDLUIXAction;
@@ -73,7 +81,8 @@ function  CreateNavigationAction(const name: string; const location: TDLUIXLocat
 function  CreateListNavigationAction(const name: string; const locations: IDLUIXNamedLocationList): IDLUIXAction;
 function  CreateFilteredListAction(const name: string; const list: IList<string>;
   const selected: string): IDLUIXAction;
-function  CreateSearchAction(const name: string; const searchProc: TDLUIXSearchProc;
+function  CreateSearchAction(const name, searchToken: string;
+  const searchProc: TDLUIXSearchProc;
   const progressCallback: TDLUIXProgressCallback): IDLUIXSearchAction;
 
 implementation
@@ -166,11 +175,20 @@ type
 
   TDLUIXSearchAction = class(TDLUIXAction, IDLUIXSearchAction)
   strict private
+    FInitialSearch   : string;
     FProgressCallback: TDLUIXProgressCallback;
     FSearchProc      : TDLUIXSearchProc;
+  private
+    function  GetInitialSearch: string;
+    function  GetProgressCallback: TDLUIXProgressCallback;
+    function  GetSearchProc: TDLUIXSearchProc;
+    procedure SetProgressCallback(const Value: TDLUIXProgressCallback);
   public
-    constructor Create(const name: string; const searchProc: TDLUIXSearchProc;
+    constructor Create(const name, searchToken: string;
+      const searchProc: TDLUIXSearchProc;
       const progressCallback: TDLUIXProgressCallback);
+    property ProgressCallback: TDLUIXProgressCallback read GetProgressCallback write SetProgressCallback;
+    property SearchProc: TDLUIXSearchProc read GetSearchProc;
   end; { TDLUIXSearchAction }
 
 { exports }
@@ -204,10 +222,11 @@ begin
   Result := TDLUIXFilteredListAction.Create(name, list, selected);
 end; { CreateFilteredListAction }
 
-function CreateSearchAction(const name: string; const searchProc: TDLUIXSearchProc;
+function CreateSearchAction(const name, searchToken: string;
+  const searchProc: TDLUIXSearchProc;
   const progressCallback: TDLUIXProgressCallback): IDLUIXSearchAction;
 begin
-  Result := TDLUIXSearchAction.Create(name, searchProc, progressCallback);
+  Result := TDLUIXSearchAction.Create(name, searchToken, searchProc, progressCallback);
 end; { CreateSearchAction }
 
 { TDLUIXAction }
@@ -365,13 +384,34 @@ end; { TDLUIXFilteredListAction.SetLocationQuery }
 
 { TDLUIXSearchAction }
 
-constructor TDLUIXSearchAction.Create(const name: string;
+constructor TDLUIXSearchAction.Create(const name, searchToken: string;
   const searchProc: TDLUIXSearchProc;
   const progressCallback: TDLUIXProgressCallback);
 begin
   inherited Create(name);
+  FInitialSearch := searchToken;
   FSearchProc := searchProc;
   FProgressCallback := progressCallback;
 end; { TDLUIXSearchAction.Create }
+
+function TDLUIXSearchAction.GetInitialSearch: string;
+begin
+  Result := FInitialSearch;
+end; { TDLUIXSearchAction.GetInitialSearch }
+
+function TDLUIXSearchAction.GetProgressCallback: TDLUIXProgressCallback;
+begin
+  Result := FProgressCallback;
+end; { TDLUIXSearchAction.GetProgressCallback }
+
+function TDLUIXSearchAction.GetSearchProc: TDLUIXSearchProc;
+begin
+  Result := FSearchProc;
+end; { TDLUIXSearchAction.GetSearchProc }
+
+procedure TDLUIXSearchAction.SetProgressCallback(const value: TDLUIXProgressCallback);
+begin
+  FProgressCallback := value;
+end; { TDLUIXSearchAction.SetProgressCallback }
 
 end.

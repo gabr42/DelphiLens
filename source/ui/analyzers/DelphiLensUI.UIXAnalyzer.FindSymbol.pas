@@ -18,6 +18,9 @@ uses
 
 type
   TDLUIXSymbolFinder = class(TManagedInterfacedObject, IDLUIXAnalyzer)
+  strict private
+    FContext: IDLUIWorkerContext;
+    FSearch : IDLUIXSearchAction;
   strict protected
     function  DoTheSearch(const searchTerm: string): ICoordinates;
     procedure ProgressCallback(const unitName: string; var abort: boolean);
@@ -41,18 +44,18 @@ procedure TDLUIXSymbolFinder.BuildFrame(const action: IDLUIXAction;
 var
   initialSearch : string;
   navigateToUnit: IDLUIXAction;
-  search        : IDLUIXSearchAction;
 begin
+  FContext := context;
   initialSearch := '';
   if assigned(context.NamedSyntaxNode) then
     initialSearch := context.NamedSyntaxNode.GetAttribute(anName);
 
-  search := CreateSearchAction('', DoTheSearch, ProgressCallback);
+  FSearch := CreateSearchAction('', initialSearch, DoTheSearch, ProgressCallback);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
-  search.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToUnit, TDLUIXManagedAction.AnySelected()));
-  search.DefaultAction := navigateToUnit;
+  FSearch.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToUnit, TDLUIXManagedAction.AnySelected()));
+  FSearch.DefaultAction := navigateToUnit;
 
-  frame.CreateAction(search);
+  frame.CreateAction(FSearch);
   frame.CreateAction(navigateToUnit, [faoDefault]);
 end; { TDLUIXSymbolFinder.BuildFrame }
 
@@ -63,13 +66,14 @@ end; { TDLUIXSymbolFinder.CanHandle }
 
 function TDLUIXSymbolFinder.DoTheSearch(const searchTerm: string): ICoordinates;
 begin
-  //
+  FContext.Project.Analyzers.Find.All(searchTerm, ProgressCallback);
 end; { TDLUIXSymbolFinder.DoTheSearch }
 
 procedure TDLUIXSymbolFinder.ProgressCallback(const unitName: string;
   var abort: boolean);
 begin
-  //
+  if assigned(FSearch.ProgressCallback) then
+    FSearch.ProgressCallback(unitName, abort);
 end; { TDLUIXSymbolFinder.ProgressCallback }
 
 end.

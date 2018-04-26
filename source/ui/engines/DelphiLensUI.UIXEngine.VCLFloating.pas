@@ -19,6 +19,7 @@ uses
   System.RegularExpressions,
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls, Vcl.Buttons,
   Vcl.Themes, Vcl.Graphics, Vcl.Imaging.Pngimage,
+  VirtualTrees,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing, GpVCL, GpVCL.OwnerDrawBitBtn,
   DelphiLens.UnitInfo,
@@ -77,7 +78,33 @@ type
     property ListBox: TListBox read GetListBox;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
-  end; { IDLUIXVCLListStorage }
+  end; { TDLUIXVCLListStorage }
+
+  IDLUIXVCLTreeStorage = interface ['{990B7DE6-6222-4D62-A646-3727F70788E9}']
+    function  GetSearchBox: TSearchBox;
+    function  GetSearchTimer: TTimer;
+    function  GetVirtualTree: TBaseVirtualTree;
+  //
+    property SearchBox: TSearchBox read GetSearchBox;
+    property SearchTimer: TTimer read GetSearchTimer;
+    property VirtualTree: TBaseVirtualTree read GetVirtualTree;
+  end; { TDLUIXVCLTreeStorage }
+
+  TDLUIXVCLTreeStorage = class(TInterfacedObject, IDLUIXVCLTreeStorage)
+  strict private
+    FSearchBox  : TSearchBox;
+    FTimer      : TTimer;
+    FVirtualTree: TBaseVirtualTree;
+  strict protected
+    function  GetSearchBox: TSearchBox;
+    function  GetSearchTimer: TTimer;
+    function  GetVirtualTree: TBaseVirtualTree;
+  public
+    constructor Create(AVirtualTree: TBaseVirtualTree; ASearchBox: TSearchBox; ATimer: TTimer);
+    property SearchBox: TSearchBox read GetSearchBox;
+    property SearchTimer: TTimer read GetSearchTimer;
+    property VirtualTree: TBaseVirtualTree read GetVirtualTree;
+  end; { TDLUIXVCLTreeStorage }
 
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
                                                            IDLUIXVCLFloatingFrame)
@@ -93,13 +120,15 @@ type
     CButtonSpacingSmall       =   7;
     CButtonWidth              = 201;
     CColumnSpacing            =  15;
-    CFilteredListWidth        = 201;
     CFilteredListHeight       = 313;
+    CFilteredListWidth        = 201;
     CFrameSpacing             =  21;
     CInactiveFrameOverlap     =  21;
     CListButtonHeight         =  25;
     CListButtonSpacing        =   3;
     CListButtonWidth          = 254;
+    CLocationTreeHeight       = CFilteredListHeight;
+    CLocationTreeWidth        = 2 * CFilteredListWidth;
     CSearchBoxHeight          =  21;
     CSearchToListBoxSeparator =   1;
     CResourceImageAngleLeft   = 'IDD_ANGLE_LEFT';
@@ -115,9 +144,10 @@ type
     end; { TButtonDrawInfo }
   var
     [Managed(false)] FActionMap : IBidiDictionary<TObject, IDLUIXAction>;
+    [Managed(false)] FButtonDraw: IDictionary<TBitBtn, TButtonDrawInfo>;
     [Managed(false)] FForm      : TVCLFloatingForm;
     [Managed(false)] FListMap   : IDictionary<TComponent, IDLUIXVCLListStorage>;
-    [Managed(false)] FButtonDraw: IDictionary<TBitBtn, TButtonDrawInfo>;
+    [Managed(false)] FTreeMap   : IDictionary<TComponent, IDLUIXVCLTreeStorage>;
   var
     FCaptionPanel  : TPanel;
     FColumnTop     : integer;
@@ -296,6 +326,7 @@ begin
   inherited Create;
   FActionMap := TCollections.CreateBidiDictionary<TObject, IDLUIXAction>;
   FListMap := TCollections.CreateDictionary<TComponent, IDLUIXVCLListStorage>;
+  FTreeMap := TCollections.CreateDictionary<TComponent, IDLUIXVCLTreeStorage>;
   FButtonDraw := TCollections.CreateDictionary<TBitBtn, TButtonDrawInfo>;
   FOnShowProc := TCollections.CreateQueue<TProc>;
   FParent := parentFrame;
@@ -485,8 +516,53 @@ end; { TDLUIXVCLFloatingFrame.BuildList }
 
 function TDLUIXVCLFloatingFrame.BuildSearch(const search: IDLUIXSearchAction;
   options: TDLUIXFrameActionOptions): TRect;
+var
+  searchBox  : TSearchBox;
+  searchTimer: TTimer;
+  treeData   : TDLUIXVCLTreeStorage;
+  vt         : TVirtualStringTree;
 begin
+  searchBox := TSearchBox.Create(FForm);
+  searchBox.Parent := FForm;
+  searchBox.Width := CLocationTreeWidth;
+  searchBox.Height := CSearchBoxHeight;
+  searchBox.Left := FColumnLeft;
+  searchBox.Top := FColumnTop + 1;
 
+  vt := TVirtualStringTree.Create(FForm);
+  vt.Parent := FForm;
+  vt.Width := searchBox.Width;
+  vt.Height := CLocationTreeHeight;
+  vt.Left := searchBox.Left;
+  vt.Top := searchBox.BoundsRect.Bottom + CSearchToListBoxSeparator;
+
+  searchTimer := TTimer.Create(FForm);
+  searchTimer.Enabled := false;
+  searchTimer.Interval := 250;
+  searchTimer.OnTimer := HandleSearchBoxTimer;
+
+  treeData := TDLUIXVCLTreeStorage.Create(vt, searchBox, searchTimer);
+  FTreeMap.Add(vt, treeData);
+  FTreeMap.Add(searchBox, treeData);
+  FTreeMap.Add(searchTimer, treeData);
+
+  FActionMap.Add(searchBox, search);
+
+  searchBox.Text := search.InitialSearch;
+
+//  FilterListBox(searchBox);
+//  listBox.SelectAndMakeVisible(listBox.Items.IndexOf(filteredList.Selected));
+
+  Result.TopLeft := searchBox.BoundsRect.TopLeft;
+  Result.BottomRight := vt.BoundsRect.BottomRight;
+  NewColumn;
+
+  QueueOnShow(
+    procedure
+    begin
+//      SetLocationAndOpen(listBox, false);
+      EnableActions(search.ManagedActions, vt.SelectedCount);
+    end);
 end; { TDLUIXVCLFloatingFrame.BuildSearch }
 
 procedure TDLUIXVCLFloatingFrame.Close;
@@ -730,44 +806,67 @@ end; { TDLUIXVCLFloatingFrame.HandleListBoxKeyDown }
 procedure TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown(Sender: TObject;
   var key: word; shift: TShiftState);
 var
-  listBox: TDLUIXListBoxWrapper;
-  timer  : TTimer;
+  listBox    : TDLUIXListBoxWrapper;
+  listBoxData: IDLUIXVCLListStorage;
+  timer      : TTimer;
+  treeData   : IDLUIXVCLTreeStorage;
 begin
+  if not FListMap.TryGetValue(Sender as TComponent, listBoxData) then
+    listBoxData := nil;
+  if not FTreeMap.TryGetValue(Sender as TComponent, treeData) then
+    treeData := nil;
+
   if (key = VK_UP) or (key = VK_DOWN)
      or (key = VK_HOME) or (key = VK_END)
      or (key = VK_PRIOR) or (key = VK_NEXT) then
   begin
-    listBox := FListMap[Sender as TSearchBox].ListBox as TDLUIXListBoxWrapper;
-    if key = VK_UP then
-      listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - 1, 0))
-    else if key = VK_DOWN then
-      listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + 1, listBox.Items.Count - 1))
-    else if key = VK_HOME then
-      listBox.SelectAndMakeVisible(0)
-    else if key = VK_END then
-      listBox.SelectAndMakeVisible(listBox.Items.Count - 1)
-    else if key = VK_PRIOR then
-      listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - NumItems(listBox), 0))
-    else if key = VK_NEXT then
-      listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1));
-    listBox.OnClick(listBox);
-    key := 0;
+    if assigned(listBoxData) then begin
+      listBox := listBoxData.ListBox as TDLUIXListBoxWrapper;
+      if key = VK_UP then
+        listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - 1, 0))
+      else if key = VK_DOWN then
+        listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + 1, listBox.Items.Count - 1))
+      else if key = VK_HOME then
+        listBox.SelectAndMakeVisible(0)
+      else if key = VK_END then
+        listBox.SelectAndMakeVisible(listBox.Items.Count - 1)
+      else if key = VK_PRIOR then
+        listBox.SelectAndMakeVisible(Max(listBox.ItemIndex - NumItems(listBox), 0))
+      else if key = VK_NEXT then
+        listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1));
+      listBox.OnClick(listBox);
+      key := 0;
+    end;
   end
   else if key = VK_RETURN then begin
-    SetLocationAndOpen(FListMap[Sender as TSearchBox].ListBox, true);
-    key := 0;
+    if assigned(listBoxData) then begin
+      SetLocationAndOpen(listBoxData.ListBox, true);
+      key := 0;
+    end;
   end
   else begin
-    timer := FListMap[Sender as TSearchBox].SearchTimer;
-    timer.Enabled := false;
-    timer.Enabled := true;
+    timer := nil;
+    if assigned(listBoxData) then
+      timer := listBoxData.SearchTimer;
+    if assigned(treeData) then
+      timer := treeData.SearchTimer;
+    if assigned(timer) then begin
+      timer.Enabled := false;
+      timer.Enabled := true;
+    end;
   end;
 end; { TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown }
 
 procedure TDLUIXVCLFloatingFrame.HandleSearchBoxTimer(Sender: TObject);
+var
+  listBoxData: IDLUIXVCLListStorage;
+  treeData   : IDLUIXVCLTreeStorage;
 begin
   (Sender as TTimer).Enabled := false;
-  FilterListBox(FListMap[TTimer(Sender)].SearchBox);
+  if FListMap.TryGetValue(Sender as TComponent, listBoxData) then
+    FilterListBox(listBoxData.SearchBox)
+  else if FTreeMap.TryGetValue(TComponent(Sender), treeData) then
+    (FActionMap[treeData.SearchBox] as IDLUIXSearchAction).SearchProc(treeData.SearchBox.Text);
 end; { TDLUIXVCLFloatingFrame.HandleSearchBoxTimer }
 
 function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
@@ -978,5 +1077,31 @@ function TDLUIXVCLListStorage.GetSearchTimer: TTimer;
 begin
   Result := FTimer;
 end; { TDLUIXVCLListStorage.GetSearchTimer }
+
+{ TDLUIXVCLTreeStorage }
+
+constructor TDLUIXVCLTreeStorage.Create(AVirtualTree: TBaseVirtualTree;
+  ASearchBox: TSearchBox; ATimer: TTimer);
+begin
+  inherited Create;
+  FVirtualTree := AVirtualTree;
+  FSearchBox := ASearchBox;
+  FTimer := ATimer;
+end; { TDLUIXVCLTreeStorage.Create }
+
+function TDLUIXVCLTreeStorage.GetSearchBox: TSearchBox;
+begin
+  Result := FSearchBox;
+end; { TDLUIXVCLTreeStorage.GetSearchBox }
+
+function TDLUIXVCLTreeStorage.GetSearchTimer: TTimer;
+begin
+  Result := FTimer;
+end; { TDLUIXVCLTreeStorage.GetSearchTimer }
+
+function TDLUIXVCLTreeStorage.GetVirtualTree: TBaseVirtualTree;
+begin
+  Result := FVirtualTree;
+end; { TDLUIXVCLTreeStorage.GetVirtualTree }
 
 end.

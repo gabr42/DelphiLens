@@ -81,29 +81,36 @@ type
   end; { TDLUIXVCLListStorage }
 
   IDLUIXVCLTreeStorage = interface ['{990B7DE6-6222-4D62-A646-3727F70788E9}']
+    function  GetCoordinates: ICoordinates;
     function  GetSearchBox: TSearchBox;
     function  GetSearchTimer: TTimer;
-    function  GetVirtualTree: TBaseVirtualTree;
+    function  GetVirtualTree: TVirtualStringTree;
+    procedure SetCoordinates(const value: ICoordinates);
   //
+    property Coordinates: ICoordinates read GetCoordinates write SetCoordinates;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
-    property VirtualTree: TBaseVirtualTree read GetVirtualTree;
+    property VirtualTree: TVirtualStringTree read GetVirtualTree;
   end; { TDLUIXVCLTreeStorage }
 
   TDLUIXVCLTreeStorage = class(TInterfacedObject, IDLUIXVCLTreeStorage)
   strict private
+    FCoordinates: ICoordinates;
     FSearchBox  : TSearchBox;
     FTimer      : TTimer;
-    FVirtualTree: TBaseVirtualTree;
+    FVirtualTree: TVirtualStringTree;
   strict protected
+    function  GetCoordinates: ICoordinates;
+    procedure SetCoordinates(const value: ICoordinates);
     function  GetSearchBox: TSearchBox;
     function  GetSearchTimer: TTimer;
-    function  GetVirtualTree: TBaseVirtualTree;
+    function  GetVirtualTree: TVirtualStringTree;
   public
-    constructor Create(AVirtualTree: TBaseVirtualTree; ASearchBox: TSearchBox; ATimer: TTimer);
+    constructor Create(AVirtualTree: TVirtualStringTree; ASearchBox: TSearchBox; ATimer: TTimer);
+    property Coordinates: ICoordinates read GetCoordinates write SetCoordinates;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
-    property VirtualTree: TBaseVirtualTree read GetVirtualTree;
+    property VirtualTree: TVirtualStringTree read GetVirtualTree;
   end; { TDLUIXVCLTreeStorage }
 
   TDLUIXVCLFloatingFrame = class(TManagedInterfacedObject, IDLUIXFrame,
@@ -172,6 +179,7 @@ type
     function  BuildList(const listNavigation: IDLUIXListNavigationAction;
       options: TDLUIXFrameActionOptions): TRect;
     function  CollectNames(listBox: TListBox): string;
+    procedure DoSearch(const treeData: IDLUIXVCLTreeStorage; const searchTerm: string);
     procedure DrawCustomButton(button: TOwnerDrawBitBtn; canvas: TCanvas;
       drawRect: TRect; buttonState: TThemedButton);
     procedure EaseAlphaBlend(start, stop: integer);
@@ -183,6 +191,8 @@ type
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
+    procedure GetSearchNodeText(Sender: TBaseVirtualTree; node: PVirtualNode;
+      column: TColumnIndex; textType: TVSTTextType; var cellText: string);
     procedure HandleListBoxClick(Sender: TObject);
     procedure HandleListBoxDblClick(Sender: TObject);
     procedure HandleListBoxData(control: TWinControl; index: integer;
@@ -193,6 +203,10 @@ type
     procedure HandleSearchBoxKeyDown(Sender: TObject; var key: word;
       shift: TShiftState);
     procedure HandleSearchBoxTimer(Sender: TObject);
+    procedure InitSearchNode(Sender: TBaseVirtualTree; parentNode, node: PVirtualNode;
+      var initialStates: TVirtualNodeInitStates);
+    procedure InitSearchNodeChildren(Sender: TBaseVirtualTree;
+      node: PVirtualNode; var childCount: cardinal);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     function  MakeRes(const resourceName: string): string;
     procedure NewColumn;
@@ -525,6 +539,7 @@ begin
   search.ProgressCallback :=
     procedure (const unitName: string; var abort: boolean)
     begin
+      Application.ProcessMessages;
     end;
 
   searchBox := TSearchBox.Create(FForm);
@@ -553,6 +568,8 @@ begin
 
   FActionMap.Add(searchBox, search);
 
+  vt.Tag := NativeUInt(pointer(treeData));
+
   searchBox.Text := search.InitialSearch;
 
 //  FilterListBox(searchBox);
@@ -565,8 +582,9 @@ begin
   QueueOnShow(
     procedure
     begin
-//      SetLocationAndOpen(listBox, false);
       EnableActions(search.ManagedActions, vt.SelectedCount);
+      if Trim(searchBox.Text) <> '' then
+        DoSearch(treeData, searchBox.Text);
     end);
 end; { TDLUIXVCLFloatingFrame.BuildSearch }
 
@@ -605,6 +623,24 @@ begin
     UpdateClientSize(BuildButton(action, options));
   FPrevOptions := options;
 end; { TDLUIXVCLFloatingFrame.CreateAction }
+
+procedure TDLUIXVCLFloatingFrame.DoSearch(const treeData: IDLUIXVCLTreeStorage;
+  const searchTerm: string);
+var
+  vt: TVirtualStringTree;
+begin
+  treeData.Coordinates := (FActionMap[treeData.SearchBox] as IDLUIXSearchAction).SearchProc(searchTerm);
+  vt := treeData.VirtualTree;
+  vt.BeginUpdate;
+  try
+    vt.Clear;
+    vt.OnInitNode := InitSearchNode;
+    vt.OnInitChildren := InitSearchNodeChildren;
+    vt.OnGetText := GetSearchNodeText;
+    vt.NodeDataSize := SizeOf(IInterface);
+    vt.RootNodeCount := treeData.Coordinates.Count;
+  finally vt.EndUpdate; end;
+end; { TDLUIXVCLFloatingFrame.DoSearch }
 
 procedure TDLUIXVCLFloatingFrame.DrawCustomButton(button: TOwnerDrawBitBtn;
   canvas: TCanvas; drawRect: TRect; buttonState: TThemedButton);
@@ -765,6 +801,24 @@ begin
   Result := (FParent as IDLUIXVCLFloatingFrame).GetBounds_Screen(action);
 end; { TDLUIXVCLFloatingFrame.GetParentRect }
 
+procedure TDLUIXVCLFloatingFrame.GetSearchNodeText(Sender: TBaseVirtualTree;
+  node: PVirtualNode; column: TColumnIndex; textType: TVSTTextType;
+  var cellText: string);
+var
+  treeData: TDLUIXVCLTreeStorage;
+begin
+  if textType = ttStatic then begin
+    cellText := '';
+    Exit;
+  end;
+
+  treeData := TDLUIXVCLTreeStorage(Sender.Tag);
+  if node.Parent = Sender.RootNode then
+    cellText := treeData.Coordinates[node.Index].UnitName
+  else
+    cellText := treeData.Coordinates[node.Parent.Index].Coordinates[node.Index].ToString;
+end; { TDLUIXVCLFloatingFrame.GetSearchNodeText }
+
 procedure TDLUIXVCLFloatingFrame.HandleListBoxClick(Sender: TObject);
 var
   filteredList: IDLUIXFilteredListAction;
@@ -871,8 +925,34 @@ begin
   if FListMap.TryGetValue(Sender as TComponent, listBoxData) then
     FilterListBox(listBoxData.SearchBox)
   else if FTreeMap.TryGetValue(TComponent(Sender), treeData) then
-    (FActionMap[treeData.SearchBox] as IDLUIXSearchAction).SearchProc(treeData.SearchBox.Text);
+    if Trim(treeData.SearchBox.Text) <> '' then
+      DoSearch(treeData, treeData.SearchBox.Text);
 end; { TDLUIXVCLFloatingFrame.HandleSearchBoxTimer }
+
+procedure TDLUIXVCLFloatingFrame.InitSearchNode(Sender: TBaseVirtualTree;
+  parentNode, node: PVirtualNode; var initialStates: TVirtualNodeInitStates);
+var
+  treeData: TDLUIXVCLTreeStorage;
+begin
+  treeData := TDLUIXVCLTreeStorage(Sender.Tag);
+  if not assigned(parentNode) then
+    initialStates := [ivsHasChildren]
+  else
+    initialStates := [];
+end; { TDLUIXVCLFloatingFrame.InitSearchNode }
+
+procedure TDLUIXVCLFloatingFrame.InitSearchNodeChildren(
+  Sender: TBaseVirtualTree; node: PVirtualNode; var childCount: cardinal);
+var
+  treeData: TDLUIXVCLTreeStorage;
+begin
+  if node.Parent <> Sender.RootNode then
+    childCount := 0
+  else begin
+    treeData := TDLUIXVCLTreeStorage(Sender.Tag);
+    childCount := treeData.Coordinates[node.Index].Coordinates.Count;
+  end;
+end; { TDLUIXVCLFloatingFrame.InitSearchNodeChildren }
 
 function TDLUIXVCLFloatingFrame.IsEmpty: boolean;
 begin
@@ -1085,7 +1165,7 @@ end; { TDLUIXVCLListStorage.GetSearchTimer }
 
 { TDLUIXVCLTreeStorage }
 
-constructor TDLUIXVCLTreeStorage.Create(AVirtualTree: TBaseVirtualTree;
+constructor TDLUIXVCLTreeStorage.Create(AVirtualTree: TVirtualStringTree;
   ASearchBox: TSearchBox; ATimer: TTimer);
 begin
   inherited Create;
@@ -1093,6 +1173,11 @@ begin
   FSearchBox := ASearchBox;
   FTimer := ATimer;
 end; { TDLUIXVCLTreeStorage.Create }
+
+function TDLUIXVCLTreeStorage.GetCoordinates: ICoordinates;
+begin
+  Result := FCoordinates;
+end; { TDLUIXVCLTreeStorage.GetCoordinates }
 
 function TDLUIXVCLTreeStorage.GetSearchBox: TSearchBox;
 begin
@@ -1104,9 +1189,14 @@ begin
   Result := FTimer;
 end; { TDLUIXVCLTreeStorage.GetSearchTimer }
 
-function TDLUIXVCLTreeStorage.GetVirtualTree: TBaseVirtualTree;
+function TDLUIXVCLTreeStorage.GetVirtualTree: TVirtualStringTree;
 begin
   Result := FVirtualTree;
 end; { TDLUIXVCLTreeStorage.GetVirtualTree }
+
+procedure TDLUIXVCLTreeStorage.SetCoordinates(const value: ICoordinates);
+begin
+  FCoordinates := value;
+end; { TDLUIXVCLTreeStorage.SetCoordinates }
 
 end.

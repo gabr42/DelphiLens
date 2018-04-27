@@ -66,7 +66,7 @@ end; { TDLUIXSymbolFinder.CanHandle }
 
 function TDLUIXSymbolFinder.DoTheSearch(const searchTerm: string): ICoordinates;
 begin
-  FContext.Project.Analyzers.Find.All(searchTerm, ProgressCallback);
+  Result := FContext.Project.Analyzers.Find.All(searchTerm, ProgressCallback);
 end; { TDLUIXSymbolFinder.DoTheSearch }
 
 procedure TDLUIXSymbolFinder.ProgressCallback(const unitName: string;

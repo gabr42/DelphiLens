@@ -22,7 +22,7 @@ uses
   VirtualTrees,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing, GpVCL, GpVCL.OwnerDrawBitBtn,
-  DelphiLens.UnitInfo,
+  DelphiLens.UnitInfo, DelphiLens.FileCache.Intf, DelphiLens.FileCache,
   DelphiLensUI.UIXAnalyzer.Intf, DelphiLensUI.UIXAnalyzer.Attributes,
   DelphiLensUI.UIXEngine.Actions;
 
@@ -161,6 +161,7 @@ type
     FColumnLeft    : integer;
     FEasing        : IEasing;
     FEasingPos     : IEasing;
+    FFileCache     : IDLFileCache;
     FForceNewColumn: boolean;
     FHistoryButton : TBitBtn;
     FOnAction      : TDLUIXFrameAction;
@@ -188,6 +189,7 @@ type
     procedure FilterListBox(Sender: TObject);
     procedure ForwardAction(Sender: TObject);
     function  GetCaption: string;
+    function  GetFileCache: IDLFileCache;
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     function  GetParentRect(const action: IDLUIXAction = nil): TRect;
@@ -230,6 +232,7 @@ type
     procedure MarkActive(isActive: boolean);
     procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
     property Caption: string read GetCaption write SetCaption;
+    property FileCache: IDLFileCache read GetFileCache;
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { TDLUIXVCLFloatingFrame }
@@ -786,6 +789,17 @@ begin
     Result := '';
 end; { TDLUIXVCLFloatingFrame.GetCaption }
 
+function TDLUIXVCLFloatingFrame.GetFileCache: IDLFileCache;
+begin
+  if assigned(Parent) then
+    Result := Parent.FileCache
+  else begin
+    if not assigned(FFileCache) then
+      FFileCache := CreateFileCache;
+    Result := FFileCache;
+  end;
+end; { TDLUIXVCLFloatingFrame.GetFileCache }
+
 function TDLUIXVCLFloatingFrame.GetOnAction: TDLUIXFrameAction;
 begin
   Result := FOnAction;
@@ -816,7 +830,9 @@ begin
   if node.Parent = Sender.RootNode then
     cellText := treeData.Coordinates[node.Index].UnitName
   else
-    cellText := treeData.Coordinates[node.Parent.Index].Coordinates[node.Index].ToString;
+    cellText := (FActionMap[treeData.SearchBox] as IDLUIXSearchAction).GetLine(
+      treeData.Coordinates[node.Parent.Index].UnitName,
+      treeData.Coordinates[node.Parent.Index].Coordinates[node.Index].Line);
 end; { TDLUIXVCLFloatingFrame.GetSearchNodeText }
 
 procedure TDLUIXVCLFloatingFrame.HandleListBoxClick(Sender: TObject);

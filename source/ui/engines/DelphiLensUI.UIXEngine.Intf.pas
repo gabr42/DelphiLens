@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils,
   Spring, Spring.Collections,
-  DelphiLens.UnitInfo;
+  DelphiLens.UnitInfo, DelphiLens.FileCache.Intf;
 
 type
   TDLUIXLocation = record
@@ -60,6 +60,7 @@ type
 
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']
     function  GetCaption: string;
+    function  GetFileCache: IDLFileCache;
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     procedure SetCaption(const value: string);
@@ -71,6 +72,7 @@ type
     procedure MarkActive(isActive: boolean);
     procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
     property Caption: string read GetCaption write SetCaption;
+    property FileCache: IDLFileCache read GetFileCache;
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { IDLUIXFrame }

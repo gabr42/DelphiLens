@@ -5,12 +5,13 @@ interface
 uses
   Spring,
   DelphiAST.Classes,
-  DelphiLens.Intf,
+  DelphiLens.Intf, DelphiLens.FileCache.Intf,
   DelphilensUI.UIXStorage,
   DelphiLensUI.UIXEngine.Intf;
 
 type
   IDLUIWorkerContext = interface ['{D27B5BBF-B172-49ED-86BE-FCBC2CB80AFA}']
+    function  GetFileCache: IDLFileCache;
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
@@ -21,14 +22,15 @@ type
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   //
+    property FileCache: IDLFileCache read GetFileCache;
     property MonitorNum: integer read GetMonitorNum;
-    property Storage: IDLUIXStorage read GetStorage;
+    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
     property Project: IDLScanResult read GetProject;
     property ProjectName: string read GetProjectName;
     property Source: TDLUIXLocation read GetSource;
-    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
+    property Storage: IDLUIXStorage read GetStorage;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
-    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
+    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { IDLUIWorkerContext }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
@@ -39,11 +41,12 @@ implementation
 
 uses
   DelphiAST.ProjectIndexer,
-  DelphiLens.DelphiASTHelpers;
+  DelphiLens.DelphiASTHelpers, DelphiLens.FileCache;
 
 type
   TDLUIWorkerContext = class(TInterfacedObject, IDLUIWorkerContext)
   strict private
+    FFileCache      : IDLFileCache;
     FMonitorNum     : integer;
     FNamedSyntaxNode: TSyntaxNode;
     FProject        : IDLScanResult;
@@ -53,26 +56,28 @@ type
     FSyntaxNode     : TSyntaxNode;
     FTarget         : Nullable<TDLUIXLocation>;
   strict protected
-    function  GetProjectName: string;
+    function  GetFileCache: IDLFileCache;
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
-    function  GetSyntaxNode: TSyntaxNode;
+    function  GetProjectName: string;
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
+    function  GetSyntaxNode: TSyntaxNode;
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   public
     constructor Create(const AStorage: IDLUIXStorage; const AProjectName: string;
       const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+    property FileCache: IDLFileCache read GetFileCache;
     property MonitorNum: integer read GetMonitorNum;
-    property Storage: IDLUIXStorage read GetStorage;
+    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
     property Project: IDLScanResult read GetProject;
     property ProjectName: string read GetProjectName;
+    property Storage: IDLUIXStorage read GetStorage;
     property Source: TDLUIXLocation read GetSource;
-    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
-    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
+    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { TDLUIWorkerContext }
 
 { exports }
@@ -104,6 +109,13 @@ begin
   if assigned(FSyntaxNode) then
     FNamedSyntaxNode := FSyntaxNode.FindParentWithName;
 end; { TDLUIWorkerContext.Create }
+
+function TDLUIWorkerContext.GetFileCache: IDLFileCache;
+begin
+  if not assigned(FFileCache) then
+    FFileCache := CreateFileCache;
+  Result := FFileCache;
+end; { TDLUIWorkerContext.GetFileCache }
 
 function TDLUIWorkerContext.GetMonitorNum: integer;
 begin

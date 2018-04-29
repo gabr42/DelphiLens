@@ -947,10 +947,7 @@ end; { TDLUIXVCLFloatingFrame.HandleSearchBoxTimer }
 
 procedure TDLUIXVCLFloatingFrame.InitSearchNode(Sender: TBaseVirtualTree;
   parentNode, node: PVirtualNode; var initialStates: TVirtualNodeInitStates);
-var
-  treeData: TDLUIXVCLTreeStorage;
 begin
-  treeData := TDLUIXVCLTreeStorage(Sender.Tag);
   if not assigned(parentNode) then
     initialStates := [ivsHasChildren]
   else
@@ -1074,6 +1071,8 @@ begin
   if assigned(filterAction.DefaultAction)
      and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction)
   then begin
+  ! fix this for tabs
+               
     navigationAction.Location := filterAction.FilterLocation(
       TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid));
 

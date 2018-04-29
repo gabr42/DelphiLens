@@ -19,6 +19,7 @@ type
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
     function  GetSyntaxNode: TSyntaxNode;
+    function  GetTabNames: TArray<string>;
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   //
@@ -30,12 +31,13 @@ type
     property Source: TDLUIXLocation read GetSource;
     property Storage: IDLUIXStorage read GetStorage;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
+    property TabNames: TArray<string> read GetTabNames;
     property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { IDLUIWorkerContext }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
   const AProject: IDLScanResult; const ASource: TDLUIXLocation;
-  AMonitorNum: integer): IDLUIWorkerContext;
+  const ATabNames: TArray<string>; AMonitorNum: integer): IDLUIWorkerContext;
 
 implementation
 
@@ -54,6 +56,7 @@ type
     FSource         : TDLUIXLocation;
     FStorage        : IDLUIXStorage;
     FSyntaxNode     : TSyntaxNode;
+    FTabNames       : TArray<string>;
     FTarget         : Nullable<TDLUIXLocation>;
   strict protected
     function  GetFileCache: IDLFileCache;
@@ -64,11 +67,13 @@ type
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
     function  GetSyntaxNode: TSyntaxNode;
+    function  GetTabNames: TArray<string>;
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   public
     constructor Create(const AStorage: IDLUIXStorage; const AProjectName: string;
-      const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+      const AProject: IDLScanResult; const ASource: TDLUIXLocation;
+      const ATabNames: TArray<string>; AMonitorNum: integer);
     property FileCache: IDLFileCache read GetFileCache;
     property MonitorNum: integer read GetMonitorNum;
     property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
@@ -77,6 +82,7 @@ type
     property Storage: IDLUIXStorage read GetStorage;
     property Source: TDLUIXLocation read GetSource;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
+    property TabNames: TArray<string> read GetTabNames;
     property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { TDLUIWorkerContext }
 
@@ -84,15 +90,17 @@ type
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
   const AProject: IDLScanResult; const ASource: TDLUIXLocation;
-  AMonitorNum: integer): IDLUIWorkerContext;
+  const ATabNames: TArray<string>; AMonitorNum: integer): IDLUIWorkerContext;
 begin
-  Result := TDLUIWorkerContext.Create(AStorage, AProjectName, AProject, ASource, AMonitorNum);
+  Result := TDLUIWorkerContext.Create(AStorage, AProjectName, AProject, ASource,
+              ATabNames, AMonitorNum);
 end; { CreateWorkerContext }
 
 { TDLUIXContext }
 
 constructor TDLUIWorkerContext.Create(const AStorage: IDLUIXStorage; const AProjectName: string;
-  const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+  const AProject: IDLScanResult; const ASource: TDLUIXLocation;
+  const ATabNames: TArray<string>; AMonitorNum: integer);
 var
   unitInfo: TProjectIndexer.TUnitInfo;
 begin
@@ -100,6 +108,7 @@ begin
   FProjectName := AProjectName;
   FProject := AProject;
   FSource := ASource;
+  FTabNames := ATabNames;
   FMonitorNum := AMonitorNum;
 
   if AProject.ParsedUnits.Find(ASource.UnitName, unitInfo)
@@ -151,6 +160,11 @@ function TDLUIWorkerContext.GetSyntaxNode: TSyntaxNode;
 begin
   Result := FSyntaxNode;
 end; { TDLUIWorkerContext.GetSyntaxNode }
+
+function TDLUIWorkerContext.GetTabNames: TArray<string>;
+begin
+  Result := FTabNames;
+end; { TDLUIWorkerContext.GetTabNames }
 
 function TDLUIWorkerContext.GetTarget: Nullable<TDLUIXLocation>;
 begin

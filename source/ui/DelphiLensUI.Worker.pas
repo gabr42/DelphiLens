@@ -43,7 +43,7 @@ type
     constructor Create(const projectName: string);
     destructor  Destroy; override;
     procedure Activate(monitorNum: integer; const fileName: string;
-      line, column: integer; var navigate: boolean);
+      line, column: integer; const tabNames: string; var navigate: boolean);
     procedure FileModified(const fileName: string);
     function  GetNavigationInfo: PDLUINavigationInfo; inline;
     procedure ProjectModified;
@@ -125,7 +125,7 @@ begin
 end; { TDelphiLensUIProject.Destroy }
 
 procedure TDelphiLensUIProject.Activate(monitorNum: integer; const fileName: string;
-  line, column: integer; var navigate: boolean);
+  line, column: integer; const tabNames: string; var navigate: boolean);
 var
   context  : IDLUIWorkerContext;
   oldCursor: TCursor;
@@ -152,7 +152,7 @@ begin
     else begin
       context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
         TDLUIXLocation.Create(fileName, unitName, line, column),
-        monitorNum);
+        tabNames.Split([#13]), monitorNum);
       DLUIShowUI(context);
     end;
   finally FScanLock.Release; end;

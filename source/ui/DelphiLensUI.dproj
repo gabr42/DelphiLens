@@ -134,7 +134,6 @@
                 </Source>
                 <Excluded_Packages>
                     <Excluded_Packages Name="H:\RAZVOJ\DelphiLens\bin\DelphiLensExpertPackage.bpl">DelphiLens Expert</Excluded_Packages>
-                    <Excluded_Packages Name="$(BDSBIN)\MobileWizardExpert250.bpl">Embarcadero Mobile Wizard Help</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>
                 </Excluded_Packages>

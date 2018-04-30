@@ -51,6 +51,14 @@ begin
   filteredList.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToTab, TDLUIXManagedAction.AnySelected()));
   filteredList.DefaultAction := navigateToTab;
 
+  filteredList.FileNameIdxQuery :=
+    function (itemIdx: integer; var fileName: string): boolean
+    begin
+      Result := (itemIdx >= Low(context.TabNames)) and (itemIdx <= High(context.TabNames));
+      if Result then
+        fileName := context.TabNames[itemIdx];
+    end;
+
   frame.CreateAction(filteredList);
   frame.CreateAction(navigateToTab, [faoDefault]);
 end; { TDLUIXTabsAnalyzer.BuildFrame }

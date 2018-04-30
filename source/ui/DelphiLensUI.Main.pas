@@ -105,7 +105,6 @@ var
 begin
   if assigned(ExecuteAction) then begin
     if Supports(ExecuteAction, IDLUIXNavigationAction, navigation) then begin
-ShowMessage('Navigate to ' + navigation.Location.FileName);
       fileName := navigation.Location.FileName;
       if fileName = '' then
         fileName := MapUnitNamesToFileNames(navigation.Location.UnitName);

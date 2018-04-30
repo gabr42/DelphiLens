@@ -51,11 +51,13 @@ type
 
   IDLUIXVCLListStorage = interface ['{90F471EC-DC29-4D4A-B87C-91DC61414BCF}']
     function  GetContent: IList<string>;
+    function  GetContentIdx: IList<integer>;
     function  GetListBox: TListBox;
     function  GetSearchBox: TSearchBox;
     function  GetSearchTimer: TTimer;
   //
     property Content: IList<string> read GetContent;
+    property ContentIdx: IList<integer> read GetContentIdx;
     property ListBox: TListBox read GetListBox;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
@@ -63,18 +65,21 @@ type
 
   TDLUIXVCLListStorage = class(TInterfacedObject, IDLUIXVCLListStorage)
   strict private
-    FContent  : IList<string>;
-    FListBox  : TListBox;
-    FSearchBox: TSearchBox;
-    FTimer    : TTimer;
+    FContent   : IList<string>;
+    FContentIdx: IList<integer>;
+    FListBox   : TListBox;
+    FSearchBox : TSearchBox;
+    FTimer     : TTimer;
   strict protected
     function  GetContent: IList<string>;
+    function  GetContentIdx: IList<integer>;
     function  GetListBox: TListBox;
     function  GetSearchBox: TSearchBox;
     function  GetSearchTimer: TTimer;
   public
     constructor Create(AListBox: TListBox; ASearchBox: TSearchBox; ATimer: TTimer);
     property Content: IList<string> read GetContent;
+    property ContentIdx: IList<integer> read GetContentIdx;
     property ListBox: TListBox read GetListBox;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
@@ -710,8 +715,12 @@ end; { TDLUIXVCLFloatingFrame.EnableActions }
 procedure TDLUIXVCLFloatingFrame.FilterListBox(Sender: TObject);
 var
   content      : IList<string>;
+  contentIdx   : IList<integer>;
   filteredList : IDLUIXFilteredListAction;
+  iItem        : integer;
   listBox      : TListBox;
+  list         : IList<string>;
+  listStorage  : IDLUIXVCLListStorage;
   matchesSearch: TPredicate<string>;
   searchBox    : TSearchBox;
   searchFilter : string;
@@ -729,19 +738,24 @@ begin
     else
       selected := listBox.Items[listBox.ItemIndex];
 
-    content := FListMap[listBox].Content;
+    
+    listStorage := FListMap[listBox];
+    content := listStorage.Content;
+    contentIdx := listStorage.ContentIdx;
     content.Clear;
+    contentIdx.Clear;
+
+    list := filteredList.List;
 
     if searchFilter = '' then
-      content.AddRange(filteredList.List)
-    else begin
-      matchesSearch :=
-        function (const s: string): boolean
-        begin
-          Result := ContainsText(s, searchFilter);
+      content.AddRange(list)
+    else 
+      for iItem := 0 to list.Count - 1 do begin
+        if ContainsText(list[iItem], searchFilter) then begin
+          content.Add(list[iItem]);
+          contentIdx.Add(iItem);
         end;
-      content.AddRange(filteredList.List.Where(matchesSearch));
-    end;
+      end;
 
     listBox.Count := content.Count;
 
@@ -1051,6 +1065,8 @@ procedure TDLUIXVCLFloatingFrame.SetLocationAndOpen(listBox: TListBox; doOpen: b
 var
   action           : TDLUIXManagedAction;
   filterAction     : IDLUIXFilteredListAction;
+  itemIdx          : integer;
+  listStorage      : IDLUIXVCLListStorage;
   navigationAction : IDLUIXNavigationAction;
   unitBrowserAction: IDLUIXOpenUnitBrowserAction;
   unitName         : string;
@@ -1062,7 +1078,8 @@ begin
   else
     unitName := CollectNames(listBox);
 
-  filterAction := FActionMap.Value[FListMap[listBox].SearchBox] as IDLUIXFilteredListAction;
+  listStorage := FListMap[listBox];
+  filterAction := FActionMap.Value[listStorage.SearchBox] as IDLUIXFilteredListAction;
 
   for action in filterAction.ManagedActions do
     if Supports(action.Action, IDLUIXOpenUnitBrowserAction, unitBrowserAction) then
@@ -1071,9 +1088,11 @@ begin
   if assigned(filterAction.DefaultAction)
      and Supports(filterAction.DefaultAction, IDLUIXNavigationAction, navigationAction)
   then begin
-  ! fix this for tabs
-               
-    navigationAction.Location := filterAction.FilterLocation(
+    itemIdx := listBox.ItemIndex;
+    if (itemIdx >= 0) and (itemIdx < listStorage.ContentIdx.Count) then
+      itemIdx := listStorage.ContentIdx[itemIdx];
+
+    navigationAction.Location := filterAction.FilterLocation(itemIdx,
       TDLUIXLocation.Create('', unitName, TDLCoordinate.Invalid));
 
     if doOpen then
@@ -1153,6 +1172,7 @@ constructor TDLUIXVCLListStorage.Create(AListBox: TListBox; ASearchBox: TSearchB
 begin
   inherited Create;
   FContent := TCollections.CreateList<string>;
+  FContentIdx := TCollections.CreateList<integer>;
   FListBox := AListBox;
   FSearchBox := ASearchBox;
   FTimer := ATimer;
@@ -1162,6 +1182,11 @@ function TDLUIXVCLListStorage.GetContent: IList<string>;
 begin
   Result := FContent;
 end; { TDLUIXVCLListStorage.GetContent }
+
+function TDLUIXVCLListStorage.GetContentIdx: IList<integer>;
+begin
+  Result := FContentIdx;
+end; { TDLUIXVCLListStorage.GetContentIdx }
 
 function TDLUIXVCLListStorage.GetListBox: TListBox;
 begin

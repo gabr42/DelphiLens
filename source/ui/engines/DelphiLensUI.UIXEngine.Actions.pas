@@ -45,17 +45,22 @@ type
 
   TDLUIXLocationQueryByName = reference to function(const name: string;
     var unitName: string; var location: TDLCoordinate): boolean;
+  TDLUIXNameQueryByIdx = reference to function(itemIdx: integer;
+    var fileName: string): boolean;
 
   IDLUIXFilteredListAction = interface(IDLUIXAction) ['{A74C5DBB-F0FA-4560-BAF1-41AB5E4E109F}']
+    function  GetFileNameIdxQuery: TDLUIXNameQueryByIdx;
     function  GetList: IList<string>;
     function  GetLocationQuery: TDLUIXLocationQueryByName;
     function  GetSelected: string;
+    procedure SetFileNameIdxQuery(const value: TDLUIXNameQueryByIdx);
     procedure SetLocationQuery(const value: TDLUIXLocationQueryByName);
   //
-    function  FilterLocation(const location: TDLUIXLocation): TDLUIXLocation;
+    function  FilterLocation(itemIdx: integer; const location: TDLUIXLocation): TDLUIXLocation;
+    property FileNameIdxQuery: TDLUIXNameQueryByIdx read GetFileNameIdxQuery write SetFileNameIdxQuery;
     property List: IList<string> read GetList;
-    property Selected: string read GetSelected;
     property LocationQuery: TDLUIXLocationQueryByName read GetLocationQuery write SetLocationQuery;
+    property Selected: string read GetSelected;
   end; { IDLUIXFilteredListAction }
 
   TDLUIXSearchProc = reference to function (const searchTerm: string): ICoordinates;
@@ -162,20 +167,25 @@ type
 
   TDLUIXFilteredListAction = class(TDLUIXAction, IDLUIXFilteredListAction)
   strict private
-    FList         : IList<string>;
-    FLocationQuery: TDLUIXLocationQueryByName;
-    FSelected     : string;
+    FList            : IList<string>;
+    FLocationQuery   : TDLUIXLocationQueryByName;
+    FFileNameIdxQuery: TDLUIXNameQueryByIdx;
+    FSelected        : string;
   strict protected
-    function  GetLocationQuery: TDLUIXLocationQueryByName;
-    procedure SetLocationQuery(const value: TDLUIXLocationQueryByName);
+    function  GetFileNameIdxQuery: TDLUIXNameQueryByIdx;
     function  GetList: IList<string>;
+    function  GetLocationQuery: TDLUIXLocationQueryByName;
     function  GetSelected: string;
+    procedure SetFileNameIdxQuery(const value: TDLUIXNameQueryByIdx);
+    procedure SetLocationQuery(const value: TDLUIXLocationQueryByName);
   public
     constructor Create(const name: string; const list: IList<string>;
       const selected: string);
-    function  FilterLocation(const location: TDLUIXLocation): TDLUIXLocation;
+    function  FilterLocation(itemIdx: integer; const location: TDLUIXLocation): TDLUIXLocation;
+    property FileNameIdxQuery: TDLUIXNameQueryByIdx read GetFileNameIdxQuery write SetFileNameIdxQuery;
     property List: IList<string> read GetList;
     property LocationQuery: TDLUIXLocationQueryByName read GetLocationQuery write SetLocationQuery;
+    property Selected: string read GetSelected;
   end; { TDLUIXFilteredListAction }
 
   TDLUIXSearchAction = class(TDLUIXAction, IDLUIXSearchAction)
@@ -358,9 +368,10 @@ begin
   FSelected := selected;
 end; { TDLUIXFilteredListAction.Create }
 
-function TDLUIXFilteredListAction.FilterLocation(
+function TDLUIXFilteredListAction.FilterLocation(itemIdx: integer;
   const location: TDLUIXLocation): TDLUIXLocation;
 var
+  fileName: string;
   loc     : TDLCoordinate;
   unitName: string;
 begin
@@ -370,7 +381,14 @@ begin
     Result.Line := loc.Line;
     Result.Column := loc.Column;
   end;
+  if assigned(FFileNameIdxQuery) and FFileNameIdxQuery(itemIdx, fileName) then
+    Result.FileName := fileName;
 end; { TDLUIXFilteredListAction.FilterLocation }
+
+function TDLUIXFilteredListAction.GetFileNameIdxQuery: TDLUIXNameQueryByIdx;
+begin
+  Result := FFileNameIdxQuery;
+end; { TDLUIXFilteredListAction.GetFileNameIdxQuery }
 
 function TDLUIXFilteredListAction.GetList: IList<string>;
 begin
@@ -392,6 +410,11 @@ procedure TDLUIXFilteredListAction.SetLocationQuery(
 begin
   FLocationQuery := value;
 end; { TDLUIXFilteredListAction.SetLocationQuery }
+
+procedure TDLUIXFilteredListAction.SetFileNameIdxQuery(const value: TDLUIXNameQueryByIdx);
+begin
+  FFileNameIdxQuery := value;
+end; { TDLUIXFilteredListAction.SetFileNameIdxQuery }
 
 { TDLUIXSearchAction }
 

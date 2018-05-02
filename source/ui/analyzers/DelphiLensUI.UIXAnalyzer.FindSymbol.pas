@@ -13,7 +13,8 @@ uses
   System.SysUtils,
   Spring,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
-  DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo, DelphiLens.FileCache.Intf,
+  DelphiLens.DelphiASTHelpers, DelphiLens.UnitInfo,
+  DelphiLens.FileCache.Intf, DelphiLens.Analyzers.Intf,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
@@ -54,7 +55,7 @@ begin
 
   FSearch := CreateSearchAction('', initialSearch, DoTheSearch, ProgressCallback, GetLine);
   navigateToUnit := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
-  FSearch.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToUnit, TDLUIXManagedAction.AnySelected()));
+  FSearch.ManagedActions.Add(TDLUIXManagedAction.Create(navigateToUnit, TDLUIXManagedAction.SingleSelected()));
   FSearch.DefaultAction := navigateToUnit;
 
   frame.CreateAction(FSearch);
@@ -68,7 +69,7 @@ end; { TDLUIXSymbolFinder.CanHandle }
 
 function TDLUIXSymbolFinder.DoTheSearch(const searchTerm: string): ICoordinates;
 begin
-  Result := FContext.Project.Analyzers.Find.All(searchTerm, ProgressCallback);
+  Result := FContext.Project.Analyzers.Find.All(searchTerm, [foAllowSubstring], ProgressCallback);
 end; { TDLUIXSymbolFinder.DoTheSearch }
 
 function TDLUIXSymbolFinder.GetLine(const unitName: string;

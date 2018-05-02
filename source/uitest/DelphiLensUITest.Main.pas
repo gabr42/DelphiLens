@@ -51,6 +51,7 @@ type
     procedure CopyUnitNames(const units: TParsedUnits);
     procedure CreateUnitNamesList;
     procedure LoadSettings;
+    function  MakeTabNames: string;
     procedure NavigateTo(navToUnit: string; navToLine, navToColumn: integer);
     procedure ReportUIError(const functionName: string);
     procedure OpenUIProject;
@@ -64,7 +65,7 @@ var
 implementation
 
 uses
-  System.Types,
+  System.Types, System.Math,
   DSiWin32,
   GpStuff, GpVCL,
   DelphiAST.Consts, DelphiAST.ProjectIndexer,
@@ -137,7 +138,7 @@ begin
 
   if DLUIActivate(Monitor.MonitorNum, FUIProject, PChar(navToUnit),
        outSource.CaretPos.Y + 1, outSource.CaretPos.X + 1,
-       navToFile, navToLine, navToColumn) <> 0
+       PChar(MakeTabNames), navToFile, navToLine, navToColumn) <> 0
   then
     ReportUIError('DLUIActivate')
   else if navToFile <> '' then begin
@@ -213,6 +214,15 @@ begin
   inpDefines.Text := DSiReadRegistry(CSettingsKey, CSettingsConditionalDefines, '');
   FLoading := false;
 end;
+
+function TfrmDLUITestMain.MakeTabNames: string;
+var
+  i: integer;
+begin
+  Result := '';
+  for i := 0 to Min(lbFiles.Count, 5) do
+    Result := AddToList(Result, #13, lbFiles.Items[i]);
+end; { TfrmDLUITestMain.MakeTabNames }
 
 procedure TfrmDLUITestMain.NavigateTo(navToUnit: string; navToLine, navToColumn: integer);
 var

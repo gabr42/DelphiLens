@@ -160,9 +160,8 @@ begin
   if assigned(editSvc) and editSvc.GetEditBufferIterator(editIter) then begin
     for i := 0 to editIter.Count - 1 do begin
       editBuffer := editIter.EditBuffers[i];
-      if (editBuffer.GetSubViewCount > 0)
-         and SameText(fileName, editBuffer.GetSubViewIdentifier(0))
-      then begin
+      if (editBuffer.GetSubViewCount > 0) and SameText(fileName, editBuffer.FileName) then
+      begin
         editIter.EditBuffers[i].Show;
         Result := true;
         break; //for i
@@ -172,6 +171,7 @@ begin
 
   if not Result then begin
     actSvc := (BorlandIDEServices as IOTAActionServices);
+    LogMessage('Open file directly');
     Result := assigned(actSvc) and actSvc.OpenFile(fileName);
   end;
 

@@ -18,7 +18,7 @@ uses
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
 
 type
-  TDLUIXUnitBrowser = class(TManagedInterfacedObject, IDLUIXAnalyzer)
+  TDLUIXUnitBrowser = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private type
     TUnitNames = IList<string>;
   var
@@ -32,7 +32,7 @@ type
     procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
       const context: IDLUIWorkerContext);
     function  CanHandle(const context: IDLUIWorkerContext): boolean;
-  end; { TDLUIXNavigationAnalyzer }
+  end; { TDLUIXUnitBrowser }
 
 { exports }
 

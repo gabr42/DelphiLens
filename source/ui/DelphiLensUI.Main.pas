@@ -13,6 +13,7 @@ procedure DLUIShowUI(const workerContext: IDLUIWorkerContext);
 implementation
 
 uses
+  Vcl.Dialogs,
   System.SysUtils,
   System.Generics.Collections,
   Spring.Collections,
@@ -21,6 +22,7 @@ uses
   DelphiLensUI.UIXAnalyzer.Navigation,
   DelphiLensUI.UIXAnalyzer.UnitBrowser,
   DelphiLensUI.UIXAnalyzer.FindSymbol,
+  DelphiLensUI.UIXAnalyzer.Tabs,
   DelphiLensUI.UIXAnalyzer.History,
   DelphiLensUI.UIXEngine.Actions,
   DelphiLensUI.UIXEngine.VCLFloating;
@@ -62,6 +64,7 @@ begin
   analyzers.Add(TDLAnalyzerInfo.Create('&Navigation', CreateNavigationAnalyzer));
   analyzers.Add(TDLAnalyzerInfo.Create('&Units', CreateUnitBrowser));
   analyzers.Add(TDLAnalyzerInfo.Create('&Find', CreateFindSymbol));
+  analyzers.Add(TDLAnalyzerInfo.Create('&Tabs', CreateTabsAnalyzer));
   analyzers.Add(TDLAnalyzerInfo.Create('&History', CreateHistoryAnalyzer));
 
   ui := TDLUserInterface.Create(CreateUIXEngine, analyzers, workerContext);

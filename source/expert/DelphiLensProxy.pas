@@ -25,6 +25,7 @@ uses
   Vcl.Forms,
   ToolsAPI, DCCStrs,
   UtilityFunctions,
+  GpStuff,
   DSiWin32,
   DelphiLens.OTAUtils,
   DelphiLensUI.Import, DelphiLensUI.Error;
@@ -88,11 +89,15 @@ var
   apiRes     : integer;
   col        : integer;
   edit       : IOTAEditorServices;
+  editBuffer : IOTAEditBuffer;
+  editIter   : IOTAEditBufferIterator;
   filePath   : string;
+  iTab       : integer;
   line       : integer;
   navToColumn: integer;
   navToFile  : PChar;
   navToLine  : integer;
+  tabNames   : string;
 begin
   try
     Log(lcActivation, 'Activate');
@@ -117,18 +122,27 @@ begin
       line := edit.TopView.CursorPos.Line;
       col := edit.TopView.CursorPos.Col;
       Log(lcActivation, 'Activate in %s @ %d,%d', [filePath, line, col]);
+      tabNames := '';
+      if edit.GetEditBufferIterator(editIter) then
+        for iTab := 0 to editIter.Count - 1 do begin
+          editBuffer := editIter.EditBuffers[iTab];
+          if editBuffer.GetSubViewCount > 0 then
+            tabNames := AddToList(tabNames, #13, editBuffer.FileName);
+        end;
     end;
 
     apiRes := DLUIActivate(Application.MainForm.Monitor.MonitorNum,
-      FDLUIProjectID, PChar(filePath), line, col,
+      FDLUIProjectID, PChar(filePath), line, col, PChar(tabNames),
       navToFile, navToLine, navToColumn);
 
-    if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) and ActivateTabs(string(navToFile)) then
-      if (navToLine > 0) and (navToColumn > 0) then begin
-        Log(lcActivation, '... navigate to %s @ %d,%d',
-          [string(navToFile), navToLine, navToColumn]);
+    if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) then begin
+      Log(lcActivation, 'Navigate to: %s', [string(navToFile)]);
+      if ActivateTabs(string(navToFile)) and (navToLine > 0) and (navToColumn > 0) then
+      begin
+        Log(lcActivation, '... @ %d,%d', [navToLine, navToColumn]);
         SetCursorPosition(navToLine, navToColumn);
       end;
+    end;
   except
     on E: Exception do
       Log(lcError, 'TDelphiLensProxy.Activate', E);

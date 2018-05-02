@@ -26,6 +26,8 @@ type
     Coordinates: Vector<TDLCoordinate>;
   end; { TDLUnitCoordinates }
 
+  ICoordinates = IList<TDLUnitCoordinates>;
+
   TDLRange = record
   public
     Start: TDLCoordinate;

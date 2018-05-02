@@ -28,12 +28,13 @@ function  DLUICloseProject(projectID: integer): integer; stdcall;
 function  DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer; stdcall;
 
 function  DLUIActivate(monitorNum, projectID: integer; fileName: PChar;
-  line, column: integer; var navigateToFile: PChar;
+  line, column: integer; tabNames: PChar; var navigateToFile: PChar;
   var navigateToLine, navigateToColumn: integer): integer; stdcall;
 
 implementation
 
 uses
+  Vcl.Dialogs,
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
   OtlSync, OtlCommon,
@@ -204,7 +205,8 @@ begin
 end; { DLUISetProjectConfig }
 
 function DLUIActivate(monitorNum, projectID: integer; fileName: PChar; line, column: integer;
-  var navigateToFile: PChar; var navigateToLine, navigateToColumn: integer): integer;
+  tabNames: PChar; var navigateToFile: PChar; var navigateToLine,
+  navigateToColumn: integer): integer;
 var
   project : TDelphiLensUIProject;
   navigate: boolean;
@@ -215,7 +217,7 @@ begin
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID]);
     end
     else begin
-      project.Activate(monitorNum, fileName, line, column, navigate);
+      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
       if not navigate then
         navigateToFile := nil
       else begin

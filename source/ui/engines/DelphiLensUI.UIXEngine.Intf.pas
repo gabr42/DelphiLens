@@ -5,7 +5,7 @@ interface
 uses
   System.SysUtils,
   Spring, Spring.Collections,
-  DelphiLens.UnitInfo;
+  DelphiLens.UnitInfo, DelphiLens.FileCache.Intf;
 
 type
   TDLUIXLocation = record
@@ -20,13 +20,7 @@ type
 
   IDLUIXLocationList = IList<TDLUIXLocation>;
 
-  IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
-    function GetName: string;
-  //
-    property Name: string read GetName;
-  end; { IDLUIXAction }
-
-  TDLUIXActions = TArray<IDLUIXAction>;
+  IDLUIXAction = interface;
 
   TDLUIXManagedActionTest = TFunc<integer, boolean>;
 
@@ -44,6 +38,19 @@ type
 
   IDLUIXManagedActions = IList<TDLUIXManagedAction>;
 
+  IDLUIXAction = interface ['{1A7D1495-0533-4749-9851-B2CEF1B44E25}']
+    function  GetDefaultAction: IDLUIXAction;
+    function  GetManagedActions: IDLUIXManagedActions;
+    function  GetName: string;
+    procedure SetDefaultAction(const value: IDLUIXAction);
+  //
+    property DefaultAction: IDLUIXAction read GetDefaultAction write SetDefaultAction;
+    property ManagedActions: IDLUIXManagedActions read GetManagedActions;
+    property Name: string read GetName;
+  end; { IDLUIXAction }
+
+  TDLUIXActions = TArray<IDLUIXAction>;
+
   IDLUIXFrame = interface;
 
   TDLUIXFrameAction = reference to procedure (const frame: IDLUIXFrame; const action: IDLUIXAction);
@@ -53,6 +60,7 @@ type
 
   IDLUIXFrame = interface ['{826510F1-0964-4D02-944E-1A561810675E}']
     function  GetCaption: string;
+    function  GetFileCache: IDLFileCache;
     function  GetOnAction: TDLUIXFrameAction;
     function  GetParent: IDLUIXFrame;
     procedure SetCaption(const value: string);
@@ -64,6 +72,7 @@ type
     procedure MarkActive(isActive: boolean);
     procedure Show(monitorNum: integer; const parentAction: IDLUIXAction);
     property Caption: string read GetCaption write SetCaption;
+    property FileCache: IDLFileCache read GetFileCache;
     property OnAction: TDLUIXFrameAction read GetOnAction write SetOnAction;
     property Parent: IDLUIXFrame read GetParent;
   end; { IDLUIXFrame }

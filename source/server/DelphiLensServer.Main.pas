@@ -235,6 +235,7 @@ end;
 
 procedure TfrmDelphiLensServer.FormCreate(Sender: TObject);
 begin
+  lbLog.Items.Add('Listening on port ' + IdCmdTCPServer1.Bindings[0].Port.ToString);
   FConnections := TCollections.CreateDictionary<TIdTCPConnection,TConnectionData>([doOwnsValues]);
 end;
 

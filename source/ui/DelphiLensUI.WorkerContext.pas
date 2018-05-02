@@ -5,12 +5,13 @@ interface
 uses
   Spring,
   DelphiAST.Classes,
-  DelphiLens.Intf,
+  DelphiLens.Intf, DelphiLens.FileCache.Intf,
   DelphilensUI.UIXStorage,
   DelphiLensUI.UIXEngine.Intf;
 
 type
   IDLUIWorkerContext = interface ['{D27B5BBF-B172-49ED-86BE-FCBC2CB80AFA}']
+    function  GetFileCache: IDLFileCache;
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
@@ -18,32 +19,36 @@ type
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
     function  GetSyntaxNode: TSyntaxNode;
+    function  GetTabNames: TArray<string>;
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   //
+    property FileCache: IDLFileCache read GetFileCache;
     property MonitorNum: integer read GetMonitorNum;
-    property Storage: IDLUIXStorage read GetStorage;
+    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
     property Project: IDLScanResult read GetProject;
     property ProjectName: string read GetProjectName;
     property Source: TDLUIXLocation read GetSource;
-    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
+    property Storage: IDLUIXStorage read GetStorage;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
-    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
+    property TabNames: TArray<string> read GetTabNames;
+    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { IDLUIWorkerContext }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
   const AProject: IDLScanResult; const ASource: TDLUIXLocation;
-  AMonitorNum: integer): IDLUIWorkerContext;
+  const ATabNames: TArray<string>; AMonitorNum: integer): IDLUIWorkerContext;
 
 implementation
 
 uses
   DelphiAST.ProjectIndexer,
-  DelphiLens.DelphiASTHelpers;
+  DelphiLens.DelphiASTHelpers, DelphiLens.FileCache;
 
 type
   TDLUIWorkerContext = class(TInterfacedObject, IDLUIWorkerContext)
   strict private
+    FFileCache      : IDLFileCache;
     FMonitorNum     : integer;
     FNamedSyntaxNode: TSyntaxNode;
     FProject        : IDLScanResult;
@@ -51,43 +56,51 @@ type
     FSource         : TDLUIXLocation;
     FStorage        : IDLUIXStorage;
     FSyntaxNode     : TSyntaxNode;
+    FTabNames       : TArray<string>;
     FTarget         : Nullable<TDLUIXLocation>;
   strict protected
-    function  GetProjectName: string;
+    function  GetFileCache: IDLFileCache;
     function  GetMonitorNum: integer;
     function  GetNamedSyntaxNode: TSyntaxNode;
     function  GetProject: IDLScanResult;
-    function  GetSyntaxNode: TSyntaxNode;
+    function  GetProjectName: string;
     function  GetSource: TDLUIXLocation;
     function  GetStorage: IDLUIXStorage;
+    function  GetSyntaxNode: TSyntaxNode;
+    function  GetTabNames: TArray<string>;
     function  GetTarget: Nullable<TDLUIXLocation>;
     procedure SetTarget(const value: Nullable<TDLUIXLocation>);
   public
     constructor Create(const AStorage: IDLUIXStorage; const AProjectName: string;
-      const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+      const AProject: IDLScanResult; const ASource: TDLUIXLocation;
+      const ATabNames: TArray<string>; AMonitorNum: integer);
+    property FileCache: IDLFileCache read GetFileCache;
     property MonitorNum: integer read GetMonitorNum;
-    property Storage: IDLUIXStorage read GetStorage;
+    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
     property Project: IDLScanResult read GetProject;
     property ProjectName: string read GetProjectName;
+    property Storage: IDLUIXStorage read GetStorage;
     property Source: TDLUIXLocation read GetSource;
-    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
     property SyntaxNode: TSyntaxNode read GetSyntaxNode;
-    property NamedSyntaxNode: TSyntaxNode read GetNamedSyntaxNode;
+    property TabNames: TArray<string> read GetTabNames;
+    property Target: Nullable<TDLUIXLocation> read GetTarget write SetTarget;
   end; { TDLUIWorkerContext }
 
 { exports }
 
 function CreateWorkerContext(const AStorage: IDLUIXStorage; const AProjectName: string;
   const AProject: IDLScanResult; const ASource: TDLUIXLocation;
-  AMonitorNum: integer): IDLUIWorkerContext;
+  const ATabNames: TArray<string>; AMonitorNum: integer): IDLUIWorkerContext;
 begin
-  Result := TDLUIWorkerContext.Create(AStorage, AProjectName, AProject, ASource, AMonitorNum);
+  Result := TDLUIWorkerContext.Create(AStorage, AProjectName, AProject, ASource,
+              ATabNames, AMonitorNum);
 end; { CreateWorkerContext }
 
 { TDLUIXContext }
 
 constructor TDLUIWorkerContext.Create(const AStorage: IDLUIXStorage; const AProjectName: string;
-  const AProject: IDLScanResult; const ASource: TDLUIXLocation; AMonitorNum: integer);
+  const AProject: IDLScanResult; const ASource: TDLUIXLocation;
+  const ATabNames: TArray<string>; AMonitorNum: integer);
 var
   unitInfo: TProjectIndexer.TUnitInfo;
 begin
@@ -95,6 +108,7 @@ begin
   FProjectName := AProjectName;
   FProject := AProject;
   FSource := ASource;
+  FTabNames := ATabNames;
   FMonitorNum := AMonitorNum;
 
   if AProject.ParsedUnits.Find(ASource.UnitName, unitInfo)
@@ -104,6 +118,13 @@ begin
   if assigned(FSyntaxNode) then
     FNamedSyntaxNode := FSyntaxNode.FindParentWithName;
 end; { TDLUIWorkerContext.Create }
+
+function TDLUIWorkerContext.GetFileCache: IDLFileCache;
+begin
+  if not assigned(FFileCache) then
+    FFileCache := CreateFileCache;
+  Result := FFileCache;
+end; { TDLUIWorkerContext.GetFileCache }
 
 function TDLUIWorkerContext.GetMonitorNum: integer;
 begin
@@ -139,6 +160,11 @@ function TDLUIWorkerContext.GetSyntaxNode: TSyntaxNode;
 begin
   Result := FSyntaxNode;
 end; { TDLUIWorkerContext.GetSyntaxNode }
+
+function TDLUIWorkerContext.GetTabNames: TArray<string>;
+begin
+  Result := FTabNames;
+end; { TDLUIWorkerContext.GetTabNames }
 
 function TDLUIWorkerContext.GetTarget: Nullable<TDLUIXLocation>;
 begin

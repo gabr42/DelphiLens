@@ -967,7 +967,6 @@ var
   navigationAction: IDLUIXNavigationAction;
   searchAction    : IDLUIXSearchAction;
   treeData        : TDLUIXVCLTreeStorage;
-  unitName        : string;
 begin
   treeData := TDLUIXVCLTreeStorage(Sender.Tag);
   searchAction := (FActionMap[treeData.SearchBox] as IDLUIXSearchAction);

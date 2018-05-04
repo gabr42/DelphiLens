@@ -53,7 +53,7 @@ begin
     TComparer<string>.Construct(
       function (const left, right: string): integer
       begin
-        Result := CompareText(ExtractFileName(left), ExtractFileName(right));
+        Result := TOrdinalIStringComparer(TIStringComparer.Ordinal).Compare(ExtractFileName(left), ExtractFileName(right));
       end));
 
   FTabNames := TCollections.CreateList<string>;

@@ -10,7 +10,7 @@ function CreateTabsAnalyzer: IDLUIXAnalyzer;
 implementation
 
 uses
-  System.SysUtils,
+  System.SysUtils,  System.Generics.Defaults,
   Spring.Collections,
   DelphiLensUI.WorkerContext,
   DelphiLensUI.UIXEngine.Intf, DelphiLensUI.UIXEngine.Actions;
@@ -19,6 +19,7 @@ type
   TDLUIXTabsAnalyzer = class(TInterfacedObject, IDLUIXAnalyzer)
   strict private
     FTabNames: IList<string>;
+    FTabPaths: IList<string>;
   public
     procedure BuildFrame(const action: IDLUIXAction; const frame: IDLUIXFrame;
       const context: IDLUIWorkerContext);
@@ -40,10 +41,24 @@ var
   filteredList : IDLUIXFilteredListAction;
   iTab         : integer;
   navigateToTab: IDLUIXAction;
+  sPath        : string;
+  sTab         : string;
 begin
+  FTabPaths := TCollections.CreateList<string>;
+  for sTab in context.TabNames do
+    FTabPaths.Add(sTab);
+
+  // terribly inefficient but a) it is called rarely and b) FTabPaths will be really short
+  FTabPaths.Sort(
+    TComparer<string>.Construct(
+      function (const left, right: string): integer
+      begin
+        Result := CompareText(ExtractFileName(left), ExtractFileName(right));
+      end));
+
   FTabNames := TCollections.CreateList<string>;
-  for iTab := Low(context.TabNames) to High(context.TabNames) do
-    FTabNames.Add(ExtractFileName(context.TabNames[iTab]));
+  for sPath in FTabPaths do
+    FTabNames.Add(ExtractFileName(sPath));
 
   filteredList := CreateFilteredListAction('', FTabNames, context.Source.UnitName) as IDLUIXFilteredListAction;
   navigateToTab := CreateNavigationAction('&Open', Default(TDLUIXLocation), false);
@@ -54,9 +69,9 @@ begin
   filteredList.FileNameIdxQuery :=
     function (itemIdx: integer; var fileName: string): boolean
     begin
-      Result := (itemIdx >= Low(context.TabNames)) and (itemIdx <= High(context.TabNames));
+      Result := (itemIdx >= 0) and (itemIdx < FTabPaths.Count);
       if Result then
-        fileName := context.TabNames[itemIdx];
+        fileName := FTabPaths[itemIdx];
     end;
 
   frame.CreateAction(filteredList);

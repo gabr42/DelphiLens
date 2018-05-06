@@ -83,7 +83,7 @@ object frmDLUITestMain: TfrmDLUITestMain
   object btnRescan: TButton
     Left = 16
     Top = 113
-    Width = 138
+    Width = 105
     Height = 25
     Caption = 'Rescan'
     TabOrder = 4
@@ -126,6 +126,15 @@ object frmDLUITestMain: TfrmDLUITestMain
     Anchors = [akLeft, akRight, akBottom]
     ItemHeight = 13
     TabOrder = 8
+  end
+  object Button1: TButton
+    Left = 127
+    Top = 113
+    Width = 27
+    Height = 25
+    Caption = 'R'
+    TabOrder = 9
+    OnClick = Button1Click
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'

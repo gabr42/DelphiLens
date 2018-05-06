@@ -26,6 +26,7 @@ type
     lblProject       : TLabel;
     lblSearchPath    : TLabel;
     outSource        : TMemo;
+    Button1: TButton;
     procedure btnRescanClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
@@ -34,6 +35,7 @@ type
     procedure lbFilesClick(Sender: TObject);
     procedure SettingExit(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private const
     CSettingsKey = '\SOFTWARE\Gp\DelphiLens\DelphiLensDesktop';
     CSettingsProject            = 'Project';
@@ -147,6 +149,12 @@ begin
       navToUnit := ChangeFileExt(navToUnit, '');
     NavigateTo(navToUnit, navToLine, navToColumn);
   end;
+end;
+
+procedure TfrmDLUITestMain.Button1Click(Sender: TObject);
+begin
+  if DLUIRescanProject(FUIProject) <> 0 then
+    ReportUIError('DLUIRescanProject');
 end;
 
 procedure TfrmDLUITestMain.CloseUIProject;

@@ -31,14 +31,16 @@ type
 
   TDelphiLensUIProject = class
   strict private
-    FNavigationInfo: TDLUINavigationInfo;
-    FProjectName   : string;
-    FScanLock      : IOmniCriticalSection;
-    FScanResult    : IDLScanResult;
-    FUIXStorage    : IDLUIXStorage;
-    FWorker        : IOmniTaskControl;
+    FCurrentRescanID: integer;
+    FCurrentResultID: integer;
+    FNavigationInfo : TDLUINavigationInfo;
+    FProjectName    : string;
+    FScanLock       : IOmniCriticalSection;
+    FScanResult     : IDLScanResult;
+    FUIXStorage     : IDLUIXStorage;
+    FWorker         : IOmniTaskControl;
   protected
-    procedure ScanComplete(const result: IDLScanResult);
+    procedure ScanComplete(const result: IDLScanResult; scanID: integer);
   public
     constructor Create(const projectName: string);
     destructor  Destroy; override;
@@ -66,6 +68,9 @@ uses
   DelphiLens,
   DelphiLensUI.Main, DelphiLensUI.WorkerContext;
 
+const
+  MSG_RESCAN = 1;
+
 type
   TDelphiLensUIWorker = class(TOmniWorker)
   strict private const
@@ -75,7 +80,10 @@ type
     FDelphiLens: IDelphiLens;
     FOwner     : TDelphiLensUIProject;
     FScanLock  : IOmniCriticalSection;
-  strict protected
+    FScanID    : TOmniAlignedInt32;
+  strict
+  private
+    function GetScanID: integer; protected
     procedure ReportException(const funcName: string; E: Exception);
     procedure ScheduleRescan;
   protected
@@ -85,8 +93,9 @@ type
     procedure Close;
     procedure ProjectModified;
     procedure FileModified(const fileModified: TOmniValue);
-    procedure Rescan;
+    procedure Rescan(var msg: TOmniMessage); message MSG_RESCAN;
     procedure SetConfig(const configInfo: TOmniValue);
+    property ScanID: integer read GetScanID;
   end; { TDelphiLensUIWorker }
 
 { TDLUIProjectConfig }
@@ -131,8 +140,6 @@ var
   oldCursor: TCursor;
   unitName : string;
 begin
-  //TODO: *** Needs a way to wait for the latest rescan to be processed. Requests must send command ID and ScanCompleted must return this command ID.
-
   unitName := ExtractFileName(fileName);
   if DSiFileExtensionIs(unitName, ['.pas', '.dpr', '.dpk']) then
     unitName := ChangeFileExt(unitName, '');
@@ -140,22 +147,26 @@ begin
   oldCursor := Screen.Cursor;
   Screen.Cursor := crHourGlass;
 
-  FScanLock.Acquire;
-  try
-    Application.ProcessMessages;
-    //TODO: Show nicer "Please wait" window with TActivityIndicator
-    Screen.Cursor := oldCursor;
+  repeat
+    FScanLock.Acquire;
+    try
+      Application.ProcessMessages;
+      //TODO: Show nicer "Please wait" window with TActivityIndicator
+      Screen.Cursor := oldCursor;
 
-    if not assigned(FScanResult) then
-      //TODO: Report error
-//      Console.Writeln('Activate: Project = nil')
-    else begin
-      context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
-        TDLUIXLocation.Create(fileName, unitName, line, column),
-        tabNames.Split([#13]), monitorNum);
-      DLUIShowUI(context);
-    end;
-  finally FScanLock.Release; end;
+      if not assigned(FScanResult) then
+        //TODO: Report error
+  //      Console.Writeln('Activate: Project = nil')
+  //      break; //repeat
+      else if FCurrentResultID = FCurrentRescanID then begin
+        context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
+          TDLUIXLocation.Create(fileName, unitName, line, column),
+          tabNames.Split([#13]), monitorNum);
+        DLUIShowUI(context);
+        break; //repeat
+      end;
+    finally FScanLock.Release; end;
+  until false;
 
   navigate := assigned(context) and context.Target.HasValue;
   if navigate then
@@ -178,13 +189,19 @@ begin
 end; { TDelphiLensUIProject.ProjectModified }
 
 procedure TDelphiLensUIProject.Rescan;
+var
+  waiter: IOmniWaitableValue;
 begin
-  FWorker.Invoke(@TDelphiLensUIWorker.Rescan);
+  waiter := CreateWaitableValue;
+  FWorker.Comm.Send(MSG_RESCAN, waiter);
+  waiter.WaitFor; //TODO: Add timeout, report error
+  FCurrentRescanID := waiter.Value;
 end; { TDelphiLensUIProject.Rescan }
 
-procedure TDelphiLensUIProject.ScanComplete(const result: IDLScanResult);
+procedure TDelphiLensUIProject.ScanComplete(const result: IDLScanResult; scanID: integer);
 begin
   FScanResult := result;
+  FCurrentResultID := scanID;
 end; { TDelphiLensUIProject.ScanComplete }
 
 procedure TDelphiLensUIProject.SetConfig(const config: TDLUIProjectConfig);
@@ -214,12 +231,18 @@ begin
   end;
 end; { TDelphiLensUIWorker.FileModified }
 
+function TDelphiLensUIWorker.GetScanID: integer;
+begin
+  Result := FScanID.Value;
+end; { TDelphiLensUIWorker.GetScanID }
+
 function TDelphiLensUIWorker.Initialize: boolean;
 begin
   Result := inherited Initialize;
   if Result then begin
     FOwner := Task.Param['owner'];
     FScanLock := Task.Param['lock'].AsInterface as IOmniCriticalSection;
+    FScanID.Value := 0;
   end;
 end; { TDelphiLensUIWorker.Initialize }
 
@@ -250,11 +273,13 @@ begin
 //  Console.Writeln(['Worker exception in ', funcName, ' ', E.ClassName, ': ', E.Message]);
 end; { TDelphiLensUIWorker.ReportException }
 
-procedure TDelphiLensUIWorker.Rescan;
+procedure TDelphiLensUIWorker.Rescan(var msg: TOmniMessage);
 var
   scanResult: IDLScanResult;
 begin
   try
+    FScanID.Increment;
+    (msg.MsgData.AsInterface as IOmniWaitableValue).Signal(FScanID.Value);
     if not assigned(FDelphiLens) then
       Exit;
 
@@ -268,7 +293,7 @@ begin
     Task.Invoke(
       procedure
       begin
-        FOwner.ScanComplete(scanResult);
+        FOwner.ScanComplete(scanResult, FScanID.Value);
       end);
   except
     on E:Exception do

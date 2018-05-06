@@ -81,9 +81,7 @@ type
     FOwner     : TDelphiLensUIProject;
     FScanLock  : IOmniCriticalSection;
     FScanID    : TOmniAlignedInt32;
-  strict
-  private
-    function GetScanID: integer; protected
+  strict protected
     procedure ReportException(const funcName: string; E: Exception);
     procedure ScheduleRescan;
   protected
@@ -95,7 +93,7 @@ type
     procedure FileModified(const fileModified: TOmniValue);
     procedure Rescan(var msg: TOmniMessage); message MSG_RESCAN;
     procedure SetConfig(const configInfo: TOmniValue);
-    property ScanID: integer read GetScanID;
+    procedure TimerRescan;
   end; { TDelphiLensUIWorker }
 
 { TDLUIProjectConfig }
@@ -158,14 +156,17 @@ begin
         //TODO: Report error
   //      Console.Writeln('Activate: Project = nil')
   //      break; //repeat
-      else if FCurrentResultID = FCurrentRescanID then begin
+      else if FCurrentResultID >= FCurrentRescanID then begin // may run ahead because of the timer
         context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
           TDLUIXLocation.Create(fileName, unitName, line, column),
           tabNames.Split([#13]), monitorNum);
         DLUIShowUI(context);
         break; //repeat
-      end;
-    finally FScanLock.Release; end;
+      end
+      else
+    finally
+      FScanLock.Release;
+    end;
   until false;
 
   navigate := assigned(context) and context.Target.HasValue;
@@ -231,11 +232,6 @@ begin
   end;
 end; { TDelphiLensUIWorker.FileModified }
 
-function TDelphiLensUIWorker.GetScanID: integer;
-begin
-  Result := FScanID.Value;
-end; { TDelphiLensUIWorker.GetScanID }
-
 function TDelphiLensUIWorker.Initialize: boolean;
 begin
   Result := inherited Initialize;
@@ -279,7 +275,8 @@ var
 begin
   try
     FScanID.Increment;
-    (msg.MsgData.AsInterface as IOmniWaitableValue).Signal(FScanID.Value);
+    if not msg.MsgData.IsEmpty then
+      (msg.MsgData.AsInterface as IOmniWaitableValue).Signal(FScanID.Value);
     if not assigned(FDelphiLens) then
       Exit;
 
@@ -305,7 +302,7 @@ procedure TDelphiLensUIWorker.ScheduleRescan;
 begin
   try
     if assigned(FDelphiLens) then
-      Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensUIWorker.Rescan);
+      Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensUIWorker.TimerRescan);
   except
     on E:Exception do
       ReportException('ScheduleRescan', E);
@@ -329,6 +326,14 @@ begin
       ReportException('SetConfig', E);
   end;
 end; { TDelphiLensUIWorker.SetConfig }
+
+procedure TDelphiLensUIWorker.TimerRescan;
+var
+  msg: TOmniMessage;
+begin
+  msg := TOmniMessage.Create(0, TOmniValue.Null);
+  Rescan(msg);
+end; { TDelphiLensUIWorker.TimerRecan }
 
 { TDLUINavigationInfo }
 

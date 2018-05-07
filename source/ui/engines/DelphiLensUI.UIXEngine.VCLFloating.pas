@@ -226,6 +226,7 @@ type
     procedure HandleSearchBoxTimer(Sender: TObject);
     procedure HandleVTFocusChanged(Sender: TBaseVirtualTree; node: PVirtualNode;
       column: TColumnIndex);
+    procedure HandleVTDblClick(Sender: TObject);
     procedure InitSearchNode(Sender: TBaseVirtualTree; parentNode, node: PVirtualNode;
       var initialStates: TVirtualNodeInitStates);
     procedure InitSearchNodeChildren(Sender: TBaseVirtualTree;
@@ -589,6 +590,7 @@ begin
   vt.OnInitNode := InitSearchNode;
   vt.OnInitChildren := InitSearchNodeChildren;
   vt.OnGetText := GetSearchNodeText;
+  vt.OnDblClick := HandleVTDblClick;
 
   searchTimer := TTimer.Create(FForm);
   searchTimer.Enabled := false;
@@ -979,6 +981,24 @@ begin
   else if FTreeMap.TryGetValue(TComponent(Sender), treeData) then
     StartSearch(treeData.SearchBox);
 end; { TDLUIXVCLFloatingFrame.HandleSearchBoxTimer }
+
+procedure TDLUIXVCLFloatingFrame.HandleVTDblClick(Sender: TObject);
+var
+  navigationAction: IDLUIXNavigationAction;
+  searchAction    : IDLUIXSearchAction;
+  treeData        : TDLUIXVCLTreeStorage;
+begin
+  treeData := TDLUIXVCLTreeStorage((Sender as TBaseVirtualTree).Tag);
+  searchAction := (FActionMap[treeData.SearchBox] as IDLUIXSearchAction);
+
+  if not (assigned(searchAction.DefaultAction)
+          and Supports(searchAction.DefaultAction, IDLUIXNavigationAction, navigationAction))
+  then
+    navigationAction := nil;
+
+  if assigned(navigationAction) then
+    OnAction(Self, navigationAction);
+end; { TDLUIXVCLFloatingFrame.HandleVTDblClick }
 
 procedure TDLUIXVCLFloatingFrame.HandleVTFocusChanged(Sender: TBaseVirtualTree;
   node: PVirtualNode; column: TColumnIndex);

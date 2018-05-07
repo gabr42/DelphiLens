@@ -233,6 +233,8 @@ type
       node: PVirtualNode; var childCount: cardinal);
     function  IsHistoryAnalyzer(const analyzer: IDLUIXAnalyzer): boolean;
     function  MakeRes(const resourceName: string): string;
+    procedure MoveDown(vt: TVirtualStringTree);
+    procedure MoveUp(vt: TVirtualStringTree);
     procedure NewColumn;
     function  NumItems(listBox: TListBox): integer;
     procedure PrepareNewColumn;
@@ -244,6 +246,7 @@ type
     procedure SetOnAction(const value: TDLUIXFrameAction);
     procedure StartSearch(Sender: TObject);
     procedure UpdateClientSize(const rect: TRect);
+    procedure VTSelectNode(vt: TBaseVirtualTree; node: PVirtualNode);
   public
     constructor Create(const parentFrame: IDLUIXFrame);
     // IDLUIXVCLFloatingFrame
@@ -949,6 +952,16 @@ begin
         listBox.SelectAndMakeVisible(Min(listBox.ItemIndex + NumItems(listBox), listBox.Items.Count - 1));
       listBox.OnClick(listBox);
       key := 0;
+    end
+    else if assigned(treeData) then begin
+      if key = VK_UP then begin
+        MoveUp(treeData.VirtualTree);
+        key := 0;
+      end
+      else if key = VK_DOWN then begin
+        MoveDown(treeData.VirtualTree);
+        key := 0;
+      end;
     end;
   end
   else if key = VK_RETURN then begin
@@ -1083,6 +1096,27 @@ begin
     end;
   end;
 end; { TDLUIXVCLFloatingFrame.MarkActive }
+
+procedure TDLUIXVCLFloatingFrame.MoveDown(vt: TVirtualStringTree);
+var
+  node: PVirtualNode;
+begin
+  node := vt.GetNextLeaf(vt.FocusedNode);
+  if assigned(node) then
+    VTSelectNode(vt, node);
+end; { TDLUIXVCLFloatingFrame.MoveDown }
+
+procedure TDLUIXVCLFloatingFrame.MoveUp(vt: TVirtualStringTree);
+var
+  node: PVirtualNode;
+begin
+  if assigned(vt.FocusedNode) then
+    node := vt.GetPreviousLeaf(vt.FocusedNode)
+  else
+    node := vt.GetLast;
+  if assigned(node) then
+    VTSelectNode(vt, node);
+end; { TDLUIXVCLFloatingFrame.MoveUp }
 
 procedure TDLUIXVCLFloatingFrame.NewColumn;
 begin
@@ -1246,6 +1280,14 @@ begin
   FForm.ClientHeight := Max(FForm.ClientHeight, rect.Bottom);
   FColumnTop := Max(FColumnTop, rect.Bottom);
 end; { TDLUIXVCLFloatingFrame.UpdateClientSize }
+
+procedure TDLUIXVCLFloatingFrame.VTSelectNode(vt: TBaseVirtualTree; node: PVirtualNode);
+begin
+  vt.ClearSelection;
+  if assigned(node) then
+    vt.Selected[node] := true;
+  vt.FocusedNode := node;
+end; { TDLUIXVCLFloatingFrame.VTSelectNode }
 
 { TDLUIXVCLFloatingEngine }
 

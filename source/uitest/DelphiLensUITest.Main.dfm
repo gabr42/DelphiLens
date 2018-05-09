@@ -109,9 +109,9 @@ object frmDLUITestMain: TfrmDLUITestMain
     OnClick = lbFilesClick
   end
   object btnShowUI: TButton
-    Left = 160
+    Left = 192
     Top = 113
-    Width = 589
+    Width = 557
     Height = 25
     Anchors = [akLeft, akTop, akRight]
     Caption = 'Show UI'
@@ -135,6 +135,15 @@ object frmDLUITestMain: TfrmDLUITestMain
     Caption = 'R'
     TabOrder = 9
     OnClick = Button1Click
+  end
+  object Button2: TButton
+    Left = 160
+    Top = 113
+    Width = 26
+    Height = 25
+    Caption = 'S'
+    TabOrder = 10
+    OnClick = Button2Click
   end
   object dlgOpenProject: TFileOpenDialog
     DefaultExtension = '.dpr'

@@ -27,6 +27,7 @@ type
     lblSearchPath    : TLabel;
     outSource        : TMemo;
     Button1: TButton;
+    Button2: TButton;
     procedure btnRescanClick(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure btnSelectClick(Sender: TObject);
@@ -36,6 +37,7 @@ type
     procedure SettingExit(Sender: TObject);
     procedure FormDestroy(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
   private const
     CSettingsKey = '\SOFTWARE\Gp\DelphiLens\DelphiLensDesktop';
     CSettingsProject            = 'Project';
@@ -155,6 +157,13 @@ procedure TfrmDLUITestMain.Button1Click(Sender: TObject);
 begin
   if DLUIRescanProject(FUIProject) <> 0 then
     ReportUIError('DLUIRescanProject');
+end;
+
+procedure TfrmDLUITestMain.Button2Click(Sender: TObject);
+begin
+  outSource.Lines.SaveToFile(FUnits[lbFiles.Items[lbFiles.ItemIndex]]);
+  if DLUIFileModified(FUIProject, PChar(FUnits[lbFiles.Items[lbFiles.ItemIndex]])) <> 0 then
+    ReportUIError('DLUIFileModified');
 end;
 
 procedure TfrmDLUITestMain.CloseUIProject;

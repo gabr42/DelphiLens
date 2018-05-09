@@ -89,16 +89,19 @@ type
     function  GetAbortSearch: boolean;
     function  GetCoordinates: ICoordinates;
     function  GetInSearch: boolean;
+    function  GetLastSearch: string;
     function  GetSearchBox: TSearchBox;
     function  GetSearchTimer: TTimer;
     function  GetVirtualTree: TVirtualStringTree;
     procedure SetAbortSearch(const value: boolean);
     procedure SetCoordinates(const value: ICoordinates);
     procedure SetInSearch(const value: boolean);
+    procedure SetLastSearch(const value: string);
   //
     property AbortSearch: boolean read GetAbortSearch write SetAbortSearch;
     property Coordinates: ICoordinates read GetCoordinates write SetCoordinates;
     property InSearch: boolean read GetInSearch write SetInSearch;
+    property LastSearch: string read GetLastSearch write SetLastSearch;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
     property VirtualTree: TVirtualStringTree read GetVirtualTree;
@@ -109,10 +112,13 @@ type
     FAbortSearch: boolean;
     FCoordinates: ICoordinates;
     FInSearch   : boolean;
+    FLastSearch : string;
     FSearchBox  : TSearchBox;
     FTimer      : TTimer;
     FVirtualTree: TVirtualStringTree;
   strict protected
+    procedure SetLastSearch(const value: string);
+    function  GetLastSearch: string;
     function  GetAbortSearch: boolean;
     function  GetCoordinates: ICoordinates;
     function  GetInSearch: boolean;
@@ -127,6 +133,7 @@ type
     property Coordinates: ICoordinates read GetCoordinates write SetCoordinates;
     property AbortSearch: boolean read GetAbortSearch write SetAbortSearch;
     property InSearch: boolean read GetInSearch write SetInSearch;
+    property LastSearch: string read GetLastSearch write SetLastSearch;
     property SearchBox: TSearchBox read GetSearchBox;
     property SearchTimer: TTimer read GetSearchTimer;
     property VirtualTree: TVirtualStringTree read GetVirtualTree;
@@ -222,6 +229,8 @@ type
     procedure HandleListBoxKeyDown(Sender: TObject; var key: word;
       shift: TShiftState);
     procedure HandleSearchBoxKeyDown(Sender: TObject; var key: word;
+      shift: TShiftState);
+    procedure HandleSearchBoxKeyUp(Sender: TObject; var key: word;
       shift: TShiftState);
     procedure HandleSearchBoxTimer(Sender: TObject);
     procedure HandleVTFocusChanged(Sender: TBaseVirtualTree; node: PVirtualNode;
@@ -581,6 +590,7 @@ begin
   searchBox.Left := FColumnLeft;
   searchBox.Top := FColumnTop + 1;
   searchBox.OnKeyDown := HandleSearchBoxKeyDown;
+  searchBox.OnKeyUp := HandleSearchBoxKeyUp;
   searchBox.OnInvokeSearch := StartSearch;
 
   vt := TVirtualStringTree.Create(FForm);
@@ -974,7 +984,7 @@ begin
     timer := nil;
     if assigned(listBoxData) then
       timer := listBoxData.SearchTimer;
-    if assigned(treeData) then
+    if assigned(treeData) and (treeData.LastSearch <> Trim((Sender as TSearchBox).Text)) then
       timer := treeData.SearchTimer;
     if assigned(timer) then begin
       timer.Enabled := false;
@@ -982,6 +992,22 @@ begin
     end;
   end;
 end; { TDLUIXVCLFloatingFrame.HandleSearchBoxKeyDown }
+
+procedure TDLUIXVCLFloatingFrame.HandleSearchBoxKeyUp(Sender: TObject;
+  var key: word; shift: TShiftState);
+var
+  treeData: IDLUIXVCLTreeStorage;
+begin
+  if not FTreeMap.TryGetValue(Sender as TComponent, treeData) then
+    Exit;
+  if treeData.LastSearch = Trim((Sender as TSearchBox).Text) then
+    Exit;
+
+  if assigned(treeData.SearchTimer) then begin
+    treeData.SearchTimer.Enabled := false;
+    treeData.SearchTimer.Enabled := true;
+  end;
+end; { TDLUIXVCLFloatingFrame.HandleSearchBoxKeyUp }
 
 procedure TDLUIXVCLFloatingFrame.HandleSearchBoxTimer(Sender: TObject);
 var
@@ -1263,7 +1289,8 @@ begin
     if not treeData.InSearch then begin
       treeData.SearchTimer.Interval := 500;
       treeData.SearchTimer.Enabled := false;
-      DoSearch(treeData, treeData.SearchBox.Text);
+      treeData.LastSearch := Trim(treeData.SearchBox.Text);
+      DoSearch(treeData, treeData.LastSearch);
     end
     else begin
       treeData.AbortSearch := true;
@@ -1372,6 +1399,11 @@ begin
   Result := FInSearch;
 end; { TDLUIXVCLTreeStorage.GetInSearch }
 
+function TDLUIXVCLTreeStorage.GetLastSearch: string;
+begin
+  Result := FLastSearch;
+end; { TDLUIXVCLTreeStorage.GetLastSearch }
+
 function TDLUIXVCLTreeStorage.GetSearchBox: TSearchBox;
 begin
   Result := FSearchBox;
@@ -1401,5 +1433,10 @@ procedure TDLUIXVCLTreeStorage.SetInSearch(const value: boolean);
 begin
   FInSearch := value;
 end; { TDLUIXVCLTreeStorage.SetInSearch }
+
+procedure TDLUIXVCLTreeStorage.SetLastSearch(const value: string);
+begin
+  FLastSearch := value;
+end; { TDLUIXVCLTreeStorage.SetLastSearch }
 
 end.

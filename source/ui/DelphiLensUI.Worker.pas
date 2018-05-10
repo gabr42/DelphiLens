@@ -2,9 +2,8 @@ unit DelphiLensUI.Worker;
 
 interface
 
-//TODO: Catch exceptions in worker and report them back
-
 uses
+  System.SysUtils,
   OtlSync, OtlComm, OtlTaskControl,
   DelphiLens.Intf,
   DelphiLensUI.UIXStorage,
@@ -40,6 +39,7 @@ type
     FUIXStorage     : IDLUIXStorage;
     FWorker         : IOmniTaskControl;
   protected
+    procedure ReportException(const funcName, excClass, excMessage: string);
     procedure ScanComplete(const result: IDLScanResult; scanID: integer);
   public
     constructor Create(const projectName: string);
@@ -59,9 +59,7 @@ var
 implementation
 
 uses
-Windows,
   System.UITypes,
-  System.SysUtils,
   Vcl.Forms,
   Spring,
   DSiWin32,
@@ -152,9 +150,7 @@ begin
       Screen.Cursor := oldCursor;
 
       if not assigned(FScanResult) then
-        //TODO: Report error
-  //      Console.Writeln('Activate: Project = nil')
-  //      break; //repeat
+        raise Exception.Create('TDelphiLensUIProject.Activate: FScanResult = nil')
       else if FCurrentResultID = FCurrentRescanID then begin
         context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
           TDLUIXLocation.Create(fileName, unitName, line, column),
@@ -211,6 +207,11 @@ begin
   waiter.WaitFor;
   FCurrentRescanID := waiter.Value;
 end; { TDelphiLensUIProject.ProjectModified }
+
+procedure TDelphiLensUIProject.ReportException(const funcName, excClass, excMessage: string);
+begin
+  raise Exception.CreateFmt('Exception in worker method %s. [%s] %s', [funcName, excClass, excMessage]);
+end;
 
 procedure TDelphiLensUIProject.Rescan;
 var
@@ -315,9 +316,17 @@ begin
 end; { TDelphiLensUIWorker.ProjectModified }
 
 procedure TDelphiLensUIWorker.ReportException(const funcName: string; E: Exception);
+var
+  eClass  : string;
+  eMessage: string;
 begin
-  //TODO: Temporary solution
-//  Console.Writeln(['Worker exception in ', funcName, ' ', E.ClassName, ': ', E.Message]);
+  eClass := E.ClassName;
+  eMessage := E.Message;
+  Task.Invoke(
+    procedure
+    begin
+      FOwner.ReportException(funcName, eClass, eMessage);
+    end);
 end; { TDelphiLensUIWorker.ReportException }
 
 procedure TDelphiLensUIWorker.Rescan(var scanID: integer);

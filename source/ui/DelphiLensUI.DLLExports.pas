@@ -108,7 +108,7 @@ begin
   Result := ClearError(projectID);
   try
     projectID := GDLEngineID.Increment;
-    project := TDelphiLensUIProject.Create(projectName);
+    project := TDelphiLensUIProject.Create(projectName, projectID);
     GDLWorkerLock.Acquire;
     try
       GDLEngineWorkers.Add(projectID, project);

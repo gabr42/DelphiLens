@@ -7,6 +7,7 @@ type
     procedure Activate;
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
+    procedure FileSaved(const fileName: string);
     procedure ProjectClosed;
     procedure ProjectOpened(const projName: string; const sPlatform, conditionals, searchPath, libPath: string);
     procedure ProjectModified;
@@ -56,6 +57,7 @@ type
     procedure Activate;
     procedure FileActivated(const fileName: string);
     procedure FileModified(const fileName: string);
+    procedure FileSaved(const fileName: string);
     procedure ProjectClosed;
     procedure ProjectOpened(const projName: string; const sPlatform, conditionals, searchPath, libPath: string);
     procedure ProjectModified;
@@ -204,13 +206,23 @@ end; { TDelphiLensProxy.FileActivated }
 procedure TDelphiLensProxy.FileModified(const fileName: string);
 begin
   try
-    if FDLUIHasProject then
-      CheckAPI('DLUIFileModified', DLUIFileModified(FDLUIProjectID, PChar(fileName)));
+    //
   except
     on E: Exception do
       Log(lcError, 'TDelphiLensProxy.FileModified', E);
   end;
 end; { TDelphiLensProxy.FileModified }
+
+procedure TDelphiLensProxy.FileSaved(const fileName: string);
+begin
+  try
+    if FDLUIHasProject then
+      CheckAPI('DLUIFileModified', DLUIFileModified(FDLUIProjectID, PChar(fileName)));
+  except
+    on E: Exception do
+      Log(lcError, 'TDelphiLensProxy.FileSaved', E);
+  end;
+end; { TDelphiLensProxy.FileSaved }
 
 procedure TDelphiLensProxy.ProjectClosed;
 begin

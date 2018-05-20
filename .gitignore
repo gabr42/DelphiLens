@@ -56,14 +56,17 @@ __history/
 # Castalia statistics file
 *.stat
 
+# others
 *.dlens
-
 *.ficfg
-
 *.dll_
-
 *.dll__
-
 source/desktop/bitmaps\.res
-
 source/ui/bitmaps\.res
+iOSDevice32/*
+iOSDevice64/*
+Android/*
+OSX32/*
+OSX64/*
+Win32/*
+Win64/*

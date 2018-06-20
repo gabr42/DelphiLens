@@ -61,6 +61,7 @@ var
 implementation
 
 uses
+  GpConsole, Classes,
   System.UITypes,
   Vcl.Forms,
   Spring,
@@ -160,10 +161,12 @@ begin
         if not assigned(FScanResult) then
           raise Exception.Create('TDelphiLensUIProject.Activate: FScanResult = nil');
 
+Console.Writeln(['> DLShowUI ', MainThreadID, '/', TThread.Current.ThreadID]);
         context := CreateWorkerContext(FUIXStorage, FProjectName, FScanResult,
           TDLUIXLocation.Create(fileName, unitName, line, column),
           tabNames.Split([#13]), monitorNum);
         DLUIShowUI(context);
+Console.Writeln('< DLShowUI');
         break; //repeat
       end
       else if (FCurrentRescanID <> lastLog.Value1) or (FCurrentResultID <> lastLog.Value2) then begin
@@ -246,6 +249,7 @@ begin
     var
       scanID: integer;
     begin
+    Console.Writeln('a');
       (task.Implementor as TDelphiLensUIWorker).Rescan(scanID);
       waiter.Signal(scanID);
     end);
@@ -309,7 +313,9 @@ begin
 
   FScanLock.Acquire;
   try
+Console.Writeln('*** >>> Rescan');
     scanResult := FDelphiLens.Rescan;
+Console.Writeln('*** <<< Rescan');
     scanIDCpy := FScanID.Value;
   finally FScanLock.Release; end;
 

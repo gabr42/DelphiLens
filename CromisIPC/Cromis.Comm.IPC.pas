@@ -133,7 +133,7 @@ type
                                 const Desc: string);
   public
     procedure Stop;
-    procedure Start;
+    function Start: boolean;
     procedure Restart;
     constructor Create;
     destructor Destroy; override;
@@ -158,6 +158,7 @@ type
     FIsConnected: Boolean;
     FComputerName: string;
     FExecuteTimeout: Cardinal;
+    FHasServer: Boolean;
     procedure SetServerName(const Value: string);
     procedure SetComputerName(const Value: string);
   public
@@ -171,6 +172,7 @@ type
     property ServerName: string read FServerName write SetServerName;
     property AnswerValid: Boolean read FAnswerValid;
     property IsConnected: Boolean read FIsConnected;
+    property HasServer: Boolean read FHasServer;
     property LastError: Cardinal read FLastError;
     property ErrorDesc: string read FErrorDesc;
   end;
@@ -200,6 +202,7 @@ type
                        const StartupEvent: THandle;
                        const OnExecuteTask: TOnTaskEvent;
                        const NotifyServerError: TNotifyServerError);
+    property PipeCreated: boolean read FPipeCreated;
   end;
 
 function AcquireIPCData: IMessageData;
@@ -436,7 +439,7 @@ begin
   FServerName := Value;
 end;
 
-procedure TIPCServer.Start;
+function TIPCServer.Start: boolean;
 begin
   if not Assigned(FOnExecuteRequest) then
     raise Exception.Create('OnExecuteRequest not assigned');
@@ -457,6 +460,8 @@ begin
 
   // wait for the server to start up
   WaitForSingleObject(FStartupEvent, cStartupTimeout);
+
+  Result := (FListeningThread as TListeningThread).PipeCreated;
 end;
 
 procedure TIPCServer.Stop;
@@ -497,6 +502,7 @@ var
 begin
   FPipeHandle := INVALID_HANDLE_VALUE;
   FIsConnected := False;
+  FHasServer := False;
   FErrorDesc := '';
   FLastError := 0;
   StartTime := Now;
@@ -511,11 +517,13 @@ begin
     if FPipeHandle <> INVALID_HANDLE_VALUE then
     begin
       FIsConnected := True;
+      FHasServer := True;
       Exit;
     end;
 
     if not GetLastError in [ERROR_PIPE_BUSY, ERROR_FILE_NOT_FOUND] then
     begin
+      FHasServer := True;
       FErrorDesc := 'CreateFile failed while creating new pipe handle';
       FLastError := GetLastError;
       Exit;
@@ -874,8 +882,8 @@ begin
     on E: Exception do
     begin
       FNotifyServerError(nil, GetLastError, E.Message);
-      CloseHandle(FOverlappEvent);
-      CloseNamedPipe(PipeHandle);
+      if PipeHandle <> INVALID_HANDLE_VALUE then
+        CloseNamedPipe(PipeHandle);
     end;
   end;
 end;

@@ -38,7 +38,9 @@ uses
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
   OtlSync, OtlCommon,
-  DelphiLensUI.Worker;
+  DelphiLensUI.Worker,
+  DelphiLensUI.IPC.Intf,
+  DelphiLensUI.IPC.Client;
 
 type
   TErrorInfo = TPair<integer,string>;
@@ -49,6 +51,8 @@ var
   GDLEngineID     : TOmniAlignedInt32;
   GDLWorkerLock   : TOmniCS;
   GDLErrorLock    : TOmniCS;
+
+  GDLIPCClient: IDLUIIPCClient;
 
 function SetError(projectID: integer; error: integer; const errorMsg: string): integer; overload;
 begin
@@ -233,7 +237,13 @@ begin
 end; { DLUIActivate }
 
 procedure DLUIInitialize;
+var
+  conn  : boolean;
+  hasSrv: boolean;
 begin
+  GDLIPCClient := CreateIPClient;
+  GDLIPCClient.Connect(5000, hasSrv, conn);
+
   GDLEngineID.Value := 0;
   GDLEngineWorkers := TObjectDictionary<integer, TDelphiLensUIProject>.Create([doOwnsValues]);
   GDLEngineErrors := TDictionary<integer, TErrorInfo>.Create;

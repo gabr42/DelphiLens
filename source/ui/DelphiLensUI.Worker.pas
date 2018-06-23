@@ -68,7 +68,7 @@ uses
   DSiWin32,
   OtlCommon, OtlTask,
   DelphiLens,
-  DelphiLensUI.Main, DelphiLensUI.WorkerContext;
+  DelphiLensUI.ShowUI, DelphiLensUI.WorkerContext;
 
 type
   TDelphiLensUIWorker = class(TOmniWorker)

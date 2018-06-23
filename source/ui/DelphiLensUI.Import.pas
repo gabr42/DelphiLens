@@ -6,7 +6,7 @@ uses
   DelphiLensUI.Error;
 
 const
-  DelphiLensUIDLL = 'DelphiLensUI';
+  DelphiLensUIDLL = 'DelphiLensUIProxy';
 
 type
   TDLLogger = procedure (projectID: integer; const msg: PChar); stdcall;

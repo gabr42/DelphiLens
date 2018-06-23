@@ -1,40 +1,15 @@
-library DelphiLensUI;
-
-{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+program DelphiLensUI;
 
 uses
-  Winapi.Windows,
-  System.SysUtils,
-  System.Classes,
-  DelphiLensUI.DLLExports;
+  Vcl.Forms,
+  DelphiLensUI.Main in 'DelphiLensUI.Main.pas' {frmMainHidden};
 
 {$R *.res}
 
-exports
-  DLUIGetLastError,
-  DLUISetLogHook,
-  DLUIOpenProject,
-  DLUICloseProject,
-  DLUIProjectModified,
-  DLUIFileModified,
-  DLUISetProjectConfig,
-  DLUIRescanProject,
-  DLUIActivate;
-
-var
-  SaveDllProc: TDLLProc;
-
-procedure LibExit(reason: integer);
 begin
-  if Reason = DLL_PROCESS_DETACH then
-    DLUIFinalize;
-
-  if assigned(SaveDllProc) then
-    SaveDllProc(reason);	// call saved entry point procedure
-end; { LibExit }
-
-begin
-  DLUIInitialize;
-  SaveDllProc := DllProc; // save exit procedure chain
-  DllProc := @LibExit;	  // install LibExit exit procedure
+  Application.Initialize;
+  Application.MainFormOnTaskbar := False;
+  Application.ShowMainForm := false;
+  Application.CreateForm(TfrmMainHidden, frmMainHidden);
+  Application.Run;
 end.

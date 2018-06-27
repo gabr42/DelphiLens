@@ -97,7 +97,11 @@ begin
       errMsg := Format('Project %d is not open', [projectID]);
     end
     else begin
-      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
+        end);
       if not navigate then
         navigateToFile := ''
       else begin

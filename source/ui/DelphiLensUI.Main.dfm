@@ -13,6 +13,13 @@ object frmMainHidden: TfrmMainHidden
   OldCreateOrder = False
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
+  OnDestroy = FormDestroy
   PixelsPerInch = 96
   TextHeight = 13
+  object tmrInitialWait: TTimer
+    Interval = 10000
+    OnTimer = tmrInitialWaitTimer
+    Left = 24
+    Top = 24
+  end
 end

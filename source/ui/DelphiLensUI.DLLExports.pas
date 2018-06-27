@@ -37,22 +37,28 @@ uses
   Vcl.Dialogs,
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections,
+  DSiWin32,
   OtlSync, OtlCommon,
   DelphiLensUI.Worker,
   DelphiLensUI.IPC.Intf,
   DelphiLensUI.IPC.Client;
 
 type
-  TErrorInfo = TPair<integer,string>;
+  TErrorInfo = TPair<integer, string>;
 
 var
-  GDLEngineWorkers: TObjectDictionary<integer, TDelphiLensUIProject>;
-  GDLEngineErrors : TDictionary<integer, TErrorInfo>;
-  GDLEngineID     : TOmniAlignedInt32;
-  GDLWorkerLock   : TOmniCS;
-  GDLErrorLock    : TOmniCS;
+  GDLEngineErrors: TDictionary<integer, TErrorInfo>;
+  GDLErrorLock   : TOmniCS;
+  GDLIPCClient   : IDLUIIPCClient;
 
-  GDLIPCClient: IDLUIIPCClient;
+function CheckClient(var error: integer): boolean;
+begin
+  Result := assigned(GDLIPCClient) and GDLIPCClient.IsConnected;
+  if Result then
+    error := NO_ERROR
+  else
+    error := ERR_NOT_CONNECTED;
+end; { CheckClient }
 
 function SetError(projectID: integer; error: integer; const errorMsg: string): integer; overload;
 begin
@@ -71,15 +77,15 @@ end; { SetError }
 
 function ClearError(projectID: integer): integer; inline;
 begin
-  Result := SetError(projectiD, NO_ERROR, '');
+  Result := SetError(projectID, NO_ERROR, '');
 end; { ClearError }
 
 function GetProject(projectID: integer; var project: TDelphiLensUIProject): boolean;
 begin
-  GDLWorkerLock.Acquire;
-  try
-    Result := GDLEngineWorkers.TryGetValue(projectID, project);
-  finally GDLWorkerLock.Release; end;
+//  GDLWorkerLock.Acquire;
+//  try
+//    Result := GDLEngineWorkers.TryGetValue(projectID, project);
+//  finally GDLWorkerLock.Release; end;
 end; { GetProject }
 
 function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;
@@ -107,16 +113,18 @@ end; { DLUIGetLastError }
 
 function DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
 var
+  errMsg : string;
+  error  : integer;
   project: TDelphiLensUIProject;
 begin
+  projectID := 0;
+  if not CheckClient(Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-    projectID := GDLEngineID.Increment;
-    project := TDelphiLensUIProject.Create(projectName, projectID);
-    GDLWorkerLock.Acquire;
-    try
-      GDLEngineWorkers.Add(projectID, project);
-    finally GDLWorkerLock.Release; end;
+    GDLIPCClient.OpenProject(projectName, projectID, error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -132,10 +140,10 @@ begin
     if not GetProject(projectID, project) then
       Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
     else begin
-      GDLWorkerLock.Acquire;
-      try
-        GDLEngineWorkers.Remove(projectID);
-      finally GDLWorkerLock.Release; end;
+//      GDLWorkerLock.Acquire;
+//      try
+//        GDLEngineWorkers.Remove(projectID);
+//      finally GDLWorkerLock.Release; end;
     end;
   except
     on E: Exception do
@@ -241,19 +249,28 @@ var
   conn  : boolean;
   hasSrv: boolean;
 begin
+  GDLEngineErrors := TDictionary<integer, TErrorInfo>.Create;
+  GDLErrorLock.Initialize;
+
   GDLIPCClient := CreateIPClient;
   GDLIPCClient.Connect(5000, hasSrv, conn);
-
-  GDLEngineID.Value := 0;
-  GDLEngineWorkers := TObjectDictionary<integer, TDelphiLensUIProject>.Create([doOwnsValues]);
-  GDLEngineErrors := TDictionary<integer, TErrorInfo>.Create;
-  GDLWorkerLock.Initialize;
-  GDLErrorLock.Initialize;
+  if not hasSrv then begin
+    if DSiExecute('DelphiLensUI.exe') = MaxInt then
+      ShowMessage('Failed to execute DelphiLensUI.exe');
+    GDLIPCClient.Connect(5000, hasSrv, conn);
+  end;
+  if not hasSrv then
+    ShowMessage('Failed to start DelphiLensUI.exe')
+  else if not conn then
+    ShowMessage('Failed to connect to DelphiLensUI.exe');
 end; { DLUIInitialize }
 
 procedure DLUIFinalize;
 begin
-  FreeAndNil(GDLEngineWorkers);
+  if assigned(GDLIPCClient) then begin
+    GDLIPCClient.Disconnect;
+    GDLIPCClient := nil;
+  end;
   FreeAndNil(GDLEngineErrors);
 end; { DLUIFinalize }
 

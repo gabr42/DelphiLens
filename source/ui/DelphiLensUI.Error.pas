@@ -8,6 +8,7 @@ const
   ERR_EXCEPTION         = 2;
   ERR_PROJECT_NOT_FOUND = 3;
   ERR_INTERNAL_ERROR    = 4;
+  ERR_NOT_CONNECTED     = 5;
 
 implementation
 

@@ -1,6 +1,6 @@
 library DelphiLensUIProxy;
 
-{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+
 
 uses
   Winapi.Windows,

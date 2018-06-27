@@ -13,21 +13,32 @@ uses
 type
   TfrmMainHidden = class(TForm)
     tmrInitialWait: TTimer;
-    procedure FormDestroy(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: Boolean);
     procedure FormCreate(Sender: TObject);
+    procedure FormDestroy(Sender: TObject);
     procedure tmrInitialWaitTimer(Sender: TObject);
   strict private
-    FIPCServer      : IDLUIIPCServer;
-    FNumClients     : integer;
     FDLEngineID     : integer;
     FDLEngineWorkers: TObjectDictionary<integer, TDelphiLensUIProject>;
     FDLWorkerLock   : TOmniCS;
+    FIPCServer      : IDLUIIPCServer;
+    FNumClients     : integer;
   strict protected
     procedure CreateIPCServer;
+    procedure ExecuteActivate(monitorNum, projectID: integer; const fileName: string;
+      line, column: integer; const tabNames: string; var navigateToFile: string;
+      var navigateToLine, navigateToColumn: integer;
+      var error: integer; var errMsg: string);
     procedure ExecuteCloseProject(projectID: integer; var error: integer; var errMsg: string);
+    procedure ExecuteFileModified(projectID: integer; const fileName: string;
+      var error: integer; var errMsg: string);
     procedure ExecuteOpenProject(const projectName: string; var projectID: integer;
       var error: integer; var errMsg: string);
+    procedure ExecuteProjectModified(projectID: integer; var error: integer; var errMsg:
+      string);
+    procedure ExecuteRescanProject(projectID: integer; var error: integer; var errMsg: string);
+    procedure ExecuteSetProjectConfig(projectID: integer; const platformName,
+      conditionalDefines, searchPath: string; var error: integer; var errMsg: string);
     function  GetProject(projectID: integer; var project: TDelphiLensUIProject): boolean;
   end; { TfrmMainHidden }
 
@@ -65,7 +76,43 @@ begin
     end;
   FIPCServer.OnExecuteOpenProject := ExecuteOpenProject;
   FIPCServer.OnExecuteCloseProject := ExecuteCloseProject;
+  FIPCServer.OnExecuteProjectModified := ExecuteProjectModified;
+  FIPCServer.OnExecuteFileModified := ExecuteFileModified;
+  FIPCServer.OnExecuteRescanProject := ExecuteRescanProject;
+  FIPCServer.OnExecuteSetProjectConfig := ExecuteSetProjectConfig;
+  FIPCServer.OnExecuteActivate := ExecuteActivate;
 end; { TfrmMainHidden.CreateIPCServer }
+
+procedure TfrmMainHidden.ExecuteActivate(monitorNum, projectID: integer;
+  const fileName: string; line, column: integer; const tabNames: string;
+  var navigateToFile: string; var navigateToLine, navigateToColumn: integer;
+  var error: integer; var errMsg: string);
+var
+  navigate: boolean;
+  project : TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else begin
+      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
+      if not navigate then
+        navigateToFile := ''
+      else begin
+        navigateToFile := project.GetNavigationInfo.FileName;
+        navigateToLine := project.GetNavigationInfo.Line;
+        navigateToColumn := project.GetNavigationInfo.Column;
+      end;
+    end;
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteActivate }
 
 procedure TfrmMainHidden.ExecuteCloseProject(projectID: integer; var error: integer;
   var errMsg: string);
@@ -91,6 +138,26 @@ begin
   end;
 end; { TfrmMainHidden.ExecuteCloseProject }
 
+procedure TfrmMainHidden.ExecuteFileModified(projectID: integer; const fileName: string;
+  var error: integer; var errMsg: string);
+var
+  project: TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else
+      project.FileModified(fileName);
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteFileModified }
+
 procedure TfrmMainHidden.ExecuteOpenProject(const projectName: string;
   var projectID: integer; var error: integer; var errMsg: string);
 var
@@ -111,6 +178,66 @@ begin
     end;
   end;
 end; { TfrmMainHidden.ExecuteOpenProject }
+
+procedure TfrmMainHidden.ExecuteProjectModified(projectID: integer; var error: integer;
+  var errMsg: string);
+var
+  project: TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else
+      project.ProjectModified;
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteProjectModified }
+
+procedure TfrmMainHidden.ExecuteRescanProject(projectID: integer; var error: integer; var
+  errMsg: string);
+var
+  project: TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else
+      project.Rescan;
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteRescanProject }
+
+procedure TfrmMainHidden.ExecuteSetProjectConfig(projectID: integer; const platformName,
+  conditionalDefines, searchPath: string; var error: integer; var errMsg: string);
+var
+  project: TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else
+      project.SetConfig(TDLUIProjectConfig.Create(platformName, conditionalDefines, searchPath));
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteSetProjectConfig }
 
 procedure TfrmMainHidden.FormCloseQuery(Sender: TObject; var CanClose: Boolean);
 begin

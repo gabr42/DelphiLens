@@ -36,7 +36,7 @@ implementation
 uses
   Vcl.Dialogs,
   Winapi.Windows,
-  System.SysUtils, System.Generics.Collections,
+  System.SysUtils, System.Generics.Collections, System.Math,
   DSiWin32,
   OtlSync, OtlCommon,
   DelphiLensUI.Worker,
@@ -49,16 +49,9 @@ type
 var
   GDLEngineErrors: TDictionary<integer, TErrorInfo>;
   GDLErrorLock   : TOmniCS;
+  GDLStringLock  : TOmniCS;
+  GDLStringTable : TDictionary<integer, string>;
   GDLIPCClient   : IDLUIIPCClient;
-
-function CheckClient(var error: integer): boolean;
-begin
-  Result := assigned(GDLIPCClient) and GDLIPCClient.IsConnected;
-  if Result then
-    error := NO_ERROR
-  else
-    error := ERR_NOT_CONNECTED;
-end; { CheckClient }
 
 function SetError(projectID: integer; error: integer; const errorMsg: string): integer; overload;
 begin
@@ -79,6 +72,15 @@ function ClearError(projectID: integer): integer; inline;
 begin
   Result := SetError(projectID, NO_ERROR, '');
 end; { ClearError }
+
+function CheckClient(projectID: integer; var error: integer): boolean;
+begin
+  Result := assigned(GDLIPCClient) and GDLIPCClient.IsConnected;
+  if Result then
+    error := ClearError(projectID)
+  else
+    error := SetError(projectID, ERR_NOT_CONNECTED, 'Not connected to DelphiLensUI.exe');
+end; { CheckClient }
 
 function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;
 var
@@ -109,7 +111,7 @@ var
   error : integer;
 begin
   projectID := 0;
-  if not CheckClient(Result) then
+  if not CheckClient(projectID, Result) then
     Exit;
 
   Result := ClearError(projectID);
@@ -127,13 +129,16 @@ var
   errMsg: string;
   error : integer;
 begin
-  projectID := 0;
-  if not CheckClient(Result) then
+  if not CheckClient(projectID, Result) then
     Exit;
 
   Result := ClearError(projectID);
   try
     GDLIPCClient.CloseProject(projectID, error, errMsg);
+    GDLStringLock.Acquire;
+    try
+      GDLStringTable.Remove(projectID);
+    finally GDLStringLock.Release; end;
     Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
@@ -143,14 +148,16 @@ end; { DLUICloseProject }
 
 function DLUIProjectModified(projectID: integer): integer;
 var
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
+  if not CheckClient(projectID, Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-//    if not GetProject(projectID, project) then
-//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-//    else
-//      project.ProjectModified;
+    GDLIPCClient.ProjectModified(projectID, error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -159,14 +166,16 @@ end; { DLUIProjectModified }
 
 function DLUIFileModified(projectID: integer; fileName: PChar): integer;
 var
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
+  if not CheckClient(projectID, Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-//    if not GetProject(projectID, project) then
-//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-//    else
-//      project.FileModified(fileName);
+    GDLIPCClient.FileModified(projectID, fileName, error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -175,14 +184,16 @@ end; { DLUIFileModified }
 
 function DLUIRescanProject(projectID: integer): integer;
 var
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
+  if not CheckClient(projectID, Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-//    if not GetProject(projectID, project) then
-//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-//    else
-//      project.Rescan;
+    GDLIPCClient.RescanProject(projectID, error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -192,14 +203,17 @@ end; { DLUIRescanPRoject }
 function DLUISetProjectConfig(projectID: integer; platformName, conditionalDefines,
   searchPath: PChar): integer;
 var
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
+  if not CheckClient(projectID, Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-//    if not GetProject(projectID, project) then
-//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-//    else
-//      project.SetConfig(TDLUIProjectConfig.Create(platformName, conditionalDefines, searchPath));
+    GDLIPCClient.SetProjectConfig(projectID, platformName, conditionalDefines, searchPath,
+      error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -210,44 +224,52 @@ function DLUIActivate(monitorNum, projectID: integer; fileName: PChar; line, col
   tabNames: PChar; var navigateToFile: PChar; var navigateToLine,
   navigateToColumn: integer): integer;
 var
-  project : TDelphiLensUIProject;
-  navigate: boolean;
+  errMsg   : string;
+  error    : integer;
+  navToFile: string;
 begin
+  if not CheckClient(projectID, Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-//    if not GetProject(projectID, project) then begin
-//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID]);
-//    end
-//    else begin
-//      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
-//      if not navigate then
-//        navigateToFile := nil
-//      else begin
-//        navigateToFile := project.GetNavigationInfo.FileName;
-//        navigateToLine := project.GetNavigationInfo.Line;
-//        navigateToColumn := project.GetNavigationInfo.Column;
-//      end;
-//    end;
+    GDLIPCClient.Activate(monitorNum, projectID, fileName, line, column, tabNames,
+      navToFile, navigateToLine, navigateToColumn, error, errMsg);
+    if navToFile = '' then
+      navigateToFile := nil
+    else begin
+      GDLStringLock.Acquire;
+      try
+        GDLStringTable.AddOrSetValue(projectID, navToFile);
+        navigateToFile := PChar(GDLStringTable[projectID]); // must be alive only until next call for the same project ID
+      finally GDLStringLock.Release; end;
+    end;
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
-      Result := SetError(projectID, ERR_EXCEPTION, E.Message );
+      Result := SetError(projectID, ERR_EXCEPTION, E.Message);
   end;
 end; { DLUIActivate }
 
 procedure DLUIInitialize;
 var
-  conn  : boolean;
-  hasSrv: boolean;
+  conn   : boolean;
+  hasSrv : boolean;
+  time_ms: int64;
 begin
   GDLEngineErrors := TDictionary<integer, TErrorInfo>.Create;
   GDLErrorLock.Initialize;
+  GDLStringTable := TDictionary<integer, string>.Create;
+  GDLStringLock.Initialize;
 
   GDLIPCClient := CreateIPClient;
   GDLIPCClient.Connect(5000, hasSrv, conn);
   if not hasSrv then begin
-    if DSiExecute('DelphiLensUI.exe') = MaxInt then
+    if DSiExecute('DelphiLensUI.exe') = cardinal(MaxInt) then
       ShowMessage('Failed to execute DelphiLensUI.exe');
-    GDLIPCClient.Connect(5000, hasSrv, conn);
+    time_ms := DSiTimeGetTime64;
+    while not (conn or DSiHasElapsed64(time_ms, 5000)) do
+      GDLIPCClient.Connect(Max(0, 5000 - DSiElapsedTime64(time_ms)), hasSrv, conn);
   end;
   if not hasSrv then
     ShowMessage('Failed to start DelphiLensUI.exe')
@@ -262,6 +284,7 @@ begin
     GDLIPCClient := nil;
   end;
   FreeAndNil(GDLEngineErrors);
+  FreeAndNil(GDLStringTable);
 end; { DLUIFinalize }
 
 procedure DLUISetLogHook(const hook:  TDLLogger);

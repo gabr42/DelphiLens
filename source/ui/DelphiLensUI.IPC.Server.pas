@@ -20,24 +20,39 @@ type
   strict private type
     TIPCCommand = procedure (const request, response: IMessageData) of object;
   var
-    FIPCCommands          : TDictionary<string, TIPCCommand>;
-    FIPCServer            : TIPCServer;
-    FOnClientConnected    : TProc;
-    FOnClientDisconnected : TProc;
-    FOnError              : TProc<string>;
-    FOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
-    FOnExecuteOpenProject : TDLUIIPCServerExecuteOpenProjectEvent;
-    FStarting             : boolean;
-    FStartupError         : string;
+    FIPCCommands              : TDictionary<string, TIPCCommand>;
+    FIPCServer                : TIPCServer;
+    FOnClientConnected        : TProc;
+    FOnClientDisconnected     : TProc;
+    FOnError                  : TProc<string>;
+    FOnExecuteActivate        : TDLUIIPCServerExecuteActivateEvent;
+    FOnExecuteCloseProject    : TDLUIIPCServerExecuteCloseProjectEvent;
+    FOnExecuteFileModified    : TDLUIIPCServerExecuteFileModifiedEvent;
+    FOnExecuteOpenProject     : TDLUIIPCServerExecuteOpenProjectEvent;
+    FOnExecuteProjectModified : TDLUIIPCServerExecuteProjectModifiedEvent;
+    FOnExecuteRescanProject   : TDLUIIPCServerExecuteRescanProjectEvent;
+    FOnExecuteSetProjectConfig: TDLUIIPCServerExecuteSetProjectConfigEvent;
+    FStarting                 : boolean;
+    FStartupError             : string;
   strict protected
     procedure CreateIPCServer;
+    procedure ExecuteActivate(const request, response: IMessageData);
     procedure ExecuteCloseProject(const request, response: IMessageData);
+    procedure ExecuteFileModified(const request, response: IMessageData);
     procedure ExecuteOpenProject(const request, response: IMessageData);
+    procedure ExecuteProjectModified(const request, response: IMessageData);
+    procedure ExecuteRescanProject(const request, response: IMessageData);
+    procedure ExecuteSetProjectConfig(const request, response: IMessageData);
     function  GetOnClientConnected: TProc;
     function  GetOnClientDisconnected: TProc;
     function  GetOnError: TProc<string>;
+    function  GetOnExecuteActivate: TDLUIIPCServerExecuteActivateEvent;
     function  GetOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
+    function  GetOnExecuteFileModified: TDLUIIPCServerExecuteFileModifiedEvent;
     function  GetOnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent;
+    function  GetOnExecuteProjectModified: TDLUIIPCServerExecuteProjectModifiedEvent;
+    function  GetOnExecuteRescanProject: TDLUIIPCServerExecuteRescanProjectEvent;
+    function  GetOnExecuteSetProjectConfig: TDLUIIPCServerExecuteSetProjectConfigEvent;
     procedure HandleClientConnect(const context: ICommContext);
     procedure HandleClientDisconnect(const context: ICommContext);
     procedure HandleExecuteRequest(const context: ICommContext; const request, response:
@@ -46,8 +61,13 @@ type
     procedure SetOnClientConnected(const value: TProc);
     procedure SetOnClientDisconnected(const value: TProc);
     procedure SetOnError(const value: TProc<string>);
+    procedure SetOnExecuteActivate(const value: TDLUIIPCServerExecuteActivateEvent);
     procedure SetOnExecuteCloseProject(const value: TDLUIIPCServerExecuteCloseProjectEvent);
+    procedure SetOnExecuteFileModified(const value: TDLUIIPCServerExecuteFileModifiedEvent);
     procedure SetOnExecuteOpenProject(const value: TDLUIIPCServerExecuteOpenProjectEvent);
+    procedure SetOnExecuteProjectModified(const value: TDLUIIPCServerExecuteProjectModifiedEvent);
+    procedure SetOnExecuteRescanProject(const value: TDLUIIPCServerExecuteRescanProjectEvent);
+    procedure SetOnExecuteSetProjectConfig(const value: TDLUIIPCServerExecuteSetProjectConfigEvent);
   public
     destructor Destroy; override;
     function  Start: string;
@@ -78,6 +98,11 @@ begin
   FIPCCommands := TDictionary<string, TIPCCommand>.Create;
   FIPCCommands.Add(CCmdOpenProject, ExecuteOpenProject);
   FIPCCommands.Add(CCmdCloseProject, ExecuteCloseProject);
+  FIPCCommands.Add(CCmdProjectModified, ExecuteProjectModified);
+  FIPCCommands.Add(CCmdFileModified, ExecuteFileModified);
+  FIPCCommands.Add(CCmdRescanProject, ExecuteRescanProject);
+  FIPCCommands.Add(CCmdSetProjectConfig, ExecuteSetProjectConfig);
+  FIPCCommands.Add(CCmdActivate, ExecuteActivate);
 
   FIPCServer := TIPCServer.Create;
   FIPCServer.ServerName := CDLUIIPCServerName;
@@ -88,11 +113,35 @@ begin
   FIPCServer.OnExecuteRequest := HandleExecuteRequest;
 end; { TDLUIIPCServer.CreateIPCServer }
 
+procedure TDLUIIPCServer.ExecuteActivate(const request, response: IMessageData);
+var
+  errMsg          : string;
+  error           : integer;
+  navigateToColumn: integer;
+  navigateToFile  : string;
+  navigateToLine  : integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteActivate(
+    request.Data.ReadInteger(CParamMonitorNum),
+    request.Data.ReadInteger(CParamProjectID),
+    request.Data.ReadString(CParamFileName),
+    request.Data.ReadInteger(CParamLine),
+    request.Data.ReadInteger(CParamColumn),
+    request.Data.ReadString(CParamTabNames),
+    navigateToFile, navigateToLine, navigateToColumn, error, errMsg);
+  response.Data.WriteString(CParamNavToFile, navigateToFile);
+  response.Data.WriteInteger(CParamNavToLine, navigateToLine);
+  response.Data.WriteInteger(CParamNavToColumn, navigateToColumn);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteActivate }
+
 procedure TDLUIIPCServer.ExecuteCloseProject(const request, response: IMessageData);
 var
-  errMsg   : string;
-  error    : integer;
-  projectID: integer;
+  errMsg: string;
+  error : integer;
 begin
   error := NO_ERROR;
   errMsg := '';
@@ -100,6 +149,20 @@ begin
   response.Data.WriteInteger(CParamError, error);
   response.Data.WriteString(CParamErrMsg, errMsg);
 end; { TDLUIIPCServer.ExecuteCloseProject }
+
+procedure TDLUIIPCServer.ExecuteFileModified(const request, response: IMessageData);
+var
+  errMsg: string;
+  error : integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteFileModified(
+    request.Data.ReadInteger(CParamProjectID),
+    request.Data.ReadString(CParamFileName), error, errMsg);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteFileModified }
 
 procedure TDLUIIPCServer.ExecuteOpenProject(const request, response: IMessageData);
 var
@@ -114,6 +177,47 @@ begin
   response.Data.WriteInteger(CParamError, error);
   response.Data.WriteString(CParamErrMsg, errMsg);
 end; { TDLUIIPCServer.ExecuteOpenProject }
+
+procedure TDLUIIPCServer.ExecuteProjectModified(const request, response: IMessageData);
+var
+  errMsg: string;
+  error : integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteProjectModified(request.Data.ReadInteger(CParamProjectID), error, errMsg);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteProjectModified }
+
+procedure TDLUIIPCServer.ExecuteRescanProject(const request, response: IMessageData);
+var
+  errMsg: string;
+  error : integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteRescanProject(request.Data.ReadInteger(CParamProjectID), error, errMsg);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteRescanProject }
+
+procedure TDLUIIPCServer.ExecuteSetProjectConfig(const request, response: IMessageData);
+var
+  errMsg: string;
+  error : integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteSetProjectConfig(
+    request.Data.ReadInteger(CParamProjectID),
+    request.Data.ReadString(CParamPlatformName),
+    request.Data.ReadString(CParamConditionals),
+    request.Data.ReadString(CParamSearchPath),
+    error, errMsg);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteSetProjectConfi g }
 
 function TDLUIIPCServer.GetOnClientConnected: TProc;
 begin
@@ -130,15 +234,43 @@ begin
   Result := FOnError;
 end; { TDLUIIPCServer.GetOnError }
 
+function TDLUIIPCServer.GetOnExecuteActivate: TDLUIIPCServerExecuteActivateEvent;
+begin
+  Result := FOnExecuteActivate;
+end; { TDLUIIPCServer.GetOnExecuteActivate }
+
 function TDLUIIPCServer.GetOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
 begin
   Result := FOnExecuteCloseProject;
 end; { TDLUIIPCServer.GetOnExecuteCloseProject }
 
+function TDLUIIPCServer.GetOnExecuteFileModified: TDLUIIPCServerExecuteFileModifiedEvent;
+begin
+  Result := FOnExecuteFileModified;
+end; { TDLUIIPCServer.GetOnExecuteFileModified }
+
 function TDLUIIPCServer.GetOnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent;
 begin
   Result := FOnExecuteOpenProject;
 end; { TDLUIIPCServer.GetOnExecuteOpenProject }
+
+function TDLUIIPCServer.GetOnExecuteProjectModified:
+  TDLUIIPCServerExecuteProjectModifiedEvent;
+begin
+  Result := FOnExecuteProjectModified;
+end; { TDLUIIPCServer.GetOnExecuteProjectModified }
+
+function TDLUIIPCServer.GetOnExecuteRescanProject:
+  TDLUIIPCServerExecuteRescanProjectEvent;
+begin
+  Result := FOnExecuteRescanProject;
+end; { TDLUIIPCServer.GetOnExecuteRescanProject }
+
+function TDLUIIPCServer.GetOnExecuteSetProjectConfig:
+  TDLUIIPCServerExecuteSetProjectConfigEvent;
+begin
+  Result := FOnExecuteSetProjectConfig;
+end; { TDLUIIPCServer.GetOnExecuteSetProjectConfig }
 
 procedure TDLUIIPCServer.HandleClientConnect(const context: ICommContext);
 begin
@@ -198,17 +330,47 @@ begin
   FOnError := value;
 end; { TDLUIIPCServer.GetOnError }
 
+procedure TDLUIIPCServer.SetOnExecuteActivate(const value:
+  TDLUIIPCServerExecuteActivateEvent);
+begin
+  FOnExecuteActivate := value;
+end; { TDLUIIPCServer.SetOnExecuteActivate }
+
 procedure TDLUIIPCServer.SetOnExecuteCloseProject(const value:
   TDLUIIPCServerExecuteCloseProjectEvent);
 begin
   FOnExecuteCloseProject := value;
 end; { TDLUIIPCServer.SetOnExecuteCloseProject }
 
+procedure TDLUIIPCServer.SetOnExecuteFileModified(const value:
+  TDLUIIPCServerExecuteFileModifiedEvent);
+begin
+  FOnExecuteFileModified := value;
+end; { TDLUIIPCServer.SetOnExecuteFileModified }
+
 procedure TDLUIIPCServer.SetOnExecuteOpenProject(const value:
   TDLUIIPCServerExecuteOpenProjectEvent);
 begin
   FOnExecuteOpenProject := value;
 end; { TDLUIIPCServer.SetOnExecuteOpenProject }
+
+procedure TDLUIIPCServer.SetOnExecuteProjectModified(const value:
+  TDLUIIPCServerExecuteProjectModifiedEvent);
+begin
+  FOnExecuteProjectModified := value;
+end; { TDLUIIPCServer.SetOnExecuteProjectModified }
+
+procedure TDLUIIPCServer.SetOnExecuteRescanProject(const value:
+  TDLUIIPCServerExecuteRescanProjectEvent);
+begin
+  FOnExecuteRescanProject := value;
+end; { TDLUIIPCServer.SetOnExecuteRescanProject }
+
+procedure TDLUIIPCServer.SetOnExecuteSetProjectConfig(const value:
+  TDLUIIPCServerExecuteSetProjectConfigEvent);
+begin
+  FOnExecuteSetProjectConfig := value;
+end; { TDLUIIPCServer.SetOnExecuteSetProjectConfig }
 
 function TDLUIIPCServer.Start: string;
 begin

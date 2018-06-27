@@ -1,5 +1,7 @@
 program DelphiLensUI;
 
+{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+
 uses
   Vcl.Forms,
   DelphiLensUI.Main in 'DelphiLensUI.Main.pas' {frmMainHidden};

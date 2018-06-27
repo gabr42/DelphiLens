@@ -26,11 +26,20 @@ type
   public
     constructor Create;
     destructor  Destroy; override;
-    procedure CloseProject(var projectID: integer; var error: integer; var errMsg: string);
+    procedure Activate(monitorNum, projectID: integer; const fileName: string; line, column:
+      integer; const tabNames: string; var navigateToFile: string; var navigateToLine,
+      navigateToColumn: integer; var error: integer; var errMsg: string);
+    procedure CloseProject(projectID: integer; var error: integer; var errMsg: string);
     procedure Connect(timeout_ms: integer; var serverFound, connected: boolean);
     procedure Disconnect;
+    procedure FileModified(projectID: integer; const fileName: string; var error: integer;
+      var errMsg: string);
     procedure OpenProject(const projectName: string; var projectID: integer;
       var error: integer; var errMsg: string);
+    procedure ProjectModified(projectID: integer; var error: integer; var errMsg: string);
+    procedure RescanProject(projectID: integer; var error: integer; var errMsg: string);
+    procedure SetProjectConfig(projectID: integer; const platformName, conditionalDefines,
+      searchPath: string; var error: integer; var errMsg: string);
     property IsConnected: boolean read GetIsConnected;
   end; { TDLUIIPCServer }
 
@@ -56,6 +65,37 @@ begin
   FreeAndNil(FIPCClient);
   inherited;
 end; { TDLUIIPCClient.Destroy }
+
+procedure TDLUIIPCClient.Activate(monitorNum, projectID: integer; const fileName: string;
+  line, column: integer; const tabNames: string; var navigateToFile: string;
+  var navigateToLine, navigateToColumn: integer; var error: integer; var errMsg: string);
+var
+  request : IMessageData;
+  response: IMessageData;
+begin
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  request := AcquireMessageData;
+  request.ID := CCmdActivate;
+  request.Data.WriteInteger(CParamMonitorNum, monitorNum);
+  request.Data.WriteInteger(CParamProjectID, projectID);
+  request.Data.WriteString(CParamFileName, fileName);
+  request.Data.WriteInteger(CParamLine, line);
+  request.Data.WriteInteger(CParamColumn, column);
+  request.Data.WriteString(CParamTabNames, tabNames);
+
+  response := FIPCClient.ExecuteConnectedRequest(request);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  navigateToFile := response.Data.ReadString(CParamNavToFile);
+  navigateToLine := response.Data.ReadInteger(CParamNavToLine);
+  navigateToColumn := response.Data.ReadInteger(CParamNavToColumn);
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.Activate }
 
 function TDLUIIPCClient.CheckAnswer(var error: integer; var errMsg: string): boolean;
 begin
@@ -83,21 +123,21 @@ begin
   end;
 end; { TDLUIIPCClient.CheckIfConnected }
 
-procedure TDLUIIPCClient.CloseProject(var projectID: integer; var error: integer; var
-  errMsg: string);
+procedure TDLUIIPCClient.CloseProject(projectID: integer; var error: integer;
+  var errMsg: string);
 var
-  messageData: IMessageData;
-  response   : IMessageData;
+  request : IMessageData;
+  response: IMessageData;
 begin
   projectID := 0;
   if not CheckIfConnected(error, errMsg) then
     Exit;
 
-  messageData := AcquireMessageData;
-  messageData.ID := CCmdCloseProject;
-  messageData.Data.WriteInteger(CParamProjectID, projectID);
+  request := AcquireMessageData;
+  request.ID := CCmdCloseProject;
+  request.Data.WriteInteger(CParamProjectID, projectID);
 
-  response := FIPCClient.ExecuteConnectedRequest(messageData);
+  response := FIPCClient.ExecuteConnectedRequest(request);
 
   if not CheckAnswer(error, errMsg) then
     Exit;
@@ -119,6 +159,29 @@ begin
     FIPCClient.DisconnectClient;
 end; { TDLUIIPCClient.Disconnect }
 
+procedure TDLUIIPCClient.FileModified(projectID: integer; const fileName: string;
+  var error: integer; var errMsg: string);
+var
+  request : IMessageData;
+  response: IMessageData;
+begin
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  request := AcquireMessageData;
+  request.ID := CCmdFileModified;
+  request.Data.WriteInteger(CParamProjectID, projectID);
+  request.Data.WriteString(CParamFileName, fileName);
+
+  response := FIPCClient.ExecuteConnectedRequest(request);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.FileModified }
+
 function TDLUIIPCClient.GetIsConnected: boolean;
 begin
   Result := assigned(FIPCClient) and FIPCClient.IsConnected;
@@ -127,18 +190,18 @@ end; { TDLUIIPCClient.GetIsConnected }
 procedure TDLUIIPCClient.OpenProject(const projectName: string; var projectID: integer;
   var error: integer; var errMsg: string);
 var
-  messageData: IMessageData;
-  response   : IMessageData;
+  request : IMessageData;
+  response: IMessageData;
 begin
   projectID := 0;
   if not CheckIfConnected(error, errMsg) then
     Exit;
 
-  messageData := AcquireMessageData;
-  messageData.ID := CCmdOpenProject;
-  messageData.Data.WriteString(CParamProjectName, projectName);
+  request := AcquireMessageData;
+  request.ID := CCmdOpenProject;
+  request.Data.WriteString(CParamProjectName, projectName);
 
-  response := FIPCClient.ExecuteConnectedRequest(messageData);
+  response := FIPCClient.ExecuteConnectedRequest(request);
 
   if not CheckAnswer(error, errMsg) then
     Exit;
@@ -147,5 +210,74 @@ begin
   error := response.Data.ReadInteger(CParamError);
   errMsg := response.Data.ReadString(CParamErrMsg);
 end; { TDLUIIPCClient.OpenProject }
+
+procedure TDLUIIPCClient.ProjectModified(projectID: integer; var error: integer;
+  var errMsg: string);
+var
+  request : IMessageData;
+  response: IMessageData;
+begin
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  request := AcquireMessageData;
+  request.ID := CCmdProjectModified;
+  request.Data.WriteInteger(CParamProjectID, projectID);
+
+  response := FIPCClient.ExecuteConnectedRequest(request);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.ProjectModified }
+
+procedure TDLUIIPCClient.RescanProject(projectID: integer; var error: integer;
+  var errMsg: string);
+var
+  request : IMessageData;
+  response: IMessageData;
+begin
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  request := AcquireMessageData;
+  request.ID := CCmdRescanProject;
+  request.Data.WriteInteger(CParamProjectID, projectID);
+
+  response := FIPCClient.ExecuteConnectedRequest(request);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.RescanProject }
+
+procedure TDLUIIPCClient.SetProjectConfig(projectID: integer; const platformName,
+  conditionalDefines, searchPath: string; var error: integer; var errMsg: string);
+var
+  request : IMessageData;
+  response: IMessageData;
+begin
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  request := AcquireMessageData;
+  request.ID := CCmdSetProjectConfig;
+  request.Data.WriteInteger(CParamProjectID, projectID);
+  request.Data.WriteString(CParamPlatformName, platformName);
+  request.Data.WriteString(CParamConditionals, conditionalDefines);
+  request.Data.WriteString(CParamSearchPath, searchPath);
+
+  response := FIPCClient.ExecuteConnectedRequest(request);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.SetProjectConfig }
 
 end.

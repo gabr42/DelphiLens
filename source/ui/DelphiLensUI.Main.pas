@@ -25,8 +25,10 @@ type
     FDLWorkerLock   : TOmniCS;
   strict protected
     procedure CreateIPCServer;
+    procedure ExecuteCloseProject(projectID: integer; var error: integer; var errMsg: string);
     procedure ExecuteOpenProject(const projectName: string; var projectID: integer;
       var error: integer; var errMsg: string);
+    function  GetProject(projectID: integer; var project: TDelphiLensUIProject): boolean;
   end; { TfrmMainHidden }
 
 var
@@ -62,7 +64,32 @@ begin
       ShowMessage('IPC Server error: ' + msg);
     end;
   FIPCServer.OnExecuteOpenProject := ExecuteOpenProject;
+  FIPCServer.OnExecuteCloseProject := ExecuteCloseProject;
 end; { TfrmMainHidden.CreateIPCServer }
+
+procedure TfrmMainHidden.ExecuteCloseProject(projectID: integer; var error: integer;
+  var errMsg: string);
+var
+  project: TDelphiLensUIProject;
+begin
+  try
+    if not GetProject(projectID, project) then begin
+      error := ERR_PROJECT_NOT_FOUND;
+      errMsg := Format('Project %d is not open', [projectID]);
+    end
+    else begin
+      FDLWorkerLock.Acquire;
+      try
+        FDLEngineWorkers.Remove(projectID);
+      finally FDLWorkerLock.Release; end;
+    end;
+  except
+    on E: Exception do begin
+      error := ERR_EXCEPTION;
+      errMsg := E.Message;
+    end;
+  end;
+end; { TfrmMainHidden.ExecuteCloseProject }
 
 procedure TfrmMainHidden.ExecuteOpenProject(const projectName: string;
   var projectID: integer; var error: integer; var errMsg: string);
@@ -113,6 +140,15 @@ procedure TfrmMainHidden.FormDestroy(Sender: TObject);
 begin
   FreeAndNil(FDLEngineWorkers);
 end; { TfrmMainHidden.FormDestroy }
+
+function TfrmMainHidden.GetProject(projectID: integer; var project:
+  TDelphiLensUIProject): boolean;
+begin
+  FDLWorkerLock.Acquire;
+  try
+    Result := FDLEngineWorkers.TryGetValue(projectID, project);
+  finally FDLWorkerLock.Release; end;
+end; { TfrmMainHidden.GetProject }
 
 procedure TfrmMainHidden.tmrInitialWaitTimer(Sender: TObject);
 begin

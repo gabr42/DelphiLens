@@ -26,6 +26,7 @@ type
   public
     constructor Create;
     destructor  Destroy; override;
+    procedure CloseProject(var projectID: integer; var error: integer; var errMsg: string);
     procedure Connect(timeout_ms: integer; var serverFound, connected: boolean);
     procedure Disconnect;
     procedure OpenProject(const projectName: string; var projectID: integer;
@@ -82,6 +83,29 @@ begin
   end;
 end; { TDLUIIPCClient.CheckIfConnected }
 
+procedure TDLUIIPCClient.CloseProject(var projectID: integer; var error: integer; var
+  errMsg: string);
+var
+  messageData: IMessageData;
+  response   : IMessageData;
+begin
+  projectID := 0;
+  if not CheckIfConnected(error, errMsg) then
+    Exit;
+
+  messageData := AcquireMessageData;
+  messageData.ID := CCmdCloseProject;
+  messageData.Data.WriteInteger(CParamProjectID, projectID);
+
+  response := FIPCClient.ExecuteConnectedRequest(messageData);
+
+  if not CheckAnswer(error, errMsg) then
+    Exit;
+
+  error := response.Data.ReadInteger(CParamError);
+  errMsg := response.Data.ReadString(CParamErrMsg);
+end; { TDLUIIPCClient.CloseProject }
+
 procedure TDLUIIPCClient.Connect(timeout_ms: integer; var serverFound, connected: boolean);
 begin
   FIPCClient.ConnectClient(timeout_ms);
@@ -111,7 +135,7 @@ begin
     Exit;
 
   messageData := AcquireMessageData;
-  messageData.ID := CCmdOpenClient;
+  messageData.ID := CCmdOpenProject;
   messageData.Data.WriteString(CParamProjectName, projectName);
 
   response := FIPCClient.ExecuteConnectedRequest(messageData);

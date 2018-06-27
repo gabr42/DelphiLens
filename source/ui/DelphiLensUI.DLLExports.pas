@@ -80,14 +80,6 @@ begin
   Result := SetError(projectID, NO_ERROR, '');
 end; { ClearError }
 
-function GetProject(projectID: integer; var project: TDelphiLensUIProject): boolean;
-begin
-//  GDLWorkerLock.Acquire;
-//  try
-//    Result := GDLEngineWorkers.TryGetValue(projectID, project);
-//  finally GDLWorkerLock.Release; end;
-end; { GetProject }
-
 function DLUIGetLastError(projectID: integer; var errorMsg: PChar): integer;
 var
   errorInfo: TErrorInfo;
@@ -113,9 +105,8 @@ end; { DLUIGetLastError }
 
 function DLUIOpenProject(const projectName: PChar; var projectID: integer): integer;
 var
-  errMsg : string;
-  error  : integer;
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
   projectID := 0;
   if not CheckClient(Result) then
@@ -133,18 +124,17 @@ end; { DLUIOpenProject }
 
 function DLUICloseProject(projectID: integer): integer;
 var
-  project: TDelphiLensUIProject;
+  errMsg: string;
+  error : integer;
 begin
+  projectID := 0;
+  if not CheckClient(Result) then
+    Exit;
+
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-    else begin
-//      GDLWorkerLock.Acquire;
-//      try
-//        GDLEngineWorkers.Remove(projectID);
-//      finally GDLWorkerLock.Release; end;
-    end;
+    GDLIPCClient.CloseProject(projectID, error, errMsg);
+    Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -157,10 +147,10 @@ var
 begin
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-    else
-      project.ProjectModified;
+//    if not GetProject(projectID, project) then
+//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
+//    else
+//      project.ProjectModified;
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -173,10 +163,10 @@ var
 begin
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-    else
-      project.FileModified(fileName);
+//    if not GetProject(projectID, project) then
+//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
+//    else
+//      project.FileModified(fileName);
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -189,10 +179,10 @@ var
 begin
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-    else
-      project.Rescan;
+//    if not GetProject(projectID, project) then
+//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
+//    else
+//      project.Rescan;
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -206,10 +196,10 @@ var
 begin
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
-    else
-      project.SetConfig(TDLUIProjectConfig.Create(platformName, conditionalDefines, searchPath));
+//    if not GetProject(projectID, project) then
+//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID])
+//    else
+//      project.SetConfig(TDLUIProjectConfig.Create(platformName, conditionalDefines, searchPath));
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message);
@@ -225,19 +215,19 @@ var
 begin
   Result := ClearError(projectID);
   try
-    if not GetProject(projectID, project) then begin
-      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID]);
-    end
-    else begin
-      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
-      if not navigate then
-        navigateToFile := nil
-      else begin
-        navigateToFile := project.GetNavigationInfo.FileName;
-        navigateToLine := project.GetNavigationInfo.Line;
-        navigateToColumn := project.GetNavigationInfo.Column;
-      end;
-    end;
+//    if not GetProject(projectID, project) then begin
+//      Result := SetError(projectID, ERR_PROJECT_NOT_FOUND, 'Project %d is not open', [projectID]);
+//    end
+//    else begin
+//      project.Activate(monitorNum, fileName, line, column, tabNames, navigate);
+//      if not navigate then
+//        navigateToFile := nil
+//      else begin
+//        navigateToFile := project.GetNavigationInfo.FileName;
+//        navigateToLine := project.GetNavigationInfo.Line;
+//        navigateToColumn := project.GetNavigationInfo.Column;
+//      end;
+//    end;
   except
     on E: Exception do
       Result := SetError(projectID, ERR_EXCEPTION, E.Message );

@@ -10,27 +10,33 @@ function CreateIPCServer: IDLUIIPCServer;
 implementation
 
 uses
-  System.SysUtils, System.Classes,
+  System.SysUtils, System.Classes, System.Generics.Collections,
   Vcl.Forms,
   Winapi.Windows,
   Cromis.Comm.Custom, Cromis.Comm.IPC;
 
 type
   TDLUIIPCServer = class(TInterfacedObject, IDLUIIPCServer)
-  strict private
-    FIPCServer           : TIPCServer;
-    FOnClientConnected   : TProc;
-    FOnClientDisconnected: TProc;
-    FOnError             : TProc<string>;
-    FOnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent;
-    FStarting            : boolean;
-    FStartupError        : string;
+  strict private type
+    TIPCCommand = procedure (const request, response: IMessageData) of object;
+  var
+    FIPCCommands          : TDictionary<string, TIPCCommand>;
+    FIPCServer            : TIPCServer;
+    FOnClientConnected    : TProc;
+    FOnClientDisconnected : TProc;
+    FOnError              : TProc<string>;
+    FOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
+    FOnExecuteOpenProject : TDLUIIPCServerExecuteOpenProjectEvent;
+    FStarting             : boolean;
+    FStartupError         : string;
   strict protected
     procedure CreateIPCServer;
+    procedure ExecuteCloseProject(const request, response: IMessageData);
     procedure ExecuteOpenProject(const request, response: IMessageData);
     function  GetOnClientConnected: TProc;
     function  GetOnClientDisconnected: TProc;
     function  GetOnError: TProc<string>;
+    function  GetOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
     function  GetOnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent;
     procedure HandleClientConnect(const context: ICommContext);
     procedure HandleClientDisconnect(const context: ICommContext);
@@ -40,6 +46,7 @@ type
     procedure SetOnClientConnected(const value: TProc);
     procedure SetOnClientDisconnected(const value: TProc);
     procedure SetOnError(const value: TProc<string>);
+    procedure SetOnExecuteCloseProject(const value: TDLUIIPCServerExecuteCloseProjectEvent);
     procedure SetOnExecuteOpenProject(const value: TDLUIIPCServerExecuteOpenProjectEvent);
   public
     destructor Destroy; override;
@@ -49,8 +56,6 @@ type
     property OnClientDisconnected: TProc read GetOnClientDisconnected write
       SetOnClientDisconnected;
     property OnError: TProc<string> read GetOnError write SetOnError;
-    property OnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent read
-      GetOnExecuteOpenProject write SetOnExecuteOpenProject;
   end; { TDLUIIPCServer }
 
 { exports }
@@ -70,6 +75,10 @@ end; { TDLUIIPCServer.Destroy }
 
 procedure TDLUIIPCServer.CreateIPCServer;
 begin
+  FIPCCommands := TDictionary<string, TIPCCommand>.Create;
+  FIPCCommands.Add(CCmdOpenProject, ExecuteOpenProject);
+  FIPCCommands.Add(CCmdCloseProject, ExecuteCloseProject);
+
   FIPCServer := TIPCServer.Create;
   FIPCServer.ServerName := CDLUIIPCServerName;
   FIPCServer.OnServerError := HandleServerError;
@@ -79,6 +88,19 @@ begin
   FIPCServer.OnExecuteRequest := HandleExecuteRequest;
 end; { TDLUIIPCServer.CreateIPCServer }
 
+procedure TDLUIIPCServer.ExecuteCloseProject(const request, response: IMessageData);
+var
+  errMsg   : string;
+  error    : integer;
+  projectID: integer;
+begin
+  error := NO_ERROR;
+  errMsg := '';
+  FOnExecuteCloseProject(request.Data.ReadInteger(CParamProjectID), error, errMsg);
+  response.Data.WriteInteger(CParamError, error);
+  response.Data.WriteString(CParamErrMsg, errMsg);
+end; { TDLUIIPCServer.ExecuteCloseProject }
+
 procedure TDLUIIPCServer.ExecuteOpenProject(const request, response: IMessageData);
 var
   errMsg   : string;
@@ -87,7 +109,7 @@ var
 begin
   error := NO_ERROR;
   errMsg := '';
-  OnExecuteOpenProject(request.Data.ReadString(CParamProjectName), projectID, error, errMsg);
+  FOnExecuteOpenProject(request.Data.ReadString(CParamProjectName), projectID, error, errMsg);
   response.Data.WriteInteger(CParamProjectID, projectID);
   response.Data.WriteInteger(CParamError, error);
   response.Data.WriteString(CParamErrMsg, errMsg);
@@ -108,6 +130,11 @@ begin
   Result := FOnError;
 end; { TDLUIIPCServer.GetOnError }
 
+function TDLUIIPCServer.GetOnExecuteCloseProject: TDLUIIPCServerExecuteCloseProjectEvent;
+begin
+  Result := FOnExecuteCloseProject;
+end; { TDLUIIPCServer.GetOnExecuteCloseProject }
+
 function TDLUIIPCServer.GetOnExecuteOpenProject: TDLUIIPCServerExecuteOpenProjectEvent;
 begin
   Result := FOnExecuteOpenProject;
@@ -127,9 +154,11 @@ end; { TDLUIIPCServer.HandleClientDisconnect }
 
 procedure TDLUIIPCServer.HandleExecuteRequest(const context: ICommContext; const request,
   response: IMessageData);
+var
+  command: TIPCCommand;
 begin
-  if request.ID = CCmdOpenClient then
-    ExecuteOpenProject(request, response);
+  if FIPCCommands.TryGetValue(request.ID, command) then
+    command(request, response);
 end; { TDLUIIPCServer.HandleExecuteRequest }
 
 procedure TDLUIIPCServer.HandleServerError(const context: ICommContext;
@@ -169,6 +198,12 @@ begin
   FOnError := value;
 end; { TDLUIIPCServer.GetOnError }
 
+procedure TDLUIIPCServer.SetOnExecuteCloseProject(const value:
+  TDLUIIPCServerExecuteCloseProjectEvent);
+begin
+  FOnExecuteCloseProject := value;
+end; { TDLUIIPCServer.SetOnExecuteCloseProject }
+
 procedure TDLUIIPCServer.SetOnExecuteOpenProject(const value:
   TDLUIIPCServerExecuteOpenProjectEvent);
 begin
@@ -198,6 +233,7 @@ begin
     FIPCServer.Stop;
     FreeAndNil(FIPCServer);
   end;
+  FreeAndNil(FIPCCommands);
 end; { TDLUIIPCServer.Stop }
 
 end.

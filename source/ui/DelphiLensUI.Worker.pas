@@ -62,10 +62,11 @@ var
 implementation
 
 uses
-  System.UITypes,
+  System.UITypes, System.Classes,
   Vcl.Forms,
   Spring,
   DSiWin32,
+  GpConsole,
   OtlCommon, OtlTask,
   DelphiLens,
   DelphiLensUI.Main, DelphiLensUI.WorkerContext;
@@ -158,6 +159,7 @@ begin
       Screen.Cursor := oldCursor;
 
       if FCurrentResultID = FCurrentRescanID then begin
+LogToIDE(Format('Current result: %d, current rescan: %d', [FCurrentResultID, FCurrentRescanID]));
         if not assigned(FScanResult) then
           raise Exception.Create('TDelphiLensUIProject.Activate: FScanResult = nil');
 
@@ -202,6 +204,7 @@ begin
     end);
   waiter.WaitFor;
   FCurrentRescanID := waiter.Value;
+LogToIDE(Format('File modified, rescan ID = %d', [FCurrentRescanID]));
 end; { TDelphiLensUIProject.FileModified }
 
 function TDelphiLensUIProject.GetNavigationInfo: PDLUINavigationInfo;
@@ -230,6 +233,7 @@ begin
     end);
   waiter.WaitFor;
   FCurrentRescanID := waiter.Value;
+LogToIDE(Format('Project modified, rescan ID = %d', [FCurrentRescanID]));
 end; { TDelphiLensUIProject.ProjectModified }
 
 procedure TDelphiLensUIProject.ReportException(const funcName, excClass, excMessage: string);
@@ -241,6 +245,7 @@ procedure TDelphiLensUIProject.Rescan;
 var
   waiter: IOmniWaitableValue;
 begin
+LogToIDE('Rescan');
   waiter := CreateWaitableValue;
   FWorker.Invoke(
     procedure (const task: IOmniTask)
@@ -252,14 +257,17 @@ begin
     end);
   waiter.WaitFor;
   FCurrentRescanID := waiter.Value;
+LogToIDE(Format('Rescan, rescan ID = %d', [FCurrentRescanID]));
 end; { TDelphiLensUIProject.Rescan }
 
 procedure TDelphiLensUIProject.ScanComplete_Asy(const result: IDLScanResult; scanID: integer);
 begin
+LogToIDE('ScanComplete_Asy');
   FScanLock.Acquire;
   try
     FScanResult := result;
     FCurrentResultID := scanID;
+LogToIDE(Format('ScanComplete, result ID = %d', [scanID]));
   finally FScanLock.Release; end;
 end; { TDelphiLensUIProject.ScanComplete_Asy }
 
@@ -293,11 +301,13 @@ end; { TDelphiLensUIWorker.FileModified }
 
 function TDelphiLensUIWorker.Initialize: boolean;
 begin
+  LogToIDE('Worker initializing');
   Result := inherited Initialize;
   if Result then begin
     FOwner := Task.Param['owner'];
     FScanLock := Task.Param['lock'].AsInterface as IOmniCriticalSection;
     FScanID.Value := 0;
+    LogToIDE(Format('Worker initialized, scan ID = %d', [FScanID.Value]));
   end;
 end; { TDelphiLensUIWorker.Initialize }
 
@@ -314,12 +324,15 @@ begin
     scanIDCpy := FScanID.Value;
   finally FScanLock.Release; end;
 
+LogToIDE('Scan complete');
   FOwner.ScanComplete_Asy(scanResult, scanIDCpy);
 end; { TDelphiLensUIWorker.InternalRescan }
 
 procedure TDelphiLensUIWorker.LogToIDE(const msg: string);
 begin
-  Task.Invoke(
+Console.Writeln(['[worker]', msg]);
+  TThread.Queue(nil,
+//  Task.Invoke(
     procedure
     begin
       FOwner.LogToIDE(msg);
@@ -329,6 +342,7 @@ end; { TDelphiLensUIWorker.LogToIDE }
 procedure TDelphiLensUIWorker.Open(const projectName: TOmniValue);
 begin
   try
+LogToIDE(Format('Worker open %s', [projectName.AsString]));
     FDelphiLens := CreateDelphiLens(projectName);
   except
     on E:Exception do
@@ -364,6 +378,7 @@ end; { TDelphiLensUIWorker.ReportException }
 procedure TDelphiLensUIWorker.Rescan(var scanID: integer);
 begin
   try
+LogToIDE(Format('Rescan %d', [scanID]));
     scanID := FScanID.Increment;
     if not assigned(FDelphiLens) then
       Exit;

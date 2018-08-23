@@ -87,7 +87,7 @@
         <DCC_RemoteDebug>true</DCC_RemoteDebug>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Cfg_1_Win32)'!=''">
-        <OutputExt>240.dll</OutputExt>
+        <OutputExt>dll</OutputExt>
         <DCC_DcuOutput>..\..\bin\dcu</DCC_DcuOutput>
         <DCC_ExeOutput>..\..\bin</DCC_ExeOutput>
         <VerInfo_Locale>1033</VerInfo_Locale>
@@ -108,6 +108,9 @@
         <DelphiCompile Include="$(MainSource)">
             <MainSource>MainSource</MainSource>
         </DelphiCompile>
+        <RcCompile Include="..\res\bitmaps.rc">
+            <Form>bitmaps.res</Form>
+        </RcCompile>
         <DCCReference Include="DelphiLensProxy.pas"/>
         <DCCReference Include="InitialiseOTAInterface.pas"/>
         <DCCReference Include="UtilityFunctions.pas"/>
@@ -163,7 +166,7 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="Win32\Debug\DelphiLensExpert.dll" Configuration="Debug" Class="ProjectOutput">
+                <DeployFile LocalName="..\..\bin\DelphiLensExpert.dll" Configuration="Debug" Class="ProjectOutput">
                     <Platform Name="Win32">
                         <RemoteName>DelphiLensExpert.dll</RemoteName>
                         <Overwrite>true</Overwrite>

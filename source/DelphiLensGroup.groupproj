@@ -3,9 +3,6 @@
         <ProjectGuid>{8E8B1093-B8F8-4ACE-BE87-2C1EE05834FE}</ProjectGuid>
     </PropertyGroup>
     <ItemGroup>
-        <Projects Include="expert\DelphiLensExpertPackage.dproj">
-            <Dependencies/>
-        </Projects>
         <Projects Include="expert\DelphiLensExpert.dproj">
             <Dependencies/>
         </Projects>
@@ -29,15 +26,6 @@
             <Default.Personality/>
         </BorlandProject>
     </ProjectExtensions>
-    <Target Name="DelphiLensExpertPackage">
-        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj"/>
-    </Target>
-    <Target Name="DelphiLensExpertPackage:Clean">
-        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj" Targets="Clean"/>
-    </Target>
-    <Target Name="DelphiLensExpertPackage:Make">
-        <MSBuild Projects="expert\DelphiLensExpertPackage.dproj" Targets="Make"/>
-    </Target>
     <Target Name="DelphiLensExpert">
         <MSBuild Projects="expert\DelphiLensExpert.dproj"/>
     </Target>
@@ -84,13 +72,13 @@
         <MSBuild Projects="server\DelphiLensServer.dproj" Targets="Make"/>
     </Target>
     <Target Name="Build">
-        <CallTarget Targets="DelphiLensExpertPackage;DelphiLensExpert;DelphiLensUI;DelphiLensUITest;DelphiLensDesktop;DelphiLensServer"/>
+        <CallTarget Targets="DelphiLensExpert;DelphiLensUI;DelphiLensUITest;DelphiLensDesktop;DelphiLensServer"/>
     </Target>
     <Target Name="Clean">
-        <CallTarget Targets="DelphiLensExpertPackage:Clean;DelphiLensExpert:Clean;DelphiLensUI:Clean;DelphiLensUITest:Clean;DelphiLensDesktop:Clean;DelphiLensServer:Clean"/>
+        <CallTarget Targets="DelphiLensExpert:Clean;DelphiLensUI:Clean;DelphiLensUITest:Clean;DelphiLensDesktop:Clean;DelphiLensServer:Clean"/>
     </Target>
     <Target Name="Make">
-        <CallTarget Targets="DelphiLensExpertPackage:Make;DelphiLensExpert:Make;DelphiLensUI:Make;DelphiLensUITest:Make;DelphiLensDesktop:Make;DelphiLensServer:Make"/>
+        <CallTarget Targets="DelphiLensExpert:Make;DelphiLensUI:Make;DelphiLensUITest:Make;DelphiLensDesktop:Make;DelphiLensServer:Make"/>
     </Target>
     <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
 </Project>

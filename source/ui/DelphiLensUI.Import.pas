@@ -1,4 +1,4 @@
-unit DelphiLensUI.Import;
+!unit DelphiLensUI.Import;
 
 interface
 

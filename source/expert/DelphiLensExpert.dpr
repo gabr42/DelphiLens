@@ -13,6 +13,8 @@ library DelphiLensExpert;
 {$R *.res}
 
 {Generate by DGH OTA Wizard}
+{$R 'bitmaps.res' '..\res\bitmaps.rc'}
+
 uses
   DelphiLensProxy in 'DelphiLensProxy.pas',
   InitialiseOTAInterface in 'InitialiseOTAInterface.pas',

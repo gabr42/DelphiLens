@@ -34,6 +34,7 @@ function  DLUIActivate(monitorNum, projectID: integer; fileName: PChar;
 implementation
 
 uses
+  GpConsole,
   Vcl.Dialogs,
   Winapi.Windows,
   System.SysUtils, System.Generics.Collections, System.Math,
@@ -116,7 +117,9 @@ begin
 
   Result := ClearError(projectID);
   try
+  Console.Writeln('>OpenProject');
     GDLIPCClient.OpenProject(projectName, projectID, error, errMsg);
+  Console.Writeln(['<OpenProject ', projectID]);
     Result := SetError(projectID, error, errMsg);
   except
     on E: Exception do
@@ -129,6 +132,9 @@ var
   errMsg: string;
   error : integer;
 begin
+  if projectID = 0 then
+    Exit;
+
   if not CheckClient(projectID, Result) then
     Exit;
 
@@ -233,8 +239,10 @@ begin
 
   Result := ClearError(projectID);
   try
+  Console.Writeln(['>Activate ', projectID]);
     GDLIPCClient.Activate(monitorNum, projectID, fileName, line, column, tabNames,
       navToFile, navigateToLine, navigateToColumn, error, errMsg);
+  Console.Writeln('<Activate');
     if navToFile = '' then
       navigateToFile := nil
     else begin
@@ -271,15 +279,21 @@ begin
     while not (conn or DSiHasElapsed64(time_ms, 5000)) do
       GDLIPCClient.Connect(Max(0, 5000 - DSiElapsedTime64(time_ms)), hasSrv, conn);
   end;
+
+  // show this, somehow
   if not hasSrv then
-    ShowMessage('Failed to start DelphiLensUI.exe')
+    Console.Writeln('Failed to start DelphiLensUI.exe')
   else if not conn then
-    ShowMessage('Failed to connect to DelphiLensUI.exe');
+    Console.Writeln('Failed to connect to DelphiLensUI.exe')
+  else
+    Console.Writeln('Connected to server');
 end; { DLUIInitialize }
 
 procedure DLUIFinalize;
 begin
+  Console.Writeln('Finalize');
   if assigned(GDLIPCClient) then begin
+    Console.Writeln('Disconnecting from server');
     GDLIPCClient.Disconnect;
     GDLIPCClient := nil;
   end;

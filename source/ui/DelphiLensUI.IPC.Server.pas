@@ -10,6 +10,7 @@ function CreateIPCServer: IDLUIIPCServer;
 implementation
 
 uses
+  GpConsole,
   System.SysUtils, System.Classes, System.Generics.Collections,
   Vcl.Forms,
   Winapi.Windows,
@@ -289,6 +290,7 @@ procedure TDLUIIPCServer.HandleExecuteRequest(const context: ICommContext; const
 var
   command: TIPCCommand;
 begin
+  Console.Writeln(['SERVER execute request ', request.ID]);
   if FIPCCommands.TryGetValue(request.ID, command) then
     command(request, response);
 end; { TDLUIIPCServer.HandleExecuteRequest }
@@ -298,6 +300,8 @@ procedure TDLUIIPCServer.HandleServerError(const context: ICommContext;
 var
   errMsg: string;
 begin
+  Console.Writeln(['SERVER error ', error.Code]);
+
   if error.Code = ERROR_BROKEN_PIPE then // disconnected client
     Exit;
 

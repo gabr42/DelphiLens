@@ -48,6 +48,7 @@ var
 implementation
 
 uses
+  GpConsole,
   DelphiLensUI.Error,
   DelphiLensUI.IPC.Server;
 
@@ -60,14 +61,31 @@ begin
     procedure
     begin
       Inc(FNumClients);
+      Console.Writeln(['Client connected ', FNumClients]);
       tmrInitialWait.Enabled := false;
     end;
   FIPCServer.OnClientDisconnected :=
     procedure
     begin
       Dec(FNumClients);
-      if FNumClients = 0 then
-        TThread.ForceQueue(nil, procedure begin Close; end);
+      Console.Writeln(['Client disconnected ', FNumClients]);
+      if FNumClients = 0 then begin
+        TThread.ForceQueue(nil,
+          procedure begin
+            try
+            Console.Writeln('Halting ...');
+            FIPCServer.Stop;
+            Console.Writeln('Halting ... #1');
+            FIPCServer := nil;
+            Console.Writeln('Halting ... #2');
+            Halt;
+            Console.Writeln('Halting ... #3');
+            except
+            on E: Exception do
+              Console.Writeln(['Halting ... ', E.Message]);
+            end;
+          end);
+      end;
     end;
   FIPCServer.OnError :=
     procedure (msg: string)
@@ -91,6 +109,8 @@ var
   navigate: boolean;
   project : TDelphiLensUIProject;
 begin
+  Console.Writeln('>ExecuteActivate');
+  try
   try
     if not GetProject(projectID, project) then begin
       error := ERR_PROJECT_NOT_FOUND;
@@ -112,10 +132,12 @@ begin
     end;
   except
     on E: Exception do begin
+      Console.Writeln(['*ExecuteActivate ', E.Message]);
       error := ERR_EXCEPTION;
       errMsg := E.Message;
     end;
   end;
+  finally   Console.Writeln('<ExecuteActivate'); end;
 end; { TfrmMainHidden.ExecuteActivate }
 
 procedure TfrmMainHidden.ExecuteCloseProject(projectID: integer; var error: integer;
@@ -152,8 +174,11 @@ begin
       error := ERR_PROJECT_NOT_FOUND;
       errMsg := Format('Project %d is not open', [projectID]);
     end
-    else
+    else begin
+    Console.Writeln('>FileModified');
       project.FileModified(fileName);
+    Console.Writeln('<FileModified');
+    end;
   except
     on E: Exception do begin
       error := ERR_EXCEPTION;

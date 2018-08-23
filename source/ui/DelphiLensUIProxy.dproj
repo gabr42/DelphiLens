@@ -129,6 +129,7 @@
                     <Source Name="MainSource">DelphiLensUIProxy.dpr</Source>
                 </Source>
                 <Excluded_Packages>
+                    <Excluded_Packages Name="H:\RAZVOJ\DelphiLens\bin\DelphiLensExpertPackage.bpl">DelphiLens Expert</Excluded_Packages>
                     <Excluded_Packages Name="C:\Users\Public\Documents\Embarcadero\Studio\19.0\Bpl\OmniThreadLibraryDesigntime250.bpl">OmniThreadLibrary designtime</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dcloffice2k250.bpl">Microsoft Office 2000 Sample Automation Server Wrapper Components</Excluded_Packages>
                     <Excluded_Packages Name="$(BDSBIN)\dclofficexp250.bpl">Microsoft Office XP Sample Automation Server Wrapper Components</Excluded_Packages>

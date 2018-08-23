@@ -21,6 +21,7 @@ uses
   Vcl.StdCtrls, Vcl.Controls, Vcl.Forms, Vcl.ExtCtrls, Vcl.WinXCtrls, Vcl.Buttons,
   Vcl.Themes, Vcl.Graphics, Vcl.Imaging.Pngimage,
   VirtualTrees,
+  DSiWin32,
   Spring, Spring.Collections, Spring.Reflection,
   GpStuff, GpEasing, GpVCL, GpVCL.OwnerDrawBitBtn,
   DelphiLens.UnitInfo, DelphiLens.FileCache.Intf, DelphiLens.FileCache,
@@ -42,10 +43,6 @@ type
     procedure HandleKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
   public
     constructor CreateNew(AOwner: TComponent; Dummy: Integer = 0); override;
-    destructor Destroy; override;
-    function CloseQuery: Boolean; override;
-    procedure DoClose(var Action: TCloseAction); override;
-    procedure Deactivate; override;
     procedure UpdateMask;
     property OnBackSpace: TProc read FOnBackSpace write FOnBackSpace;
   end; { TVCLFloatingForm }
@@ -261,10 +258,8 @@ type
     procedure StartSearch(Sender: TObject);
     procedure UpdateClientSize(const rect: TRect);
     procedure VTSelectNode(vt: TBaseVirtualTree; node: PVirtualNode);
-    procedure NotifyModalEnd(Sender: TObject);
   public
     constructor Create(const parentFrame: IDLUIXFrame);
-    destructor Destroy; override;
     // IDLUIXVCLFloatingFrame
     function  GetBounds_Screen(const action: IDLUIXAction): TRect;
     // IDLUIXFrame
@@ -330,34 +325,9 @@ end; { TDLUIXListBoxWrapper.SetItemIndex }
 constructor TVCLFloatingForm.CreateNew(AOwner: TComponent; Dummy: Integer = 0);
 begin
   inherited;
+  FormStyle := fsStayOnTop;
   OnKeyDown := HandleKeyDown;
 end; { TVCLFloatingForm.CreateNew }
-
-destructor TVCLFloatingForm.Destroy;
-begin
-  Console.Writeln('>> TVCLFloatingForm.Destroy');
-  inherited;
-  Console.Writeln('<< TVCLFloatingForm.Destroy');
-end;
-
-function TVCLFloatingForm.CloseQuery: Boolean;
-begin
-  Result := true;
-  Console.Writeln(['  CloseQuery ', ModalResult]);
-end;
-
-procedure TVCLFloatingForm.Deactivate;
-begin
-  Console.Writeln('  >>Deactivate');
-  inherited;
-  Console.Writeln('  <<Deactivate');
-end;
-
-procedure TVCLFloatingForm.DoClose(var Action: TCloseAction);
-begin
-  Console.Writeln(['  DoClose ', ModalResult]);
-  Action := caFree;
-end;
 
 procedure TVCLFloatingForm.HandleKeyDown(Sender: TObject; var Key: Word;
   Shift: TShiftState);
@@ -417,7 +387,6 @@ begin
   FOnShowProc := TCollections.CreateQueue<TProc>;
   FParent := parentFrame;
   FForm := TVCLFloatingForm.CreateNew(Application);
-  Application.OnModalEnd := NotifyModalEnd;
   FForm.BorderStyle := bsNone;
   FForm.ClientWidth := 0;
   FForm.ClientHeight := 0;
@@ -431,13 +400,6 @@ begin
         FHistoryButton.OnClick(FHistoryButton);
     end;
 end; { TDLUIXVCLFloatingFrame.Create }
-
-destructor TDLUIXVCLFloatingFrame.Destroy;
-begin
-  Console.Writeln('>> TDLUIXVCLFloatingFrame.Destroy');
-  inherited;
-  Console.Writeln('<< TDLUIXVCLFloatingFrame.Destroy');
-end;
 
 procedure TDLUIXVCLFloatingFrame.ApplyOptions(control: TControl;
   options: TDLUIXFrameActionOptions);
@@ -1190,11 +1152,6 @@ begin
   FForceNewColumn := true;
 end; { TDLUIXVCLFloatingFrame.NewColumn }
 
-procedure TDLUIXVCLFloatingFrame.NotifyModalEnd(Sender: TObject);
-begin
-  Console.Writeln('++ OnModalEnd');
-end;
-
 function TDLUIXVCLFloatingFrame.NumItems(listBox: TListBox): integer;
 begin
   Result := Trunc(listBox.ClientHeight /  listBox.ItemHeight);
@@ -1300,9 +1257,6 @@ var
   proc          : TProc;
   rect          : TRect;
 begin
-  Console.Writeln('>> Show');
-  try
-
   FForm.Position := poDesigned;
   if not assigned(FParent) then begin
     rect := Screen.Monitors[monitorNum].BoundsRect;
@@ -1327,13 +1281,11 @@ begin
     proc();
   FForm.UpdateMask;
 
-  Console.Writeln('>> ShowModal');
-  FForm.ShowModal;
-  Console.Writeln('<< ShowModal');
+  Console.Writeln('>SetForegroundWindow');
+  SetForegroundWindow(FForm.Handle);
+  Console.Writeln('<SetForegroundWindow');
 
-  finally
-  Console.Writeln('<< Show');
-  end;
+  FForm.ShowModal;
 end; { TDLUIXVCLFloatingFrame.Show }
 
 procedure TDLUIXVCLFloatingFrame.StartSearch(Sender: TObject);

@@ -13,7 +13,7 @@ procedure DLUIShowUI(const workerContext: IDLUIWorkerContext);
 implementation
 
 uses
-  GpConsole, Classes,
+  Classes,
   Vcl.Dialogs,
   System.SysUtils,
   System.Generics.Collections,
@@ -123,18 +123,15 @@ end; { TDLUserInterface.ProcessExecuteAction }
 procedure TDLUserInterface.ShowAnalyzerPanel(const parentFrame: IDLUIXFrame;
   const parentAction: IDLUIXAction; const action: IDLUIXOpenAnalyzerAction);
 begin
-  Console.Writeln('>> ShowAnalyzerPanel');
   ShowPanel(parentFrame, parentAction,
     procedure (const frame: IDLUIXFrame)
     begin
       action.Analyzer.BuildFrame(action, frame, FUIContext);
     end);
-  Console.Writeln('<< ShowAnalyzerPanel');
 end; { TDLUserInterface.ShowAnalyzerPanel }
 
 procedure TDLUserInterface.ShowMain;
 begin
-Console.Writeln('>> ShowMain');
   ShowPanel(nil, nil,
     procedure (const frame: IDLUIXFrame)
     var
@@ -144,9 +141,7 @@ Console.Writeln('>> ShowMain');
         if assigned(analyzer.Value) and analyzer.Value.CanHandle(FUIContext) then
           frame.CreateAction(CreateOpenAnalyzerAction(analyzer.Key, analyzer.Value));
     end);
-Console.Writeln('   ReleaseAnalyzers');
   FUIContext.Project.ReleaseAnalyzers;
-Console.Writeln('<< ShowMain');
 end; { TDLUserInterface.ShowMain }
 
 procedure TDLUserInterface.ShowPanel(const parentFrame: IDLUIXFrame;
@@ -156,8 +151,6 @@ var
   navigation  : IDLUIXNavigationAction;
   openAnalyzer: IDLUIXOpenAnalyzerAction;
 begin
-Console.Writeln('>> ShowPanel');
-try
   frame := FUIXEngine.CreateFrame(parentFrame);
   if not assigned(parentFrame) then
     frame.Caption := ChangeFileExt(ExtractFileName(FUIContext.ProjectName), '');
@@ -167,12 +160,9 @@ try
       if Supports(action, IDLUIXOpenAnalyzerAction, openAnalyzer) then
         ShowAnalyzerPanel(frame, action, openAnalyzer)
       else if Supports(action, IDLUIXNavigationAction, navigation) then begin
-        Console.Writeln('  IDLUIXNavigationAction');
         FExecuteAction := action;
         frame.Close;
-        Console.Writeln('  frame closed');
       end;
-      Console.Writeln('<< frame.OnAction');
     end;
 
   frameBuilder(frame);
@@ -183,26 +173,15 @@ try
 
     frame.Show(FUIContext.MonitorNum, parentAction);
 
-  Console.Writeln('>>  ShowPanel.ParentFrame');
     if assigned(parentFrame) then begin
       if assigned(FExecuteAction) then
-//        TThread.ForceQueue(nil, procedure begin
-//          Console.Writeln('>> parentFrame.Close');
-          parentFrame.Close
-//          Console.Writeln('<< parentFrame.Close');
-//        end)
+        parentFrame.Close
       else
         parentFrame.MarkActive(true);
     end;
-  Console.Writeln('<<  ShowPanel.ParentFrame');
   end;
 
-  Console.Writeln('>>  ShowPanel.DestroyFrame');
   FUIXEngine.DestroyFrame(frame);
-  Console.Writeln('<<  ShowPanel.DestroyFrame');
-finally
-  Console.Writeln('<< ShowPanel');
-end;
 end; { TDLUserInterface.ShowPanel }
 
 end.

@@ -39,7 +39,6 @@ procedure TDLUIXTabsAnalyzer.BuildFrame(const action: IDLUIXAction;
   const frame: IDLUIXFrame; const context: IDLUIWorkerContext);
 var
   filteredList : IDLUIXFilteredListAction;
-  iTab         : integer;
   navigateToTab: IDLUIXAction;
   sPath        : string;
   sTab         : string;

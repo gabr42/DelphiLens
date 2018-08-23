@@ -53,6 +53,7 @@ type
     procedure ProjectModified;
     procedure Rescan;
     procedure SetConfig(const config: TDLUIProjectConfig);
+    property ProjectID: integer read FProjectID;
   end; { TDelphiLensUIProject }
 
 var

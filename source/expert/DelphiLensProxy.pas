@@ -29,7 +29,8 @@ uses
   GpStuff,
   DSiWin32,
   DelphiLens.OTAUtils,
-  DelphiLensUI.Import, DelphiLensUI.Error;
+  DelphiLensUI.Worker,
+  DelphiLensUI.Error;
 
 const
   MSG_FEEDBACK = WM_USER;
@@ -44,11 +45,10 @@ type
       SearchPath    : string;
       LibPath       : string;
     end;
-    FDLUIHasProject: boolean;
-    FDLUIProjectID : integer;
+    FDLUILastProjectID: integer;
+    FDLUIProject      : TDelphiLensUIProject;
   strict protected
     function  ActivateTabs(const fileNames: string): boolean;
-    function  CheckAPI(const apiName: string; apiResult: integer): boolean;
     procedure CloseProject;
     procedure SetCursorPosition(line, column: integer);
   public
@@ -74,21 +74,18 @@ end; { LoggerHook }
 constructor TDelphiLensProxy.Create;
 begin
   inherited Create;
-  if IsDLUIAvailable then
-    DLUISetLogHook(LoggerHook);
+  GLogHook := LoggerHook;
 end; { TDelphiLensProxy.Create }
 
 destructor TDelphiLensProxy.Destroy;
 begin
   CloseProject;
-  if IsDLUIAvailable then
-    DLUISetLogHook(nil);
+  GLogHook := nil;
   inherited;
 end; { TDelphiLensProxy.Destroy }
 
 procedure TDelphiLensProxy.Activate;
 var
-  apiRes     : integer;
   col        : integer;
   edit       : IOTAEditorServices;
   editBuffer : IOTAEditBuffer;
@@ -96,15 +93,14 @@ var
   filePath   : string;
   iTab       : integer;
   line       : integer;
-  navToColumn: integer;
-  navToFile  : PChar;
-  navToLine  : integer;
+  navigate   : boolean;
+  navInfo    : PDLUINavigationInfo;
   tabNames   : string;
 begin
   try
     Log(lcActivation, 'Activate');
-    if not (IsDLUIAvailable and FDLUIHasProject) then begin
-      Log(lcActivation, '... no DLL or no project');
+    if not assigned(FDLUIProject) then begin
+      Log(lcActivation, '... no project');
       Exit;
     end;
 
@@ -133,16 +129,15 @@ begin
         end;
     end;
 
-    apiRes := DLUIActivate(Application.MainForm.Monitor.MonitorNum,
-      FDLUIProjectID, PChar(filePath), line, col, PChar(tabNames),
-      navToFile, navToLine, navToColumn);
+    FDLUIProject.Activate(Application.MainForm.Monitor.MonitorNum, filePath, line, col, tabNames, navigate);
 
-    if CheckAPI('DLUIActivate', apiRes) and assigned(navToFile) then begin
-      Log(lcActivation, 'Navigate to: %s', [string(navToFile)]);
-      if ActivateTabs(string(navToFile)) and (navToLine > 0) and (navToColumn > 0) then
+    if navigate then begin
+      navInfo := FDLUIProject.GetNavigationInfo;
+      Log(lcActivation, 'Navigate to: %s', [string(navInfo.FileName)]);
+      if ActivateTabs(string(navInfo.FileName)) and (navInfo.Line > 0) and (navInfo.Column > 0) then
       begin
-        Log(lcActivation, '... @ %d,%d', [navToLine, navToColumn]);
-        SetCursorPosition(navToLine, navToColumn);
+        Log(lcActivation, '... @ %d,%d', [navInfo.Line, navInfo.Column]);
+        SetCursorPosition(navInfo.Line, navInfo.Column);
       end;
     end;
   except
@@ -160,18 +155,6 @@ begin
     Result := ActivateTab(fileName) and Result;
 end; { TDelphiLensProxy.ActivateTabs }
 
-function TDelphiLensProxy.CheckAPI(const apiName: string; apiResult: integer): boolean;
-var
-  error   : integer;
-  errorMsg: PChar;
-begin
-  Result := (apiResult = DelphiLensUI.Error.NO_ERROR);
-  if not Result then begin
-    error := DLUIGetLastError(FDLUIProjectID, errorMsg);
-    Log(lcError, '%s failed with error [%d] %s', [apiName, error, string(errorMsg)]);
-  end;
-end; { TDelphiLensProxy.CheckAPI }
-
 procedure TDelphiLensProxy.CloseProject;
 begin
   if FCurrentProject.Name = '' then
@@ -183,11 +166,10 @@ begin
   FCurrentProject.SearchPath := '';
   FCurrentProject.LibPath := '';
 
-  if not FDLUIHasProject then
+  if not assigned(FDLUIProject) then
     Exit;
 
-  CheckAPI('DLUICloseProject', DLUICloseProject(FDLUIProjectID));
-  FDLUIHasProject := false;
+  FreeAndNil(FDLUIProject);
 end; { TDelphiLensProxy.CloseProject }
 
 procedure TDelphiLensProxy.FileActivated(const fileName: string);
@@ -216,8 +198,8 @@ end; { TDelphiLensProxy.FileModified }
 procedure TDelphiLensProxy.FileSaved(const fileName: string);
 begin
   try
-    if FDLUIHasProject then
-      CheckAPI('DLUIFileModified', DLUIFileModified(FDLUIProjectID, PChar(fileName)));
+    if assigned(FDLUIProject) then
+      FDLUIProject.FileModified(fileName);
   except
     on E: Exception do
       Log(lcError, 'TDelphiLensProxy.FileSaved', E);
@@ -237,8 +219,8 @@ end; { TDelphiLensProxy.ProjectClosed }
 procedure TDelphiLensProxy.ProjectModified;
 begin
   try
-    if FDLUIHasProject then
-      CheckAPI('DLUIProjectModified', DLUIProjectModified(FDLUIProjectID));
+    if assigned(FDLUIProject) then
+      FDLUIProject.ProjectModified;
   except
     on E: Exception do
       Log(lcError, 'TDelphiLensProxy.ProjectModified', E);
@@ -258,14 +240,10 @@ begin
 
     CloseProject;
 
-    if IsDLUIAvailable then
-      FDLUIHasProject := CheckAPI('DLUIOpenProject', DLUIOpenProject(PChar(projName), FDLUIProjectID));
-    if not FDLUIHasProject then
-      Exit;
+    Inc(FDLUILastProjectID);
+    FDLUIProject := TDelphiLensUIProject.Create(projName, FDLUILastProjectID);
 
     Log(lcActiveProject, 'DelphiLens project recreated');
-
-//    SetProjectConfig(sPlatform, conditionals, searchPath, libPath);
 
     FCurrentProject.Name := projName;
     FCurrentProject.ActivePlatform := sPlatform;
@@ -280,7 +258,7 @@ end; { TDelphiLensProxy.ProjectOpened }
 
 procedure TDelphiLensProxy.SetCursorPosition(line, column: integer);
 var
-  edit: IOTAEditorServices;
+  edit   : IOTAEditorServices;
   editPos: TOTAEditPos;
 begin
   edit := (BorlandIDEServices as IOTAEditorServices);
@@ -289,14 +267,14 @@ begin
   edit.TopView.CursorPos := editPos;
   edit.TopView.MoveViewToCursor;
   edit.TopView.Paint;
-end;
+end; { TDelphiLensProxy.SetCursorPosition }
 
 procedure TDelphiLensProxy.SetProjectConfig(const sPlatform, conditionals, searchPath, libPath: string);
 var
   path: string;
 begin
   try
-    if FDLUIHasProject then begin
+    if assigned(FDLUIProject) then begin
       path := ''.Join(';', [searchPath, libPath]);
 
       Log(lcActiveProject, 'Project config set to:');
@@ -304,8 +282,7 @@ begin
       Log(lcActiveProject, '... defines  = ' + conditionals);
       Log(lcActiveProject, '... path     = ' + searchPath + ';' + libPath);
 
-      if CheckAPI('DLUISetProjectConfig', DLUISetProjectConfig(FDLUIProjectID, PChar(sPlatform), PChar(conditionals), PChar(path))) then
-        CheckAPI('DLUIRescan', DLUIRescanProject(FDLUIProjectID));
+      FDLUIProject.SetConfig(TDLUIProjectConfig.Create(sPlatform, conditionals, path));
     end;
   except
     on E: Exception do
@@ -313,11 +290,7 @@ begin
   end;
 end; { TDelphiLensProxy.SetProjectConfig }
 
-{ TDelphiLensEngine }
-
 initialization
-  if not IsDLUIAvailable then
-    Log(lcError, '%s.dll not found!', [DelphiLensUIDLL]);
   DLProxy := TDelphiLensProxy.Create;
 finalization
   DLProxy := nil;

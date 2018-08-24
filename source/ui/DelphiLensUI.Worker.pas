@@ -62,6 +62,7 @@ var
 implementation
 
 uses
+  Winapi.Windows,
   System.UITypes, System.Classes,
   Vcl.Forms,
   Spring,
@@ -214,8 +215,13 @@ end; { TDelphiLensUIProject.GetNavigationInfo }
 
 procedure TDelphiLensUIProject.LogToIDE(const msg: string);
 begin
+try
   if assigned(GLogHook) then
     GLogHook(FProjectID, PChar(msg));
+except
+  on E: Exception do
+    Console.Writeln(['[main] *** ', E.ClassName, ': ', E.Message]);
+end;
 end; { TDelphiLensUIProject.LogToIDE }
 
 procedure TDelphiLensUIProject.ProjectModified;
@@ -273,7 +279,8 @@ end; { TDelphiLensUIProject.ScanComplete_Asy }
 
 procedure TDelphiLensUIProject.SetConfig(const config: TDLUIProjectConfig);
 begin
-  FWorker.Invoke(@TDelphiLensUIWorker.SetConfig, TOmniValue.FromRecord<TDLUIProjectConfig>(config))
+  FWorker.Invoke(@TDelphiLensUIWorker.SetConfig, TOmniValue.FromRecord<TDLUIProjectConfig>(config));
+  Rescan;
 end; { TDelphiLensUIProject.SetConfig }
 
 { TDelphiLensUIWorker }
@@ -331,12 +338,18 @@ end; { TDelphiLensUIWorker.InternalRescan }
 procedure TDelphiLensUIWorker.LogToIDE(const msg: string);
 begin
 Console.Writeln(['[worker]', msg]);
+try
   TThread.Queue(nil,
 //  Task.Invoke(
     procedure
     begin
-      FOwner.LogToIDE(msg);
+      if assigned(FOwner) then
+        FOwner.LogToIDE(msg);
     end);
+except
+  on E: Exception do
+    Console.Writeln(['[worker] *** ', E.ClassName, ': ', E.Message]);
+end;
 end; { TDelphiLensUIWorker.LogToIDE }
 
 procedure TDelphiLensUIWorker.Open(const projectName: TOmniValue);
@@ -378,8 +391,8 @@ end; { TDelphiLensUIWorker.ReportException }
 procedure TDelphiLensUIWorker.Rescan(var scanID: integer);
 begin
   try
-LogToIDE(Format('Rescan %d', [scanID]));
     scanID := FScanID.Increment;
+LogToIDE(Format('Rescan %d', [scanID]));
     if not assigned(FDelphiLens) then
       Exit;
 
@@ -393,6 +406,7 @@ end; { TDelphiLensUIWorker.Rescan }
 procedure TDelphiLensUIWorker.ScheduleRescan;
 begin
   try
+LogToIDE('ScheduleRescan');
     if assigned(FDelphiLens) then
       Task.SetTimer(CTimerRescan, CTimerRescanDelay_ms, @TDelphiLensUIWorker.TimerRescan);
   except

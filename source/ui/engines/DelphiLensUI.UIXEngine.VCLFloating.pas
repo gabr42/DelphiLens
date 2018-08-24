@@ -342,6 +342,8 @@ var
   rgn, rgnCtrl: HRGN;
   i: Integer;
 begin
+  Exit; // TODO : Mastk is currentyl disabled as it doesn't work ok when GUI is compiled into IDE Expert DLL
+
   pnt := ClientToScreen(Point(0, 0));
   rgn := 0;
   for i := 0 to ControlCount - 1 do begin

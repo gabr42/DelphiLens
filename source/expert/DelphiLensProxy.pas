@@ -26,7 +26,7 @@ uses
   Vcl.Forms,
   ToolsAPI, DCCStrs,
   UtilityFunctions,
-  GpStuff,
+  GpStuff, GpConsole,
   DSiWin32,
   DelphiLens.OTAUtils,
   DelphiLensUI.Worker,
@@ -66,7 +66,12 @@ type
 
 procedure LoggerHook(projectID: integer; const msg: PChar); stdcall;
 begin
+  try
   Log(lcHook, string(msg));
+  except
+    on E: Exception do
+      Console.Writeln(['[hook] *** ', E.ClassName, ': ', E.Message]);
+  end;
 end; { LoggerHook }
 
 { TDelphiLensProxy }

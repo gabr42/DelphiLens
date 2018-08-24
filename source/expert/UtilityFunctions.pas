@@ -218,16 +218,20 @@ Procedure OutputMessage(strText : String; strGroupName : String);
 
 Var
   Group : IOTAMessageGroup;
+  msgSvc: IOTAMessageServices;
 
 Begin
-  If Application.MainForm.Visible Then
-    With (BorlandIDEServices As IOTAMessageServices) Do
-      Begin
-        Group := GetGroup(strGroupName);
-        If Group = Nil Then
-          Group := AddMessageGroup(strGroupName);
-        AddTitleMessage(strText, Group);
-      End;
+  If assigned(Application) and assigned(Application.MainForm) and Application.MainForm.Visible Then
+  Begin
+    msgSvc := BorlandIDEServices As IOTAMessageServices;
+    If assigned(msgSvc) Then
+    Begin
+      Group := msgSvc.GetGroup(strGroupName);
+      If Group = Nil Then
+        Group := msgSvc.AddMessageGroup(strGroupName);
+      msgSvc.AddTitleMessage(strText, Group);
+    End;
+  End;
 End;
 {$ENDIF}
 
